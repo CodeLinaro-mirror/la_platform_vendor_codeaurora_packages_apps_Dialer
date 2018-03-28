@@ -64,7 +64,8 @@ public class CallUtil {
    */
   @SuppressLint("MissingPermission")
   public static int getVideoCallingAvailability(Context context) {
-    if (!PermissionsUtil.hasPermission(context, android.Manifest.permission.READ_PHONE_STATE)) {
+        if (!PermissionsUtil.hasPermission(context, android.Manifest.permission.READ_PHONE_STATE)
+        || SystemProperties.getBoolean("ro.product.qti.qcom_watch", false)) {
       return VIDEO_CALLING_DISABLED;
     }
     TelecomManager telecommMgr = (TelecomManager) context.getSystemService(Context.TELECOM_SERVICE);
