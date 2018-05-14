@@ -326,6 +326,10 @@ public class InCallActivityCommon {
     InCallPresenter.getInstance().updateIsChangingConfigurations();
     Activity activity = InCallPresenter.getInstance().getActivity();
     if (activity == null || activity == inCallActivity) {
+      if (dialog != null && dialog.isShowing()) {
+        dialog.dismiss();
+        dialog = null;
+      }
       InCallPresenter.getInstance().onActivityStopped();
     } else {
       LogUtil.i("InCallActivityCommon.onStop", "Another activity already set.Ignore.");
@@ -846,6 +850,11 @@ public class InCallActivityCommon {
       }
 
       dismissKeyguard(true);
+
+      if (dialog != null && dialog.isShowing()) {
+        dialog.dismiss();
+        dialog = null;
+      }
     }
 
     boolean didShowAccountSelectionDialog = maybeShowAccountSelectionDialog();
