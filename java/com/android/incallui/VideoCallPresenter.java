@@ -532,6 +532,7 @@ public class VideoCallPresenter
       maybeUnsetPauseImage();
       updateCameraSelection(mPrimaryCall);
     }
+    InCallPresenter.getInstance().enableScreenTimeout(true);
 
     mVideoCallScreen = null;
     isVideoCallScreenUiReady = false;
