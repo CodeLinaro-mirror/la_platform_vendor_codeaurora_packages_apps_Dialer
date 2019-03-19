@@ -16,6 +16,7 @@
 
 package com.android.incallui.videotech.ims;
 
+import android.content.Context;
 import android.os.Handler;
 import android.telecom.Call;
 import android.telecom.Connection;
@@ -42,17 +43,20 @@ public class ImsVideoCallCallback extends VideoCall.Callback {
   private final Call call;
   private final ImsVideoTech videoTech;
   private final VideoTechListener listener;
+  private final Context context;
   private int requestedVideoState = VideoProfile.STATE_AUDIO_ONLY;
 
   ImsVideoCallCallback(
       final LoggingBindings logger,
       final Call call,
       ImsVideoTech videoTech,
-      VideoTechListener listener) {
+      VideoTechListener listener,
+      Context context) {
     this.logger = logger;
     this.call = call;
     this.videoTech = videoTech;
     this.listener = listener;
+    this.context = context;
   }
 
   @Override
@@ -81,7 +85,6 @@ public class ImsVideoCallCallback extends VideoCall.Callback {
   /**
    * @param status Status of the session modify request. Valid values are {@link
    *     Connection.VideoProvider#SESSION_MODIFY_REQUEST_SUCCESS}, {@link
-
    *     Connection.VideoProvider#SESSION_MODIFY_REQUEST_FAIL}, {@link
    *     Connection.VideoProvider#SESSION_MODIFY_REQUEST_INVALID}
    * @param responseProfile The actual profile changes made by the peer device.
@@ -109,23 +112,23 @@ public class ImsVideoCallCallback extends VideoCall.Callback {
         // Vt-Tx only is received. Camera direction is set to a proper value
         // based on the call type in VideoCallPresenter after call is modified.
         if (requestedProfile != null
-               && QtiCallUtils.isVideoTxOnly(requestedProfile.getVideoState())
-               && responseProfile != null
-               && QtiCallUtils.isVideoTxOnly(responseProfile.getVideoState())) {
-            final PrimaryCallTracker primaryCallTracker =
-               BottomSheetHelper.getInstance().getPrimaryCallTracker();
-            if (primaryCallTracker != null) {
-                final DialerCall dialerCall = primaryCallTracker.getPrimaryCall();
-                if (dialerCall != null) {
-                   dialerCall.setCameraDir(CameraDirection.CAMERA_DIRECTION_UNKNOWN);
-                } else{
-                   LogUtil.e("ImsVideoCallCallback.onSessionModifyResponseReceived",
-                      "error setting cam dir Call is null");
-                }
+            && QtiCallUtils.isVideoTxOnly(requestedProfile.getVideoState())
+            && responseProfile != null
+            && QtiCallUtils.isVideoTxOnly(responseProfile.getVideoState())) {
+          final PrimaryCallTracker primaryCallTracker =
+              BottomSheetHelper.getInstance().getPrimaryCallTracker();
+          if (primaryCallTracker != null) {
+            final DialerCall dialerCall = primaryCallTracker.getPrimaryCall();
+            if (dialerCall != null) {
+              dialerCall.setCameraDir(CameraDirection.CAMERA_DIRECTION_UNKNOWN);
             } else {
-               LogUtil.e("ImsVideoCallCallback.onSessionModifyResponseReceived",
-               "error setting cam dir as primaryCallTracker is null: ");
+              LogUtil.e("ImsVideoCallCallback.onSessionModifyResponseReceived",
+                  "error setting cam dir Call is null");
             }
+          } else {
+            LogUtil.e("ImsVideoCallCallback.onSessionModifyResponseReceived",
+                "error setting cam dir as primaryCallTracker is null");
+          }
         }
       } else {
         // This will update the video UI to display the error message.

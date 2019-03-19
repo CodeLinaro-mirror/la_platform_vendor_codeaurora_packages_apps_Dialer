@@ -46,7 +46,6 @@ import java.util.Map;
  * <p>When refreshing pinned shortcuts, we check to make sure that pinned contact information is
  * still up to date (e.g. photo and name). We also check to see if the contact has been deleted from
  * the user's contacts, and if so, we disable the pinned shortcut.
- *
  */
 @TargetApi(VERSION_CODES.N_MR1) // Shortcuts introduced in N MR1
 final class PinnedShortcuts {
@@ -107,6 +106,14 @@ final class PinnedShortcuts {
         // setRank is nonsensical for pinned shortcuts and therefore could not be calculated.
         continue;
       }
+      // Exclude shortcuts not for contacts.
+      String action = null;
+      if (shortcutInfo.getIntent() != null) {
+        action = shortcutInfo.getIntent().getAction();
+      }
+      if (action == null || !action.equals("com.android.dialer.shortcuts.CALL_CONTACT")) {
+        continue;
+      }
 
       String lookupKey = DialerShortcut.getLookupKeyFromShortcutInfo(shortcutInfo);
       Uri lookupUri = DialerShortcut.getLookupUriFromShortcutInfo(shortcutInfo);
@@ -145,7 +152,8 @@ final class PinnedShortcuts {
     String shortcutDisabledMessage =
         context.getResources().getString(R.string.dialer_shortcut_disabled_message);
     if (!delta.shortcutIdsToDisable.isEmpty()) {
-      shortcutManager.disableShortcuts(delta.shortcutIdsToDisable, shortcutDisabledMessage);
+      shortcutManager.disableShortcuts(delta.shortcutIdsToDisable,
+          (CharSequence) shortcutDisabledMessage);
     }
     if (!delta.shortcutsToUpdateById.isEmpty()) {
       // Note: This call updates both pinned and dynamic shortcuts, but the delta should contain
