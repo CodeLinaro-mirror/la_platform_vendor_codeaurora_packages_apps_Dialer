@@ -118,6 +118,8 @@ public class CallLogFragment extends Fragment
   // See issue 6363009
   private final ContentObserver callLogObserver = new CustomContentObserver();
   private final ContentObserver contactsObserver = new CustomContentObserver();
+  private boolean isCallLogObserverRegistered = false;
+  private boolean isContactsObserverRegistered = false;
   private View multiSelectUnSelectAllViewContent;
   private TextView selectUnselectAllViewText;
   private ImageView selectUnselectAllIcon;
@@ -177,17 +179,19 @@ public class CallLogFragment extends Fragment
   // Key for the call log sub saved in the default preference
   private static final String PREFERENCE_KEY_CALLLOG_SLOT = "call_log_slot";
   private static final int INVALID_SIM_SLOT_INDEX = -1;
-  // Default to all slots
-  private int callSlotFilter = INVALID_SIM_SLOT_INDEX;
+  private SpinnerContent currentSlotSpinner = null;
   private boolean isFilteringSupported;
   private OnItemSelectedListener slotSelectedListener = new OnItemSelectedListener() {
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
       LogUtil.d("Slot selected, position: " + position, toString());
-      int slot = position - 1;
-      if (slot != callSlotFilter) {
-        callSlotFilter = slot;
-        setSelectedSlotId(slot);
+      final SpinnerContent selectedSpinner =
+          (SpinnerContent)parent.getItemAtPosition(position);
+      if (currentSlotSpinner == null
+          || (currentSlotSpinner != null
+              && currentSlotSpinner.value != selectedSpinner.value)) {
+        currentSlotSpinner = selectedSpinner;
+        setSelectedSlotId(position - 1);
         fetchCalls();
       }
     }
@@ -279,6 +283,38 @@ public class CallLogFragment extends Fragment
     final ContentResolver resolver = activity.getContentResolver();
     callLogQueryHandler = new CallLogQueryHandler(activity, resolver, this, logLimit);
     setHasOptionsMenu(true);
+  }
+
+  private void registerCallLogAndContactsObserver() {
+    final ContentResolver resolver = getActivity().getContentResolver();
+    if (!isCallLogObserverRegistered
+        && PermissionsUtil.hasCallLogReadPermissions(getContext())) {
+      isCallLogObserverRegistered = true;
+      refreshDataRequired = true;
+      resolver.registerContentObserver(CallLog.CONTENT_URI, true, callLogObserver);
+    } else {
+      LogUtil.w("CallLogFragment", "observer registered, or call log permission not available");
+    }
+    if (!isContactsObserverRegistered
+        && PermissionsUtil.hasContactsReadPermissions(getContext())) {
+      isContactsObserverRegistered = true;
+      refreshDataRequired = true;
+      resolver.registerContentObserver(
+          ContactsContract.Contacts.CONTENT_URI, true, contactsObserver);
+    } else {
+      LogUtil.w("CallLogFragment", "observer registered, contacts permission not available.");
+    }
+  }
+
+  private void unregisterCallLogAndContactsObserver() {
+    if (isCallLogObserverRegistered) {
+      getActivity().getContentResolver().unregisterContentObserver(callLogObserver);
+      isCallLogObserverRegistered = false;
+    }
+    if (isContactsObserverRegistered) {
+      getActivity().getContentResolver().unregisterContentObserver(contactsObserver);
+      isContactsObserverRegistered = false;
+    }
   }
 
   /** Called by the CallLogQueryHandler when the list of calls has been fetched or updated. */
@@ -464,20 +500,7 @@ public class CallLogFragment extends Fragment
       refreshDataRequired = true;
       updateEmptyMessage(callTypeFilter);
     }
-
-    ContentResolver resolver = getActivity().getContentResolver();
-    if (PermissionsUtil.hasCallLogReadPermissions(getContext())) {
-      resolver.registerContentObserver(CallLog.CONTENT_URI, true, callLogObserver);
-    } else {
-      LogUtil.w("CallLogFragment.onCreate", "call log permission not available");
-    }
-    if (PermissionsUtil.hasContactsReadPermissions(getContext())) {
-      resolver.registerContentObserver(
-          ContactsContract.Contacts.CONTENT_URI, true, contactsObserver);
-    } else {
-      LogUtil.w("CallLogFragment.onCreate", "contacts permission not available.");
-    }
-
+    registerCallLogAndContactsObserver();
     this.hasReadCallLogPermission = hasReadCallLogPermission;
 
     /*
@@ -498,8 +521,6 @@ public class CallLogFragment extends Fragment
   @Override
   public void onPause() {
     LogUtil.enterBlock("CallLogFragment.onPause");
-    getActivity().getContentResolver().unregisterContentObserver(callLogObserver);
-    getActivity().getContentResolver().unregisterContentObserver(contactsObserver);
     if (getUserVisibleHint()) {
       onNotVisible();
     }
@@ -530,6 +551,7 @@ public class CallLogFragment extends Fragment
   @Override
   public void onDestroy() {
     LogUtil.enterBlock("CallLogFragment.onDestroy");
+    unregisterCallLogAndContactsObserver();
     if (adapter != null) {
       adapter.changeCursor(null);
     }
@@ -554,13 +576,8 @@ public class CallLogFragment extends Fragment
   @Override
   public void fetchCalls() {
     if (isFilteringSupported) {
-      if (callSlotFilter != INVALID_SIM_SLOT_INDEX) {
-        SubscriptionInfo subInfo = SubscriptionManager.from(getActivity())
-            .getActiveSubscriptionInfoForSimSlotIndex(callSlotFilter);
-        if (subInfo != null) {
-          callLogQueryHandler.fetchCalls(callTypeFilter, dateLimit,
-              subInfo.getIccId());
-        }
+      if (currentSlotSpinner != null && currentSlotSpinner.value != INVALID_SIM_SLOT_INDEX) {
+        callLogQueryHandler.fetchCalls(callTypeFilter, dateLimit, currentSlotSpinner.accountId);
       } else {
         callLogQueryHandler.fetchCalls(callTypeFilter, dateLimit);
       }
@@ -675,6 +692,7 @@ public class CallLogFragment extends Fragment
       if (grantResults.length >= 1 && PackageManager.PERMISSION_GRANTED == grantResults[0]) {
         // Force a refresh of the data since we were missing the permission before this.
         refreshDataRequired = true;
+        registerCallLogAndContactsObserver();
       }
     }
   }
@@ -824,10 +842,9 @@ public class CallLogFragment extends Fragment
       if (filterSlotAdapter.getCount() <= 1) {
         filterSlotSpinnerView.setVisibility(View.GONE);
       } else{
-        callSlotFilter = getSelectedSlotId();
         filterSlotSpinnerView.setAdapter(filterSlotAdapter);
         filterSlotSpinnerView.setOnItemSelectedListener(slotSelectedListener);
-        SpinnerContent.setSpinnerContentValue(filterSlotSpinnerView, callSlotFilter);
+        SpinnerContent.setSpinnerContentValue(filterSlotSpinnerView, getSelectedSlotId());
       }
     }
     // Update the status filter's content.
