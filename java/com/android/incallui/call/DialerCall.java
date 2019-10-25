@@ -172,7 +172,8 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   // Times when a second call is received but AnswerAndRelease button is not shown
   // since it's not supported.
   private int secondCallWithoutAnswerAndReleasedButtonTimes = 0;
-
+  private boolean isVideoCall = false;
+  private boolean overwriteDisconnectCause = false;
   public static String getNumberFromHandle(Uri handle) {
     return handle == null ? "" : handle.getSchemeSpecificPart();
   }
@@ -515,11 +516,30 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     LogUtil.v("DialerCall.updateFromTelecomCall", mTelecomCall.toString());
 
     mVideoTechManager.dispatchCallStateChanged(mTelecomCall.getState());
-
+    final int oldState = getState();
     final int translatedState = translateState(mTelecomCall.getState());
+    if (!isVideoCall) {
+      isVideoCall = isVideoCall();
+    }
+    if (!overwriteDisconnectCause) {
+      overwriteDisconnectCause = (State.isDialing(oldState)
+          || oldState==State.CONNECTING)
+          && (translatedState == State.DISCONNECTED)
+          && isVideoCall
+          && QtiImsExtUtils.isCarrierConfigEnabled(BottomSheetHelper.getInstance()
+          .getPhoneId(), mContext, "notify_video_call_failed");
+    }
     if (mState != State.BLOCKED) {
       setState(translatedState);
       setDisconnectCause(mTelecomCall.getDetails().getDisconnectCause());
+      if (overwriteDisconnectCause) {
+        setDisconnectCause(new DisconnectCause(
+            mDisconnectCause.getCode(),
+            mContext.getString(R.string.incall_video_call_failed),
+            mDisconnectCause.getDescription(),
+            mDisconnectCause.getReason(),
+            mDisconnectCause.getTone()));
+      }
     }
 
     mChildCallIds.clear();
