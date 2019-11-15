@@ -37,4 +37,5 @@
     <string name="contact_grid_incoming_via_template" msgid="7747391077955623969">"有人通过 <xliff:g id="PROVIDER_NAME">%s</xliff:g> 来电"</string>
     <string name="contact_grid_incoming_suspected_spam" msgid="285365265897630425">"疑似骚扰电话号码："</string>
     <string name="contact_grid_callback_number" msgid="1284649030313415807">"回拨号码：<xliff:g id="DARK_NUMBER">%1$s</xliff:g>"</string>
+    <string name="incall_video_call_failed">"视频呼叫失败"</string>
 </resources>
