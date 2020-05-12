@@ -1036,8 +1036,9 @@ public class AnswerFragment extends Fragment
   private void acceptCallByUser(boolean answerVideoAsAudio) {
     LogUtil.i("AnswerFragment.acceptCallByUser", answerVideoAsAudio ? " answerVideoAsAudio" : "");
     if (!buttonAcceptClicked) {
-      if (allowAnswerAndRelease()) {
-        performAnswerAndRelease(true);
+      DialerCall call = QtiCallUtils.getIncomingCall();
+      if (call != null && call.answeringDisconnectsOtherCall()) {
+        performAnswerAndRelease(answerVideoAsAudio);
       } else {
         answerScreenDelegate.onAnswer(answerVideoAsAudio);
       }
