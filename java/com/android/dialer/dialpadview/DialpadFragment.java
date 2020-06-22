@@ -1199,6 +1199,8 @@ public class DialpadFragment extends Fragment
    * described above).
    */
   private void handleDialButtonPressed() {
+    LogUtil.enterBlock("DialpadFragment.handleDialButtonPressed");
+
     if (isDigitsEmpty()) { // No number entered.
       // No real call made, so treat it as a click
       PerformanceReport.recordClick(UiAction.Type.PRESS_CALL_BUTTON_WITHOUT_CALLING);
@@ -1225,7 +1227,10 @@ public class DialpadFragment extends Fragment
         // Clear the digits just in case.
         clearDialpad();
       } else {
-        PreCall.start(getContext(), new CallIntentBuilder(number, CallInitiationType.Type.DIALPAD));
+        CallIntentBuilder builder = new CallIntentBuilder(number, CallInitiationType.Type.DIALPAD);
+        DialerUtils.maybeAddCallComposerExtras(getActivity().getContentResolver(),
+            builder.getInCallUiIntentExtras());
+        PreCall.start(getContext(), builder);
         hideAndClearDialpad();
       }
     }
