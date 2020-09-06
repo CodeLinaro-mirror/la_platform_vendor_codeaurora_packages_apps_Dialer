@@ -477,6 +477,11 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
     }
 
     @Override
+    public void onSipDtmfChanged(int bitMask) {
+      //No-op
+    }
+
+    @Override
     public void onPrimaryCallChanged(DialerCall call) {
       LogUtil.d("BottomSheetHelper.onPrimaryCallChanged", "");
       dismissBottomSheet();
@@ -656,14 +661,15 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    }
 
    private void maybeUpdateDialpadOptionInMap() {
-     // Enable dialpad option in bottomsheet only for video calls.
+     // Enable dialpad option in bottomsheet for video calls or video CRS.
      // When video call is held, UI displays onscreen dialpad button
      // similar to volte calls.
      final int primaryCallState = mCall.getNonConferenceState();
-     final boolean enable = mCall.isVideoCall()
-         && primaryCallState != DialerCallState.INCOMING
-         && primaryCallState != DialerCallState.CALL_WAITING
-         && primaryCallState != DialerCallState.ONHOLD;
+     final boolean enable = (mCall.isVideoCall()
+             && primaryCallState != DialerCallState.INCOMING
+             && primaryCallState != DialerCallState.CALL_WAITING
+             && primaryCallState != DialerCallState.ONHOLD)
+         || QtiCallUtils.isVideoCrs(mCall);
      moreOptionsMap.put(mResources.getString(R.string.dialpad_label), enable);
    }
 

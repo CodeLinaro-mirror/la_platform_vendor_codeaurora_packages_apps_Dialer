@@ -166,6 +166,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="cancel_upgrade">Cancel Upgrade</string>
     <string name="not_cancel">Not Cancel</string>
 
+    <!-- Displayed in the answer call screen for incoming video CRS calls. -->
+    <string name="incoming_video_crs_call">Video CRS Receive call from</string>
+
     <!-- Displayed in the answer call screen for incoming video rx calls. -->
     <string name="incoming_video_rx_call">Video Receive call from</string>
 

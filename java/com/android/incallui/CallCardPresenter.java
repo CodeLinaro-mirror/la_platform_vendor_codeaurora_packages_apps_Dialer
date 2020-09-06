@@ -1105,6 +1105,11 @@ public class CallCardPresenter
    //No-op
   }
 
+  @Override
+  public void onSipDtmfChanged(int bitMask) {
+   //No-op
+  }
+
   private boolean shouldShowEndCallButton(DialerCall primary, int callState) {
     if (primary == null) {
       return false;
