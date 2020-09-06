@@ -288,6 +288,9 @@ public class CallPendingActivity extends FragmentActivity
           public void swapSimClicked() {}
 
           @Override
+          public void sendSipDtmfClicked(int buttonId) {}
+
+          @Override
           public Context getContext() {
             return CallPendingActivity.this;
           }
