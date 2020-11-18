@@ -500,8 +500,9 @@ public class CallCardPresenter
       // The contact photo visibility can also change in setPrimary().
       boolean shouldShowContactPhoto =
           !VideoCallPresenter.showIncomingVideo(primary.getVideoState(), primary.getState());
-      getUi()
-          .setCallState(
+      try {
+         getUi()
+           .setCallState(
               PrimaryCallState.builder()
                   .setState(primary.getState())
                   .setIsVideoCall(!QtiCallUtils.hasVideoCrbtVoLteCall(context, primary)
@@ -540,6 +541,10 @@ public class CallCardPresenter
                   .setCustomLabel(null)
                   .setAssistedDialingExtras(primary.getAssistedDialingExtras())
                   .build());
+      } catch (Exception e) {
+          LogUtil.e("CallCardPresenter.updatePrimaryCallState",
+                  "exception while setting callback number", e);
+      }
 
       InCallActivity activity =
           (InCallActivity) (inCallScreen.getInCallScreenFragment().getActivity());
