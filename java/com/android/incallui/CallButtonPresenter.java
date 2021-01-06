@@ -357,6 +357,12 @@ public class CallButtonPresenter
   }
 
   @Override
+  public void downgradeRttCall() {
+    LogUtil.enterBlock("CallButtonPresenter.downgradeRttCall");
+    call.sendRttDowngradeRequest();
+  }
+
+  @Override
   public void onEndCallClicked() {
     LogUtil.i("CallButtonPresenter.onEndCallClicked", "call: " + call);
     if (call != null) {
@@ -517,6 +523,13 @@ public class CallButtonPresenter
                 .noneMatch(c -> c != null && c.isSpeakEasyCall())
             && call.can(android.telecom.Call.Details.CAPABILITY_MERGE_CONFERENCE)
             && !call.hasSentVideoUpgradeRequest();
+    final boolean isRttMergeSupported = QtiImsExtUtils.isRttMergeSupported(
+                                          BottomSheetHelper.getInstance().getPhoneId(),
+                                          context);
+    final boolean showDowngradeRtt = call.isActiveRttCall() &&
+                                     QtiImsExtUtils.isRttDowngradeSupported(
+                                             BottomSheetHelper.getInstance().getPhoneId(),
+                                             context);
     final boolean useExt = QtiCallUtils.useExt(context);
     final boolean showUpgradeToVideo = !isVideo && (hasVideoCallCapabilities(call)) && !useExt;
     final boolean showDowngradeToAudio = isVideo && isDowngradeToAudioSupported(call) && !useExt;
@@ -565,7 +578,10 @@ public class CallButtonPresenter
       inCallButtonUi.setVideoPaused(!call.getVideoTech().isTransmitting() || !hasCameraPermission);
     }
     inCallButtonUi.showButton(InCallButtonIds.BUTTON_DIALPAD, true);
-    inCallButtonUi.showButton(InCallButtonIds.BUTTON_MERGE, showMerge);
+    inCallButtonUi.showButton(InCallButtonIds.BUTTON_MERGE,
+                              call.isActiveRttCall() ? (showMerge && isRttMergeSupported)
+                                                     : showMerge);
+    inCallButtonUi.showButton(InCallButtonIds.BUTTON_DOWNGRADE_TO_VOICE, showDowngradeRtt);
 
     inCallButtonUi.updateButtonStates();
     if (BottomSheetHelper.getInstance().shallShowMoreButton(getActivity())) {

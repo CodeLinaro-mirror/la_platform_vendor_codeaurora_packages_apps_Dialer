@@ -47,6 +47,8 @@ public interface InCallButtonUiDelegate {
 
   void changeToRttClicked();
 
+  void downgradeRttCall();
+
   void switchCameraClicked(boolean useFrontFacingCamera);
 
   void toggleCameraClicked();

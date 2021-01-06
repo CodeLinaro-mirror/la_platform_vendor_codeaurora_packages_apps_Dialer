@@ -73,4 +73,7 @@
        [CHAR LIMIT=32] -->
   <string name="incall_note_sent">Note sent</string>
 
+  <!-- Button shown during RTT call to downgrade to voice call -->
+  <string name="incall_label_downgrade">Voice</string>
+
 </resources>

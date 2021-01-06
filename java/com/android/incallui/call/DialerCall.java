@@ -1204,15 +1204,16 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     if (isConferenceCall()) {
       return false;
     }
-    if (CallList.getInstance().hasActiveRttCall()) {
-      return false;
-    }
     return true;
   }
 
   @TargetApi(28)
   public void sendRttUpgradeRequest() {
     getTelecomCall().sendRttRequest();
+  }
+
+  public void sendRttDowngradeRequest() {
+    getTelecomCall().stopRtt();
   }
 
   @TargetApi(28)

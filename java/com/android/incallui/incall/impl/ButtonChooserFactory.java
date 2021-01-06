@@ -37,7 +37,9 @@ class ButtonChooserFactory {
    */
   public static ButtonChooser newButtonChooser(
       int voiceNetworkType, boolean isWiFi, int phoneType) {
-    if (voiceNetworkType == TelephonyManager.NETWORK_TYPE_LTE || isWiFi) {
+    if (voiceNetworkType == TelephonyManager.NETWORK_TYPE_LTE ||
+        voiceNetworkType == TelephonyManager.NETWORK_TYPE_NR ||
+        isWiFi) {
       return newImsAndWiFiButtonChooser();
     }
 
