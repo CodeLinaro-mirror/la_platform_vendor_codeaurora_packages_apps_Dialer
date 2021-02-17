@@ -33,10 +33,15 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
   private final RttCheckableButton dialpadButton;
   private final RttCheckableButton addCallButton;
   private final RttCheckableButton swapCallButton;
+  private final RttCheckableButton downgradeButton;
+  private final RttCheckableButton mergeCallButton;
+  private final RttCheckableButton holdButton;
   private final InCallButtonUiDelegate inCallButtonUiDelegate;
   private final InCallScreenDelegate inCallScreenDelegate;
   private boolean isSwitchToSecondaryButtonEnabled;
   private boolean isSwapCallButtonEnabled;
+  private boolean isMergeCallButtonEnabled;
+  private boolean isDowngradeRttButtonEnabled;
 
   RttOverflowMenu(
       Context context,
@@ -58,6 +63,8 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
     dialpadButton.setOnCheckedChangeListener(this);
     addCallButton = view.findViewById(R.id.menu_add_call);
     addCallButton.setOnClickListener(v -> this.inCallButtonUiDelegate.addCallClicked());
+    holdButton = view.findViewById(R.id.menu_hold_call);
+    holdButton.setOnCheckedChangeListener(this);
     swapCallButton = view.findViewById(R.id.menu_swap_call);
     swapCallButton.setOnClickListener(
         v -> {
@@ -66,6 +73,20 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
           }
           if (isSwitchToSecondaryButtonEnabled) {
             this.inCallScreenDelegate.onSecondaryInfoClicked();
+          }
+        });
+    downgradeButton = view.findViewById(R.id.menu_downgrade);
+    downgradeButton.setOnClickListener(
+        v -> {
+          if (isDowngradeRttButtonEnabled) {
+            this.inCallButtonUiDelegate.downgradeRttCall();
+          }
+        });
+    mergeCallButton = view.findViewById(R.id.menu_merge_call);
+    mergeCallButton.setOnClickListener(
+        v -> {
+          if (isMergeCallButtonEnabled) {
+            this.inCallButtonUiDelegate.mergeClicked();
           }
         });
   }
@@ -78,11 +99,17 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
       inCallButtonUiDelegate.toggleSpeakerphone();
     } else if (button == dialpadButton) {
       inCallButtonUiDelegate.showDialpadClicked(isChecked);
+    } else if (button == holdButton) {
+      inCallButtonUiDelegate.holdClicked(isChecked);
     }
   }
 
   void setMuteButtonChecked(boolean isChecked) {
     muteButton.setChecked(isChecked);
+  }
+
+  void setHoldButtonChecked(boolean isChecked) {
+    holdButton.setChecked(isChecked);
   }
 
   void setAudioState(CallAudioState audioState) {
@@ -117,5 +144,15 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
     isSwitchToSecondaryButtonEnabled = enabled;
     swapCallButton.setVisibility(
         isSwapCallButtonEnabled || isSwitchToSecondaryButtonEnabled ? View.VISIBLE : View.GONE);
+  }
+
+  void enableMergeCallButton(boolean enabled) {
+    isMergeCallButtonEnabled = enabled;
+    mergeCallButton.setVisibility(isMergeCallButtonEnabled ? View.VISIBLE : View.GONE);
+  }
+
+  void enableDowngradeRttButton(boolean enabled) {
+    isDowngradeRttButtonEnabled = enabled;
+    downgradeButton.setVisibility(isDowngradeRttButtonEnabled ? View.VISIBLE : View.GONE);
   }
 }

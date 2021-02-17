@@ -543,6 +543,12 @@ public class RttChatFragment extends Fragment
     if (buttonId == InCallButtonIds.BUTTON_SWAP) {
       overflowMenu.enableSwapCallButton(show);
     }
+    if (buttonId == InCallButtonIds.BUTTON_MERGE) {
+      overflowMenu.enableMergeCallButton(show);
+    }
+    if (buttonId == InCallButtonIds.BUTTON_DOWNGRADE_TO_VOICE) {
+      overflowMenu.enableDowngradeRttButton(show);
+    }
   }
 
   @Override
@@ -552,7 +558,9 @@ public class RttChatFragment extends Fragment
   public void setEnabled(boolean on) {}
 
   @Override
-  public void setHold(boolean on) {}
+  public void setHold(boolean on) {
+    overflowMenu.setHoldButtonChecked(on);
+  }
 
   @Override
   public void setCameraSwitched(boolean isBackFacingCamera) {}
