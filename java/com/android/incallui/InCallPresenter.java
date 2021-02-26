@@ -1200,6 +1200,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   public void addInCallEventListener(InCallEventListener listener) {
     Objects.requireNonNull(listener);
     inCallEventListeners.add(listener);
+    listener.onSendStaticImageStateChanged(BottomSheetHelper.getInstance().isInHideMeMode());
   }
 
   public void removeInCallEventListener(InCallEventListener listener) {

@@ -558,7 +558,7 @@ public class CallButtonPresenter
     inCallButtonUi.showButton(
         InCallButtonIds.BUTTON_SWITCH_CAMERA,
         isVideo && hasCameraPermission && call.getVideoTech().isTransmitting()
-        && !BottomSheetHelper.getInstance().isHideMeSelected()
+        && !BottomSheetHelper.getInstance().isInHideMeMode()
         && !ScreenShareHelper.screenShareRequested());
     inCallButtonUi.showButton(InCallButtonIds.BUTTON_PAUSE_VIDEO, showPauseVideo);
     if (isVideo) {
@@ -598,11 +598,9 @@ public class CallButtonPresenter
    */
   @Override
   public void onSendStaticImageStateChanged(boolean shallTransmitStaticImage) {
-    if (call == null || !QtiImsExtUtils.shallShowStaticImageUi(
-         BottomSheetHelper.getInstance().getPhoneId(), context)) {
+    if (call == null) {
        return;
      }
-
      updateButtonsState(call);
   }
 

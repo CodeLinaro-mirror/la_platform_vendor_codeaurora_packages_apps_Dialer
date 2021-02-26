@@ -1,4 +1,4 @@
-/* Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -87,6 +87,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    private static final int BLIND_TRANSFER = 0;
    private static final int ASSURED_TRANSFER = 1;
    private static final int CONSULTATIVE_TRANSFER = 2;
+   private boolean mShowStaticImageUiConfig = false;
 
    private QtiImsExtListenerBaseImpl imsInterfaceListener =
       new QtiImsExtListenerBaseImpl() {
@@ -158,6 +159,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
        mPrimaryCallTracker = null;
      }
      mIsHideMe = false;
+     mShowStaticImageUiConfig = false;
      if (mQtiImsExtConnector != null) {
        mQtiImsExtConnector.disconnect();
        mQtiImsExtConnector = null;
@@ -388,18 +390,32 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      }
    }
 
-   private void maybeUpdateHideMeInMap() {
-     if (!QtiImsExtUtils.shallShowStaticImageUi(getPhoneId(), mContext) ||
-         !VideoUtils.hasCameraPermissionAndShownPrivacyToast(mContext)) {
-       return;
-     }
+   private void notifyStaticImageStateChanged(boolean staticImageState) {
+     LogUtil.v("BottomSheetHelper.notifyStaticImageStateChanged",
+         " notifying static image changed = " + staticImageState);
+     InCallPresenter.getInstance().notifyStaticImageStateChanged(staticImageState);
+   }
 
+   private boolean isHideMeOptionVisible() {
+     if (!mShowStaticImageUiConfig ||
+         !VideoUtils.hasCameraPermissionAndShownPrivacyToast(mContext)) {
+       return false;
+     }
+     return mCall != null && mCall.isVideoCall() && mCall.getState() == DialerCallState.ACTIVE
+         && !mCall.hasReceivedVideoUpgradeRequest();
+   }
+
+   private void maybeUpdateHideMeInMap() {
      LogUtil.v("BottomSheetHelper.maybeUpdateHideMeInMap", " mIsHideMe = " + mIsHideMe);
+     boolean showStaticImageUiConfig = QtiImsExtUtils.shallShowStaticImageUi(getPhoneId(),
+         mContext);
+     if(mShowStaticImageUiConfig != showStaticImageUiConfig) {
+       mShowStaticImageUiConfig = showStaticImageUiConfig;
+       notifyStaticImageStateChanged(mShowStaticImageUiConfig && mIsHideMe);
+     }
      String hideMeText = mIsHideMe ? mResources.getString(R.string.qti_ims_hideMeText_selected) :
          mResources.getString(R.string.qti_ims_hideMeText_unselected);
-     moreOptionsMap.put(hideMeText, mCall.isVideoCall()
-         && mCall.getState() == DialerCallState.ACTIVE
-         && !mCall.hasReceivedVideoUpgradeRequest());
+     moreOptionsMap.put(hideMeText, isHideMeOptionVisible());
    }
 
    /**
@@ -422,13 +438,14 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      /* Click on hideme shall change the static image state i.e. decision
         is made in VideoCallPresenter whether to replace preview video with
         static image or whether to resume preview video streaming */
-     InCallPresenter.getInstance().notifyStaticImageStateChanged(isHideMe);
+       notifyStaticImageStateChanged(isHideMe);
    }
 
    // Returns TRUE if UE is in hide me mode else returns FALSE
-   public boolean isHideMeSelected() {
-     LogUtil.v("BottomSheetHelper.isHideMeSelected", "mIsHideMe: " + mIsHideMe);
-     return mIsHideMe;
+   public boolean isInHideMeMode() {
+     LogUtil.v("BottomSheetHelper.isInHideMeMode", "mIsHideMe: " + mIsHideMe +
+         " mShowStaticImageUiConfig: " + mShowStaticImageUiConfig);
+     return mIsHideMe && mShowStaticImageUiConfig;
    }
 
    private int getPhoneIdExtra(DialerCall call) {
