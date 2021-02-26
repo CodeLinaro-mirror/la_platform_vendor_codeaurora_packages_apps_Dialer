@@ -1268,6 +1268,10 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       proximitySensor.onInCallShowing(showing);
     }
 
+    if (statusBarNotifier != null) {
+      statusBarNotifier.updateNotification();
+    }
+
     if (showing) {
       refreshMuteState();
     } else {
