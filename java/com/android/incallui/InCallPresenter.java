@@ -420,6 +420,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     CallList.getInstance().addListener(CallSubstateNotifier.getInstance());
     OrientationModeHandler.getInstance().setUp();
     addDetailsListener(SessionModificationCauseNotifier.getInstance());
+    CallProgressNotification.getInstance().setUp(context);
 
     LogUtil.d("InCallPresenter.setUp", "Finished InCallPresenter.setUp");
     Trace.endSection();
@@ -512,6 +513,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     OrientationModeHandler.getInstance().tearDown();
     removeDetailsListener(SessionModificationCauseNotifier.getInstance());
     InCallZoomController.getInstance().tearDown();
+    CallProgressNotification.getInstance().tearDown();
   }
 
   private void attemptFinishActivity() {
