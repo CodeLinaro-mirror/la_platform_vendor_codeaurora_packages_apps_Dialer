@@ -16,7 +16,7 @@
   -->
 
 <resources>
-  <dimen name="incall_button_label_margin">8dp</dimen>
+  <dimen name="incall_button_label_margin">4dp</dimen>
   <dimen name="incall_button_elevation">0dp</dimen>
   <dimen name="incall_button_padding">4dp</dimen>
   <dimen name="incall_button_vertical_padding">8dp</dimen>
