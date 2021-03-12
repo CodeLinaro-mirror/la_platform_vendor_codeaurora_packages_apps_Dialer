@@ -58,6 +58,20 @@ public class InCallButtonIdsExtension {
       return "SWAP_SIM";
     } else if (id == InCallButtonIds.BUTTON_UPGRADE_TO_RTT) {
       return "UPGRADE_TO_RTT";
+    } else if (id == InCallButtonIds.BUTTON_LIKE) {
+      return "LIKE";
+    } else if (id == InCallButtonIds.BUTTON_SHARE) {
+      return "SHARE";
+    } else if (id == InCallButtonIds.BUTTON_FAVORITE) {
+      return "FAVORITE";
+    } else if (id == InCallButtonIds.BUTTON_COPY) {
+      return "COPY";
+    } else if (id == InCallButtonIds.BUTTON_COMMENT) {
+      return "COMMENT";
+    } else if (id == InCallButtonIds.BUTTON_DETAIL) {
+      return "DETAIL";
+    } else if (id == InCallButtonIds.BUTTON_RED_ENVELOPE) {
+      return "RED_ENVELOPE";
     } else {
       return "INVALID_BUTTON: " + id;
     }

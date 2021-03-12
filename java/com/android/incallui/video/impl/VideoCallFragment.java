@@ -154,6 +154,15 @@ public class VideoCallFragment extends Fragment
   private ImageButton swapCameraButton;
   private ImageButton addCallButton;
   private ImageButton mergeCallButton;
+  //SIP DTMF buttons
+  private CheckableImageButton likeButton;
+  private CheckableImageButton shareButton;
+  private CheckableImageButton favoriteButton;
+  private CheckableImageButton copyButton;
+  private CheckableImageButton commentButton;
+  private CheckableImageButton detailButton;
+  private CheckableImageButton moneyButton;
+
   private View switchOnHoldButton;
   private View onHoldContainer;
   private SwitchOnHoldCallController switchOnHoldCallController;
@@ -308,6 +317,20 @@ public class VideoCallFragment extends Fragment
         (ImageView) view.findViewById(R.id.videocall_remote_off_blurred_image_view);
     endCallButton = view.findViewById(R.id.videocall_end_call);
     endCallButton.setOnClickListener(this);
+    likeButton = (CheckableImageButton) view.findViewById(R.id.crs_crbt_like_button);
+    likeButton.setOnCheckedChangeListener(this);
+    shareButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_share_button);
+    shareButton.setOnCheckedChangeListener(this);
+    favoriteButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_favorite_button);
+    favoriteButton.setOnCheckedChangeListener(this);
+    copyButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_copy_button);
+    copyButton.setOnCheckedChangeListener(this);
+    commentButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_comment_button);
+    commentButton.setOnCheckedChangeListener(this);
+    detailButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_detail_button);
+    detailButton.setOnCheckedChangeListener(this);
+    moneyButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_money_button);
+    moneyButton.setOnCheckedChangeListener(this);
     moreOptionsMenuButton = view.findViewById(R.id.videocall_more_button);
     moreOptionsMenuButton.setOnClickListener(this);
     previewTextureView = (TextureView) view.findViewById(R.id.videocall_video_preview);
@@ -837,6 +860,27 @@ public class VideoCallFragment extends Fragment
       LogUtil.i("VideoCallFragment.onCheckedChanged","hold Button");
       inCallButtonUiDelegate.holdClicked(isChecked);
       videoCallScreenDelegate.resetAutoFullscreenTimer();
+    } else if (button == likeButton && !likeButton.isChecked()) {
+      likeButton.setChecked(isChecked);
+      inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_LIKE);
+    } else if (button == shareButton && !shareButton.isChecked()) {
+      shareButton.setChecked(isChecked);
+      inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_SHARE);
+    } else if (button == favoriteButton && !favoriteButton.isChecked()) {
+      favoriteButton.setChecked(isChecked);
+      inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_FAVORITE);
+    } else if (button == copyButton && !copyButton.isChecked()) {
+      copyButton.setChecked(isChecked);
+      inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_COPY);
+    } else if (button == commentButton && !commentButton.isChecked()) {
+      commentButton.setChecked(isChecked);
+      inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_COMMENT);
+    } else if (button == detailButton && !detailButton.isChecked()) {
+      detailButton.setChecked(isChecked);
+      inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_DETAIL);
+    } else if (button == moneyButton && !moneyButton.isChecked()) {
+      moneyButton.setChecked(isChecked);
+      inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_RED_ENVELOPE);
     }
   }
 
@@ -1095,6 +1139,7 @@ public class VideoCallFragment extends Fragment
         show);
     BottomSheetHelper bottomSheetHelper = BottomSheetHelper.getInstance();
     boolean isDialpadVisible = InCallPresenter.getInstance().isDialpadVisible();
+    boolean isCrbtReady = videoCallScreenDelegate.isIncomingVideoAvailableForEarlyMedia();
     bottomSheetHelper.updateMoreButtonVisibility(
         isDialpadVisible ? false : bottomSheetHelper.shallShowMoreButton(getActivity()),
         moreOptionsMenuButton);
@@ -1118,6 +1163,20 @@ public class VideoCallFragment extends Fragment
       mergeCallButton.setVisibility(show ? View.VISIBLE : View.GONE);
     } else if (buttonId == InCallButtonIds.BUTTON_HOLD) {
       holdButton.setVisibility(show ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_LIKE) {
+      likeButton.setVisibility((show && isCrbtReady) ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_SHARE) {
+      shareButton.setVisibility((show && isCrbtReady)? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_FAVORITE) {
+      favoriteButton.setVisibility((show && isCrbtReady) ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_COPY) {
+      copyButton.setVisibility((show && isCrbtReady) ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_COMMENT) {
+      commentButton.setVisibility((show && isCrbtReady) ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_DETAIL) {
+      detailButton.setVisibility((show &&isCrbtReady) ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_RED_ENVELOPE) {
+      moneyButton.setVisibility((show && isCrbtReady) ? View.VISIBLE : View.GONE);
     }
   }
 
