@@ -219,6 +219,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   public static String getNumberFromHandle(Uri handle) {
     return handle == null ? "" : handle.getSchemeSpecificPart();
   }
+  private boolean wasConferenceCall = false;
 
   /**
    * Whether the call is put on hold by remote party. This is different than the {@link
@@ -270,6 +271,12 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
         public void onDetailsChanged(Call call, Call.Details details) {
           LogUtil.v(
               "TelecomCallCallback.onDetailsChanged", " call=" + call + " details=" + details);
+          if (isConferenceCall()) {
+              // As per AOSP code, telephony emulates single participant
+              // conference call as single party call hence set this
+              // variable if call is a conference call.
+              wasConferenceCall = true;
+          }
           update();
         }
 
@@ -1201,7 +1208,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     if (isVideoCall()) {
       return false;
     }
-    if (isConferenceCall()) {
+    if (isConferenceCall() || wasConferenceCall) {
       return false;
     }
     return true;
