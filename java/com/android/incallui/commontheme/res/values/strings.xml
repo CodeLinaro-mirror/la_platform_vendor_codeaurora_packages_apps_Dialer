@@ -60,4 +60,12 @@
      [CHAR LIMIT=12] -->
   <string name="incall_label_audio">Sound</string>
 
+  <string name="crs_crbt_description_like">Like</string>
+  <string name="crs_crbt_description_share">Share</string>
+  <string name="crs_crbt_description_favorite">Favorite</string>
+  <string name="crs_crbt_description_copy">Copy</string>
+  <string name="crs_crbt_description_comment">Comment</string>
+  <string name="crs_crbt_description_detail">Detail</string>
+  <string name="crs_crbt_description_money">Red Envelope</string>
+
 </resources>
