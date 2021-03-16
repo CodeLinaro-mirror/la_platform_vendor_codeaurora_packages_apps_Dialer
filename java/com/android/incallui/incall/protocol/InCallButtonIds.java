@@ -39,7 +39,14 @@ import java.lang.annotation.RetentionPolicy;
   InCallButtonIds.BUTTON_SWITCH_TO_SECONDARY,
   InCallButtonIds.BUTTON_SWAP_SIM,
   InCallButtonIds.BUTTON_COUNT,
-  InCallButtonIds.BUTTON_UPGRADE_TO_RTT
+  InCallButtonIds.BUTTON_UPGRADE_TO_RTT,
+  InCallButtonIds.BUTTON_LIKE,
+  InCallButtonIds.BUTTON_SHARE,
+  InCallButtonIds.BUTTON_FAVORITE,
+  InCallButtonIds.BUTTON_COPY,
+  InCallButtonIds.BUTTON_COMMENT,
+  InCallButtonIds.BUTTON_DETAIL,
+  InCallButtonIds.BUTTON_RED_ENVELOPE
 })
 public @interface InCallButtonIds {
 
@@ -60,4 +67,11 @@ public @interface InCallButtonIds {
   int BUTTON_SWAP_SIM = 14;
   int BUTTON_COUNT = 15;
   int BUTTON_UPGRADE_TO_RTT = 16;
+  int BUTTON_LIKE = 17;
+  int BUTTON_SHARE = 18;
+  int BUTTON_FAVORITE = 19;
+  int BUTTON_COPY = 20;
+  int BUTTON_COMMENT = 21;
+  int BUTTON_DETAIL = 22;
+  int BUTTON_RED_ENVELOPE = 23;
 }

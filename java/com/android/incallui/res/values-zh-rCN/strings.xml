@@ -119,4 +119,6 @@
   <string name="call_progress_info_call_rejected">对方通话中，请稍后再拨</string>
   <string name="call_progress_info_user_call_rejected">您的号码已停机</string>
   <string name="call_progress_info_nonuser_call_rejected">您拨打的号码已停机</string>
+  <!-- Displayed in the answer call screen for incoming video CRS calls. -->
+  <string name="incoming_video_crs_call">正在播放视频彩振</string>
 </resources>
