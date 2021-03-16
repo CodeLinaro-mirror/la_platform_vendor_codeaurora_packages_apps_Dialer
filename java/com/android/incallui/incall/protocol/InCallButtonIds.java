@@ -40,7 +40,7 @@ import java.lang.annotation.RetentionPolicy;
   InCallButtonIds.BUTTON_SWAP_SIM,
   InCallButtonIds.BUTTON_COUNT,
   InCallButtonIds.BUTTON_UPGRADE_TO_RTT,
-  InCallButtonIds.BUTTON_DOWNGRADE_TO_VOICE
+  InCallButtonIds.BUTTON_DOWNGRADE_TO_VOICE,
   InCallButtonIds.BUTTON_LIKE,
   InCallButtonIds.BUTTON_SHARE,
   InCallButtonIds.BUTTON_FAVORITE,
