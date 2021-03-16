@@ -1126,10 +1126,10 @@ public class AnswerFragment extends Fragment
 
   @Override
   public void answerFromMethod() {
-    if (!getArguments().getBoolean(ARG_IS_VIDEO_ORIGINALLY)) {
-        acceptCallByUser(true /* answerVideoAsAudio */);
-    } else {
+    if (isVideoUpgradeRequest() || getArguments().getBoolean(ARG_IS_VIDEO_ORIGINALLY)) {
         acceptCallByUser(false /* answerVideoAsAudio */);
+    } else {
+        acceptCallByUser(true /* answerVideoAsAudio */);
     }
   }
 
