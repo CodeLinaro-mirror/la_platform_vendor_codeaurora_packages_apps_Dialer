@@ -465,7 +465,7 @@ public class StatusBarNotifier
       addSpeakerAction(builder, callAudioState);
     } else if (state == DialerCallState.INCOMING || state == DialerCallState.CALL_WAITING) {
       addDismissAction(builder);
-      if (call.isVideoCall()) {
+      if (call.isVideoCall() && QtiCallUtils.isVideoCallOriginally(call)) {
         addVideoCallAction(builder);
       } else {
         addAnswerAction(builder);
@@ -672,7 +672,7 @@ public class StatusBarNotifier
       return R.drawable.quantum_ic_phone_paused_vd_theme_24;
     } else if (call.getVideoTech().getSessionModificationState()
             == SessionModificationState.RECEIVED_UPGRADE_TO_VIDEO_REQUEST
-        || call.isVideoCall()) {
+            || (call.isVideoCall() && QtiCallUtils.isVideoCallOriginally(call))) {
       return R.drawable.quantum_ic_videocam_vd_white_24;
     } else if (call.hasProperty(PROPERTY_HIGH_DEF_AUDIO)
         && MotorolaUtils.shouldShowHdIconInNotification(context)) {
@@ -724,7 +724,7 @@ public class StatusBarNotifier
         resId = R.string.notification_incoming_call_wifi_template;
       } else if (call.getAccountHandle() != null && hasMultiplePhoneAccounts(call)) {
         return getMultiSimIncomingText(call);
-      } else if (call.isVideoCall()) {
+      } else if (call.isVideoCall() && QtiCallUtils.isVideoCallOriginally(call)) {
         resId = R.string.notification_incoming_video_call;
       } else {
         resId = R.string.notification_incoming_call;
