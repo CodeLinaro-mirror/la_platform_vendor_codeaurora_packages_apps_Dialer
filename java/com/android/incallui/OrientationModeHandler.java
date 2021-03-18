@@ -263,4 +263,9 @@ public class OrientationModeHandler implements InCallDetailsListener, InCallUiLi
 
     @Override
     public void onOutgoingVideoSourceChanged(int videoSource) {}
+
+    @Override
+    public void onSipDtmfChanged(int bitMask) {
+      //No-op
+    }
 }

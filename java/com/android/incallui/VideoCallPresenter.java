@@ -839,6 +839,12 @@ public class VideoCallPresenter
     }
   }
 
+
+  @Override
+  public void onSipDtmfChanged(int bitMask) {
+    //No-op
+  }
+
   private void enterScreenShare() {
     LogUtil.i("VideoCallPresenter.enterScreenShare", "enter screen share");
     if (mQtiImsExtConnector == null) {
@@ -1158,7 +1164,8 @@ public class VideoCallPresenter
   public boolean isIncomingVideoAvailableForEarlyMedia() {
       return primaryCall != null
           && (primaryCall.getState() == DialerCallState.DIALING
-                  || primaryCall.getState() == DialerCallState.CONNECTING)
+                  || primaryCall.getState() == DialerCallState.CONNECTING
+                  || primaryCall.getState() == DialerCallState.INCOMING)
           && mIsIncomingVideoAvailable;
   }
 
@@ -1897,6 +1904,8 @@ public class VideoCallPresenter
         if (primaryCall == null) {
           return;
         }
+        InCallPresenter.getInstance()
+            .updateSipDtmfMaskToUi(isIncomingVideoAvailableForEarlyMedia());
         showVideoUi(
           primaryCall.getVideoState(),
           primaryCall.getState(),

@@ -25,10 +25,12 @@ import android.view.View;
 import com.android.dialer.common.Assert;
 import com.android.dialer.common.FragmentUtils;
 import com.android.dialer.common.LogUtil;
+import com.android.incallui.call.DialerCall;
 import com.android.incallui.video.protocol.VideoCallScreen;
 import com.android.incallui.video.protocol.VideoCallScreenDelegate;
 import com.android.incallui.video.protocol.VideoCallScreenDelegateFactory;
 import com.android.incallui.videosurface.bindings.VideoSurfaceBindings;
+import com.android.incallui.QtiCallUtils;
 
 /** Shows a video preview for an incoming call. */
 public class AnswerVideoCallScreen implements VideoCallScreen {
@@ -60,7 +62,14 @@ public class AnswerVideoCallScreen implements VideoCallScreen {
   public void onVideoScreenStart() {
     LogUtil.i("AnswerVideoCallScreen.onStart", null);
     delegate.onVideoCallScreenUiReady(this);
-    delegate.getLocalVideoSurfaceTexture().attachToTextureView(textureView);
+    DialerCall call = QtiCallUtils.getIncomingCall();
+    if (QtiCallUtils.isVideoCrs(call)) {
+        LogUtil.i("AnswerVideoCallScreen.onStart, video CRS, create remote surface", null);
+        delegate.getRemoteVideoSurfaceTexture().attachToTextureView(textureView);
+    } else {
+        LogUtil.i("AnswerVideoCallScreen.onStart, no video CRS, create local surface", null);
+        delegate.getLocalVideoSurfaceTexture().attachToTextureView(textureView);
+    }
   }
 
   @Override
