@@ -30,6 +30,7 @@ package com.android.incallui;
 
 import android.content.Context;
 import android.view.View;
+import android.telecom.Call.Details;
 import android.telecom.InCallService.VideoCall;
 import android.app.AlertDialog;
 import android.view.LayoutInflater;
@@ -40,6 +41,7 @@ import android.hardware.Camera;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraManager;
+import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
 import java.lang.Integer;
 import java.util.Objects;
@@ -51,7 +53,8 @@ import com.android.incallui.ZoomControl.OnZoomChangedListener;
  * This class implements the zoom listener for zoom control and shows the dialog and zoom controls
  * on the InCall screen and maintains state info about the camera zoom index.
  */
-public class InCallZoomController implements InCallPresenter.IncomingCallListener {
+public class InCallZoomController implements  InCallPresenter.InCallUiListener,
+       InCallPresenter.IncomingCallListener {
 
     private static InCallZoomController sInCallZoomController;
 
@@ -121,6 +124,7 @@ public class InCallZoomController implements InCallPresenter.IncomingCallListene
         mContext = context;
         mInCallPresenter = InCallPresenter.getInstance();
         mInCallPresenter.addIncomingCallListener(this);
+        mInCallPresenter.addInCallUiListener(this);
         mCameraManager = (CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
     }
 
@@ -128,11 +132,12 @@ public class InCallZoomController implements InCallPresenter.IncomingCallListene
      * Tear down function to reset all variables and remove camera selection listener
      */
     public void tearDown() {
-        mAlertDialog = null;
+        dismissAlertDialog();
         mContext = null;
         mCameraId = null;
         mZoomIndex = DEFAULT_CAMERA_ZOOM_VALUE;
         mInCallPresenter.removeIncomingCallListener(this);
+        mInCallPresenter.removeInCallUiListener(this);
         mInCallPresenter = null;
         mCameraManager = null;
     }
@@ -247,5 +252,29 @@ public class InCallZoomController implements InCallPresenter.IncomingCallListene
         Log.v(this, "onIncomingCall - DialerCall " + call + "oldState " + oldState + "newState " +
                 newState);
         dismissAlertDialog();
+    }
+
+    /**
+    * Called when UI goes in/out of the foreground.
+    *
+    * @param showing true if UI is in the foreground, false otherwise.
+    */
+    public void onUiShowing(boolean showing) {
+        Log.i(this, "onUiShowing - showing" + showing);
+        CallList callList = InCallPresenter.getInstance().getCallList();
+        if (callList == null) {
+            return;
+        }
+        DialerCall call = callList.getActiveCall();
+        if (call == null) {
+            return;
+        }
+        boolean canPause = call.can(Details.CAPABILITY_CAN_PAUSE_VIDEO);
+        if (!showing) {
+            if (!canPause) {
+                mZoomIndex = DEFAULT_CAMERA_ZOOM_VALUE;
+            }
+            dismissAlertDialog();
+        }
     }
 }
