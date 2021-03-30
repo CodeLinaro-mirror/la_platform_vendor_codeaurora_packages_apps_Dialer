@@ -1011,7 +1011,8 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     return didShowInCallScreen
         || didShowVideoCallScreen
         || didShowRttCallScreen
-        || didShowSpeakEasyScreen;
+        || didShowSpeakEasyScreen
+        || didShowAnswerScreen;
   }
 
   public void dismissKeyguard(boolean dismiss) {
@@ -1589,7 +1590,12 @@ public class InCallActivity extends TransactionSafeFragmentActivity
             shouldAllowAnswerAndRelease(call),
             CallList.getInstance().getBackgroundCall() != null,
             getSpeakEasyCallManager().isAvailable(getApplicationContext())
-                && call.isSpeakEasyEligible());
+                && call.isSpeakEasyEligible(),
+            QtiCallUtils.isVideoCrs(call),
+            QtiCallUtils.isVideoCallOriginally(call));
+    LogUtil.d("InCallActivity.showAnswerScreenFragment", "Is video call originally : "
+            + QtiCallUtils.isVideoCallOriginally(call)
+            + " isVideoCrs : " + QtiCallUtils.isVideoCrs(call));
     transaction.add(R.id.main, answerScreen.getAnswerScreenFragment(), Tags.ANSWER_SCREEN);
 
     Logger.get(this).logScreenView(ScreenEvent.Type.INCOMING_CALL, this);
@@ -1754,6 +1760,9 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     }
     if (didShowVideoCallScreen) {
       inCallScreen = (InCallScreen) getVideoCallScreen();
+    }
+    if (didShowAnswerScreen) {
+      inCallScreen = (InCallScreen) getAnswerScreen();
     }
     return inCallScreen;
   }
