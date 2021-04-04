@@ -89,6 +89,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.codeaurora.ims.CrsCrbtManager;
+import org.codeaurora.ims.CrsCrbtListenerBase;
+import org.codeaurora.ims.QtiCallConstants;
+import org.codeaurora.ims.QtiImsException;
+import org.codeaurora.ims.QtiImsExtListenerBaseImpl;
+import org.codeaurora.ims.QtiImsExtConnector;
+import org.codeaurora.ims.QtiImsExtManager;
+import org.codeaurora.ims.utils.QtiImsExtUtils;
 /**
  * Takes updates from the CallList and notifies the InCallActivity (UI) of the changes. Responsible
  * for starting the activity for a new call and finishing the activity when all calls are
@@ -279,6 +287,13 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   private boolean automaticallyMutedByAddCall = false;
 
   private Toast errorToast;
+  private QtiImsExtConnector mQtiImsExtConnector;
+  private QtiImsExtManager mQtiImsExtManager;
+  private CrsCrbtManager mCrsCrbtManager = null;
+  private final Handler mHandler = new Handler();
+  private static boolean mIsPreparatoryMode = false;
+  private DialerCall mCrsCrbtCall = null;
+  private int mCacheSipDtmfBitMask = SipDtmfUtil.SIP_DTMF_TYPE_INVALID;
 
   /** Inaccessible constructor. Must use getRunningInstance() to get this singleton. */
   @VisibleForTesting
@@ -420,11 +435,147 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     CallList.getInstance().addListener(CallSubstateNotifier.getInstance());
     OrientationModeHandler.getInstance().setUp();
     addDetailsListener(SessionModificationCauseNotifier.getInstance());
+    CallProgressNotification.getInstance().setUp(context);
 
     LogUtil.d("InCallPresenter.setUp", "Finished InCallPresenter.setUp");
     Trace.endSection();
   }
 
+  private void createQtiImsExtConnector(Context context, DialerCall call) {
+    if (call.equals(mCrsCrbtCall)) {
+        return;
+    }
+    clearCrsCrbtState();
+    mCrsCrbtCall = call;
+    try {
+      mQtiImsExtConnector = new QtiImsExtConnector(context,
+          new QtiImsExtConnector.IListener() {
+            @Override
+            public void onConnectionAvailable(QtiImsExtManager qtiImsExtManager) {
+              LogUtil.i("InCallPresenter.setCrsCrbtListener", "onConnectionAvailable");
+              mQtiImsExtManager = qtiImsExtManager;
+              setCrsCrbtListener();
+            }
+            @Override
+            public void onConnectionUnavailable() {
+              mQtiImsExtManager = null;
+            }
+          });
+      mQtiImsExtConnector.connect();
+    } catch (QtiImsException e) {
+        LogUtil.e("InCallPresenter.createQtiImsExtConnector",
+            "Unable to create QtiImsExtConnector");
+    }
+  }
+
+  private void clearCrsCrbtState() {
+      mIsPreparatoryMode = false;
+      mCrsCrbtCall = null;
+      mCacheSipDtmfBitMask = SipDtmfUtil.SIP_DTMF_TYPE_INVALID;
+      if (mQtiImsExtConnector != null) {
+          removeCrsCrbtListener();
+          mQtiImsExtConnector.disconnect();
+          mQtiImsExtConnector = null;
+          mQtiImsExtManager = null;
+      }
+  }
+
+  private void setCrsCrbtListener() {
+      if (mQtiImsExtManager == null) {
+        LogUtil.d("InCallPresenter.setCrsCrbtListener",
+            "mQtiImsExtManager is null");
+        return;
+      }
+      try {
+          mCrsCrbtManager = mQtiImsExtManager.createCrsCrbtManager(
+                  QtiCallUtils.getPhoneId(mCrsCrbtCall));
+      } catch (QtiImsException e) {
+          LogUtil.e("InCallPresenter.setCrsCrbtListener", "exception " + e);
+          return;
+      }
+      if (mCrsCrbtManager == null) {
+        LogUtil.d("InCallPresenter.setCrsCrbtListener",
+            "mCrsCrbtManager is null");
+        return;
+      }
+      try {
+          LogUtil.d("InCallPresenter.setCrsCrbtListener", "setCrsDataUpdateListener");
+          mCrsCrbtManager.setCrsCrbtListener(mCrsDataUpdateListener);
+      } catch (QtiImsException e) {
+          LogUtil.e("InCallPresenter.setCrsCrbtListener", "exception " + e);
+      }
+  }
+
+  private void removeCrsCrbtListener() {
+    if (mCrsCrbtManager == null) {
+      LogUtil.d("InCallPresenter.removeCrsCrbtListener",
+          "mCrsCrbtManager is null");
+      return;
+    }
+    try {
+        LogUtil.d("InCallPresenter.removeCrsCrbtListener", "");
+        mCrsCrbtManager.removeCrsCrbtListener(mCrsDataUpdateListener);
+    } catch (QtiImsException e) {
+        LogUtil.e("InCallPresenter.removeCrsCrbtListener", "exception " + e);
+    }
+  }
+
+  private CrsCrbtListenerBase mCrsDataUpdateListener =
+      new CrsCrbtListenerBase() {
+      @Override
+      public void onCrsDataUpdated(int phoneId, int crsType, boolean isPreparatory) {
+          LogUtil.i("InCallPresenter.onCrsDataUpdated", "crs type: "
+                  + crsType + " isPreparatory:: " + isPreparatory );
+          if (!isPreparatory && mIsPreparatoryMode && mCrsCrbtCall!= null) {
+            onIncomingCall(mCrsCrbtCall);
+            mIsPreparatoryMode = false;
+          }
+      }
+
+      @Override
+      public void onSipDtmfReceived(int phoneId, String config) {
+          LogUtil.i("InCallPresenter.onSipDtmfReceived", "phoneId : %s, sipDtmfConfig : %s ",
+                  phoneId, config);
+          //cache this bitMap due to sometimes SIP DTMF come early and UI is not shown,
+          //will use this cache value to update buttons for MT call CRS and MO CRBT call.
+          mCacheSipDtmfBitMask = SipDtmfUtil.toButtonBitmask(config);
+          for (InCallEventListener listener : inCallEventListeners) {
+            mHandler.post(()->listener.onSipDtmfChanged(mCacheSipDtmfBitMask));
+          }
+      }
+  };
+
+  /**
+   * Send SIP DTMF to modem/network when user clicks the icons in CRS/CRBT UI.
+   */
+  public void sendSipDtmfClicked(int buttonId) {
+      LogUtil.i("InCallPresenter.sendSipDtmf", "sipDtmf is : " + buttonId);
+      if (mCrsCrbtManager == null) {
+        LogUtil.i("InCallPresenter.sendSipDtmf", "mCrsCrbtManager is null");
+        return;
+      }
+      try {
+          mCrsCrbtManager.sendSipDtmf(SipDtmfUtil.toDtmfString(buttonId));
+      } catch (QtiImsException e) {
+           LogUtil.e("InCallPresenter.sendSipDtmf", "exception " + e);
+      }
+  }
+
+  /**
+   * this function to control show/hide DTMF icons in UI when have
+   * valid bitmap config from low layer.
+   */
+  public void updateSipDtmfMaskToUi(boolean show) {
+    LogUtil.i("InCallPresenter.updateSipDtmfMaskToUi", "show : " + show);
+    for (InCallEventListener listener : inCallEventListeners) {
+        listener.onSipDtmfChanged(show ?
+                mCacheSipDtmfBitMask : SipDtmfUtil.SIP_DTMF_TYPE_INVALID);
+    }
+  }
+
+  public int getSipDtmfBitMask() {
+    return mCacheSipDtmfBitMask;
+  }
   /**
    * Return whether we should start call in bubble mode and not show InCallActivity. The call mode
    * should be set in CallConfiguration in EXTRA_OUTGOING_CALL_EXTRAS when starting a call intent.
@@ -512,6 +663,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     OrientationModeHandler.getInstance().tearDown();
     removeDetailsListener(SessionModificationCauseNotifier.getInstance());
     InCallZoomController.getInstance().tearDown();
+    CallProgressNotification.getInstance().tearDown();
   }
 
   private void attemptFinishActivity() {
@@ -906,6 +1058,12 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     }
     if (primary != null) {
       onForegroundCallChanged(primary);
+      int phoneId = QtiCallUtils.getPhoneId(primary);
+      if (phoneId != QtiCallConstants.INVALID_PHONE_ID
+            && (QtiImsExtUtils.isVideoCrbtSupported(phoneId, context)
+            ||QtiImsExtUtils.isVideoCrsSupported(phoneId, context))) {
+        createQtiImsExtConnector(context, primary);
+      }
     }
 
     // notify listeners of new state
@@ -976,6 +1134,30 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   /** Called when there is a new incoming call. */
   @Override
   public void onIncomingCall(DialerCall call) {
+    int phoneId = QtiCallUtils.getPhoneId(call);
+    if (QtiCallUtils.isVideoCrs(call)
+            && (phoneId != QtiCallConstants.INVALID_PHONE_ID)
+            && QtiImsExtUtils.isVideoCrsSupported(phoneId, context)) {
+        createQtiImsExtConnector(context, call);
+        //Modem need to negotiate with network for CRS RTP after receive incoming call,
+        //before negotiation finish, telephony will receive call as preparatory mode
+        //and show nothing to user. Preparatory value may have gap between UI and vendor
+        //IMS due to time consuming to pass the value to UI, so use side car API
+        //isPreparatorySession to get value in vendor directly.
+        if (mCrsCrbtManager != null && call != null) {
+            try {
+                boolean isPreparatory = mCrsCrbtManager.isPreparatorySession(call.getId());
+                if (isPreparatory) {
+                    LogUtil.i("InCallPresenter.onIncomingCall",
+                            "enter preparatory mode for CRS call, do not show notificaion to user");
+                    mIsPreparatoryMode = true;
+                    return;
+                }
+            } catch (QtiImsException e) {
+                LogUtil.e("InCallPresenter.onIncomingCall", "exception " + e);
+            }
+        }
+    }
     Trace.beginSection("InCallPresenter.onIncomingCall");
     InCallState newState = startOrFinishUi(InCallState.INCOMING);
     InCallState oldState = inCallState;
@@ -1054,6 +1236,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   public void onDisconnect(DialerCall call) {
     showDialogOrToastForDisconnectedCall(call);
 
+    clearCrsCrbtState();
     // We need to do the run the same code as onCallListChange.
     onCallListChange(callList);
 
@@ -1198,6 +1381,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   public void addInCallEventListener(InCallEventListener listener) {
     Objects.requireNonNull(listener);
     inCallEventListeners.add(listener);
+    listener.onSendStaticImageStateChanged(BottomSheetHelper.getInstance().isInHideMeMode());
   }
 
   public void removeInCallEventListener(InCallEventListener listener) {
@@ -1264,6 +1448,10 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   public void onUiShowing(boolean showing) {
     if (proximitySensor != null) {
       proximitySensor.onInCallShowing(showing);
+    }
+
+    if (statusBarNotifier != null) {
+      statusBarNotifier.updateNotification();
     }
 
     if (showing) {
@@ -2061,6 +2249,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     void onFullscreenModeChanged(boolean isFullscreenMode);
     void onSendStaticImageStateChanged(boolean isEnabled);
     void onOutgoingVideoSourceChanged(int videoSource);
+    void onSipDtmfChanged(int bitMask);
   }
 
   public interface InCallUiListener {
