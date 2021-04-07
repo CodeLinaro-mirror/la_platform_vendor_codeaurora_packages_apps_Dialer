@@ -67,5 +67,7 @@ public interface InCallButtonUiDelegate {
 
   void swapSimClicked();
 
+  void sendSipDtmfClicked(int buttonId);
+
   Context getContext();
 }
