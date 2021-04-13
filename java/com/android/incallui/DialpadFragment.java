@@ -231,6 +231,16 @@ public class DialpadFragment extends BaseFragment<DialpadPresenter, DialpadUi>
     }
   }
 
+  @Override
+  public void enableCustomerServiceMode(boolean enable) {
+      if (dialpadView == null || !enable) {
+        dialpadView.getBackground().setAlpha(255);
+        return;
+      }
+      //set dial pad background transparent for video service call
+      dialpadView.getBackground().setAlpha(80);
+  }
+
   /** Called externally (from InCallScreen) to play a DTMF Tone. */
   /* package */ boolean onDialerKeyDown(KeyEvent event) {
     Log.d(this, "Notifying dtmf key down.");

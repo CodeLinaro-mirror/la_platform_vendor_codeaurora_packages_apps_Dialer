@@ -1,5 +1,5 @@
 /**
- Copyright (c) 2015-2019 The Linux Foundation. All rights reserved.
+ Copyright (c) 2015-2019, 2021 The Linux Foundation. All rights reserved.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are
@@ -166,6 +166,11 @@ public class QtiCallUtils {
         int videoState = call.getVideoState();
         return !VideoProfile.isTransmissionEnabled(videoState) &&
                 VideoProfile.isReceptionEnabled(videoState);
+    }
+
+    public static boolean isVideoRxOnly(int videoState) {
+        return !VideoProfile.isTransmissionEnabled(videoState) &&
+            VideoProfile.isReceptionEnabled(videoState);
     }
 
     /**
@@ -501,9 +506,9 @@ public class QtiCallUtils {
 
     //Checks if DialerCall has video CRBT - an outgoing receive-only video call
     public static boolean hasVideoCrbtVoLteCall(Context context, DialerCall call) {
-        if (context == null || !QtiImsExtUtils.isCarrierConfigEnabled(
-            BottomSheetHelper.getInstance().getPhoneId(),
-            context, "config_enable_video_crbt")) {
+        if (context == null || !QtiImsExtUtils.isVideoCrbtSupported(
+                    BottomSheetHelper.getInstance().getPhoneId(), context)) {
+            return false;
         }
         return (call != null && call.getState() == DialerCallState.DIALING
             && isVideoRxOnly(call));
@@ -511,9 +516,8 @@ public class QtiCallUtils {
 
     //Checks if CallList has CRBT VoLTE call - an outgoing receive-only video call
     public static boolean hasVideoCrbtVoLteCall(Context context) {
-        if (context == null || !QtiImsExtUtils.isCarrierConfigEnabled(
-            BottomSheetHelper.getInstance().getPhoneId(),
-            context, "config_enable_video_crbt")) {
+        if (context == null || !QtiImsExtUtils.isVideoCrbtSupported(
+                    BottomSheetHelper.getInstance().getPhoneId(), context)) {
             return false;
         }
         DialerCall call = CallList.getInstance().getFirstCall();
@@ -524,10 +528,12 @@ public class QtiCallUtils {
     //Checks if CallList has CRBT Video Call. An outgoing bidirectional video call
     //is treated as CRBT video call if CRBT feature is enabled
     public static boolean hasVideoCrbtVtCall(Context context) {
+        if (context == null) {
+            return false;
+        }
         DialerCall call = CallList.getInstance().getFirstCall();
-        boolean videoCrbtConfig = QtiImsExtUtils.isCarrierConfigEnabled(
-                 BottomSheetHelper.getInstance().getPhoneId(),
-                 context, "config_enable_video_crbt");
+        boolean videoCrbtConfig = QtiImsExtUtils.isVideoCrbtSupported(
+                BottomSheetHelper.getInstance().getPhoneId(), context);
         return (videoCrbtConfig && call != null && call.getState() == DialerCallState.DIALING
                 && isVideoBidirectional(call));
     }
@@ -607,5 +613,22 @@ public class QtiCallUtils {
         return ((extras == null) ? QtiCallConstants.INVALID_PHONE_ID :
             extras.getInt(QtiImsExtUtils.QTI_IMS_PHONE_ID_EXTRA_KEY,
             QtiCallConstants.INVALID_PHONE_ID));
+    }
+
+    public static boolean isCustomerServiceNumber(Context context, String number) {
+        if (context == null || number == null) {
+            return false;
+        }
+        String[] customerNumbers = QtiImsExtUtils.getCustomerServiceNumbers(
+                BottomSheetHelper.getInstance().getPhoneId(), context);
+        if (customerNumbers == null) {
+            return false;
+        }
+        for (String item : customerNumbers) {
+            if (number.equals(item)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -38,6 +38,9 @@ public class DialpadPresenter extends Presenter<DialpadUi>
     if (call == null) {
         call = CallList.getInstance().getIncomingCall();
     }
+    if (call != null && ui != null) {
+        ui.enableCustomerServiceMode(call.isCustomerServiceCall());
+    }
   }
 
   @Override
@@ -54,6 +57,10 @@ public class DialpadPresenter extends Presenter<DialpadUi>
     call = callList.getOutgoingOrActive();
     if (call == null) {
         call = callList.getIncomingCall();
+    }
+    DialpadUi dialpadUi = getUi();
+    if (call != null && dialpadUi != null) {
+        dialpadUi.enableCustomerServiceMode(call.isCustomerServiceCall());
     }
     Log.d(this, "DialpadPresenter mCall = " + call);
   }
@@ -91,5 +98,6 @@ public class DialpadPresenter extends Presenter<DialpadUi>
   public interface DialpadUi extends Ui {
 
     void appendDigitsToField(char digit);
+    void enableCustomerServiceMode(boolean enable);
   }
 }

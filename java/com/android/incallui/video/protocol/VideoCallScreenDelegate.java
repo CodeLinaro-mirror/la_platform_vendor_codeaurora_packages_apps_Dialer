@@ -62,4 +62,6 @@ public interface VideoCallScreenDelegate {
   int getDeviceOrientation();
 
   boolean isFullscreen();
+
+  boolean shallRemovePreviewWindow(boolean shouldShowPreview);
 }

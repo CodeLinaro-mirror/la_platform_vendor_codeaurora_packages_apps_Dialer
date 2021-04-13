@@ -1169,6 +1169,20 @@ public class VideoCallPresenter
           && mIsIncomingVideoAvailable;
   }
 
+  /** Remove the preview window entirely and do not display any icon
+   *  1. Video CRBT for VoLTE call (VT-RX) in DIALING stage
+   *  2. Video service call(VT-RX) in ACTIVE stage
+   *  3. Video CRBT for VT call (VT-BI) in DIALING stage
+   **/
+  @Override
+  public boolean shallRemovePreviewWindow(boolean shouldShowPreview) {
+    boolean isCrbtReady = isIncomingVideoAvailableForEarlyMedia();
+    return ((QtiCallUtils.hasVideoCrbtVoLteCall(context)
+                || (primaryCall != null && primaryCall.isCustomerServiceCall()))
+            && !shouldShowPreview)
+        || (QtiCallUtils.hasVideoCrbtVtCall(context) && isCrbtReady);
+  }
+
   /** Checks for a change to the video call and changes it if required. */
   private void checkForVideoCallChange(DialerCall call) {
     final VideoCall videoCall = call.getVideoCall();
