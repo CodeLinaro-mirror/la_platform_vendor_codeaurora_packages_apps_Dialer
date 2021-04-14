@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <bool name="incall_dialpad_allowed">true</bool>
-  <integer name="incall_num_rows">1</integer>
+  <integer name="incall_num_rows">2</integer>
+  <dimen name="incall_button_label_margin">4dp</dimen>
 </resources>
