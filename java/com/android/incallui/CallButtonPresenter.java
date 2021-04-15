@@ -342,6 +342,9 @@ public class CallButtonPresenter
   @Override
   public void changeToVideoClicked() {
     LogUtil.enterBlock("CallButtonPresenter.changeToVideoClicked");
+    if (call == null) {
+      return;
+    }
     Logger.get(context)
         .logCallImpression(
             DialerImpression.Type.VIDEO_CALL_UPGRADE_REQUESTED,
@@ -353,12 +356,18 @@ public class CallButtonPresenter
   @Override
   public void changeToRttClicked() {
     LogUtil.enterBlock("CallButtonPresenter.changeToRttClicked");
+    if (call == null) {
+        return;
+    }
     call.sendRttUpgradeRequest();
   }
 
   @Override
   public void downgradeRttCall() {
     LogUtil.enterBlock("CallButtonPresenter.downgradeRttCall");
+    if (call == null) {
+        return;
+    }
     call.sendRttDowngradeRequest();
   }
 
