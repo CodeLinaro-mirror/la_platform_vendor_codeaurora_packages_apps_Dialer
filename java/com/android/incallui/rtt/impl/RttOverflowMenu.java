@@ -155,4 +155,8 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
     isDowngradeRttButtonEnabled = enabled;
     downgradeButton.setVisibility(isDowngradeRttButtonEnabled ? View.VISIBLE : View.GONE);
   }
+
+  void enableHoldButton(boolean enabled) {
+    holdButton.setVisibility(enabled ? View.VISIBLE : View.GONE);
+  }
 }

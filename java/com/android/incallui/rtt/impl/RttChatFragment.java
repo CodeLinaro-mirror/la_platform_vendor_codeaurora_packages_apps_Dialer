@@ -540,14 +540,19 @@ public class RttChatFragment extends Fragment
 
   @Override
   public void showButton(int buttonId, boolean show) {
-    if (buttonId == InCallButtonIds.BUTTON_SWAP) {
-      overflowMenu.enableSwapCallButton(show);
-    }
-    if (buttonId == InCallButtonIds.BUTTON_MERGE) {
-      overflowMenu.enableMergeCallButton(show);
-    }
-    if (buttonId == InCallButtonIds.BUTTON_DOWNGRADE_TO_VOICE) {
-      overflowMenu.enableDowngradeRttButton(show);
+    switch (buttonId) {
+      case InCallButtonIds.BUTTON_SWAP:
+        overflowMenu.enableSwapCallButton(show);
+        return;
+      case InCallButtonIds.BUTTON_MERGE:
+        overflowMenu.enableMergeCallButton(show);
+        return;
+      case InCallButtonIds.BUTTON_DOWNGRADE_TO_VOICE:
+        overflowMenu.enableDowngradeRttButton(show);
+        return;
+      case InCallButtonIds.BUTTON_HOLD:
+        overflowMenu.enableHoldButton(show);
+        return;
     }
   }
 
