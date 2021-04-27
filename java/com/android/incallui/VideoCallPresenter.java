@@ -555,7 +555,8 @@ public class VideoCallPresenter
     // happens after any call state changes but we're unregistering from InCallPresenter above so
     // we won't get any more call state changes. See a bug.
     if (primaryCall != null) {
-      if (!primaryCall.isVideoCall() && isVideoMode()) {
+      if ((!primaryCall.isVideoCall() ||
+              primaryCall.getNonConferenceState() == DialerCallState.ONHOLD) && isVideoMode()) {
         exitVideoMode();
       }
       maybeUnsetPauseImage();
