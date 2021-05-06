@@ -33,6 +33,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 import android.support.annotation.WorkerThread;
+import android.telephony.TelephonyManager;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
@@ -394,10 +395,15 @@ public class PreferredAccountWorkerImpl implements PreferredAccountWorker {
   }
 
   /**
-   * Most devices are DSDS (dual SIM dual standby) which only one SIM can have active calls at a
-   * time. TODO(twyen): support other dual SIM modes when the API is exposed.
+   * Support different dual SIM modes (Dual sim dual active/Dual sim dual standby)
+   * DSDA - more than one SIM can have live/active calls at a time.
+   * DSDS - only one SIM can have live/active calls at a time
    */
   private boolean isSelectable(PhoneAccountHandle phoneAccountHandle) {
+    // This is assuming that self-managed phone account(s) will not be selectable
+    if (TelephonyManager.isConcurrentCallsPossible()) {
+        return true;
+    }
     ImmutableList<ActiveCallInfo> activeCalls =
         ActiveCallsComponent.get(appContext).activeCalls().getActiveCalls();
     if (activeCalls.isEmpty()) {
