@@ -166,6 +166,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="cancel_upgrade">Cancel Upgrade</string>
     <string name="not_cancel">Not Cancel</string>
 
+    <!-- Displayed in the answer call screen for incoming video CRS calls. -->
+    <string name="incoming_video_crs_call">Video CRS Receive call from</string>
+
     <!-- Displayed in the answer call screen for incoming video rx calls. -->
     <string name="incoming_video_rx_call">Video Receive call from</string>
 
@@ -191,4 +194,28 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="video_call_picture_mode_incoming_video">Incoming Video</string>
     <string name="video_call_picture_mode_cancel_option">Cancel</string>
     <string name="video_call_picture_mode_save_option">Save</string>
+
+    <!-- Call progress info notification -->
+    <string name="call_progress_info_call_waiting">The remote is in a call, please hold on and wait
+</string>
+    <string name="call_progress_info_call_forwarding">Call is forwarded to another number</string>
+    <string name="call_progress_info_remote_available">Remote is alerted</string>
+
+    <!-- Call progress info call end notification -->
+    <string name="call_progress_info_unallocated_number">Unallocated number</string>
+    <string name="call_progress_info_subscriber_absent">Subscriber absent</string>
+    <string name="call_progress_info_no_user_responding">no user responding</string>
+    <string name="call_progress_info_user_busy">user busy</string>
+    <string name="call_progress_info_no_answer_from_user">no answer from user</string>
+    <string name="call_progress_info_call_rejected">call rejected</string>
+    <string name="call_progress_info_user_call_rejected">usr - call rejected</string>
+    <string name="call_progress_info_nonuser_call_rejected">nonusr - call rejected</string>
+
+    <!-- Call progress info call end reason text from network -->
+    <string name="call_progress_info_call_rejected_reason_from_nw" translatable="false">
+call rejected</string>
+    <string name="call_progress_info_user_call_rejected_reason_from_nw" translatable="false">
+usr - call rejected</string>
+    <string name="call_progress_info_nonuser_call_rejected_reason_from_nw" translatable="false">
+nonusr - call rejected</string>
 </resources>

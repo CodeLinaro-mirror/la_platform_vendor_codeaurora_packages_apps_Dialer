@@ -30,6 +30,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Trace;
+import android.support.annotation.ColorInt;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.FloatRange;
 import android.support.annotation.NonNull;
@@ -37,6 +38,7 @@ import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.annotation.VisibleForTesting;
 import android.support.v4.app.Fragment;
+import android.telecom.CallAudioState;
 import android.telecom.VideoProfile;
 import android.text.TextUtils;
 import android.transition.TransitionManager;
@@ -63,8 +65,10 @@ import com.android.dialer.telecom.TelecomUtil;
 import com.android.dialer.util.ViewUtil;
 import com.android.incallui.BottomSheetHelper;
 import com.android.incallui.ExtBottomSheetFragment.ExtBottomSheetActionCallback;
+import com.android.incallui.InCallPresenter;
 import com.android.incallui.VideoCallPresenter;
 import com.android.incallui.QtiCallUtils;
+import com.android.incallui.SipDtmfUtil;
 import com.android.incallui.answer.impl.CreateCustomSmsDialogFragment.CreateCustomSmsHolder;
 import com.android.incallui.answer.impl.SmsBottomSheetFragment.SmsSheetHolder;
 import com.android.incallui.answer.impl.affordance.SwipeButtonHelper.Callback;
@@ -80,6 +84,11 @@ import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.state.DialerCallState;
 import com.android.incallui.contactgrid.ContactGridManager;
 import com.android.incallui.incall.protocol.ContactPhotoType;
+import com.android.incallui.incall.protocol.InCallButtonIds;
+import com.android.incallui.incall.protocol.InCallButtonIdsExtension;
+import com.android.incallui.incall.protocol.InCallButtonUi;
+import com.android.incallui.incall.protocol.InCallButtonUiDelegate;
+import com.android.incallui.incall.protocol.InCallButtonUiDelegateFactory;
 import com.android.incallui.incall.protocol.InCallScreen;
 import com.android.incallui.incall.protocol.InCallScreenDelegate;
 import com.android.incallui.incall.protocol.InCallScreenDelegateFactory;
@@ -93,6 +102,8 @@ import com.android.incallui.sessiondata.MultimediaFragment;
 import com.android.incallui.speakeasy.Annotations.SpeakEasyChipResourceId;
 import com.android.incallui.speakeasy.SpeakEasyComponent;
 import com.android.incallui.util.AccessibilityUtil;
+import com.android.incallui.video.impl.CheckableImageButton;
+import com.android.incallui.video.impl.CheckableImageButton.OnCheckedChangeListener;
 import com.android.incallui.video.protocol.VideoCallScreen;
 import com.android.incallui.videotech.utils.VideoUtils;
 import com.google.common.base.Optional;
@@ -105,10 +116,12 @@ import java.util.Objects;
 public class AnswerFragment extends Fragment
     implements AnswerScreen,
         InCallScreen,
+        InCallButtonUi,
         SmsSheetHolder,
         CreateCustomSmsHolder,
         AnswerMethodHolder,
         OnClickListener,
+        OnCheckedChangeListener,
         ExtBottomSheetActionCallback,
         MultimediaFragment.Holder {
 
@@ -132,6 +145,10 @@ public class AnswerFragment extends Fragment
 
   static final String ARG_ALLOW_SPEAK_EASY = "allow_speak_easy";
 
+  static final String ARG_HAS_VIDEO_CRS = "has_video_crs";
+
+  static final String ARG_IS_VIDEO_ORIGINALLY = "is_video_call_originally";
+
   private static final String STATE_HAS_ANIMATED_ENTRY = "hasAnimated";
 
   private static final int HINT_SECONDARY_SHOW_DURATION_MILLIS = 5000;
@@ -151,10 +168,18 @@ public class AnswerFragment extends Fragment
 
   private AnswerScreenDelegate answerScreenDelegate;
   private InCallScreenDelegate inCallScreenDelegate;
+  private InCallButtonUiDelegate inCallButtonUiDelegate;
 
   private View importanceBadge;
   private SwipeButtonView secondaryButton;
   private SwipeButtonView answerAndReleaseButton;
+  private CheckableImageButton likeButton;
+  private CheckableImageButton shareButton;
+  private CheckableImageButton favoriteButton;
+  private CheckableImageButton copyButton;
+  private CheckableImageButton commentButton;
+  private CheckableImageButton detailButton;
+  private CheckableImageButton moneyButton;
   private ImageButton moreOptionsMenuButton;
   private AffordanceHolderLayout affordanceHolderLayout;
   private LinearLayout chipContainer;
@@ -175,6 +200,7 @@ public class AnswerFragment extends Fragment
   private ContactGridManager contactGridManager;
   private VideoCallScreen answerVideoCallScreen;
   private Handler handler = new Handler(Looper.getMainLooper());
+  private boolean isVideoScreenReady = false;
 
   private enum SecondaryBehavior {
     REJECT_WITH_SMS(
@@ -380,7 +406,9 @@ public class AnswerFragment extends Fragment
       boolean isSelfManagedCamera,
       boolean allowAnswerAndRelease,
       boolean hasCallOnHold,
-      boolean allowSpeakEasy) {
+      boolean allowSpeakEasy,
+      boolean hasVideoCrs,
+      boolean isVideoCallOriginally) {
     Bundle bundle = new Bundle();
     bundle.putString(ARG_CALL_ID, Assert.isNotNull(callId));
     bundle.putBoolean(ARG_IS_RTT_CALL, isRttCall);
@@ -390,6 +418,8 @@ public class AnswerFragment extends Fragment
     bundle.putBoolean(ARG_ALLOW_ANSWER_AND_RELEASE, allowAnswerAndRelease);
     bundle.putBoolean(ARG_HAS_CALL_ON_HOLD, hasCallOnHold);
     bundle.putBoolean(ARG_ALLOW_SPEAK_EASY, allowSpeakEasy);
+    bundle.putBoolean(ARG_HAS_VIDEO_CRS, hasVideoCrs);
+    bundle.putBoolean(ARG_IS_VIDEO_ORIGINALLY, isVideoCallOriginally);
 
     AnswerFragment instance = new AnswerFragment();
     instance.setArguments(bundle);
@@ -516,10 +546,94 @@ public class AnswerFragment extends Fragment
 
   @Override
   public void onClick(View v) {
-  if (moreOptionsMenuButton == v) {
-     BottomSheetHelper.getInstance()
-          .showBottomSheet(getChildFragmentManager());
-     }
+      if (moreOptionsMenuButton == v) {
+          BottomSheetHelper.getInstance()
+              .showBottomSheet(getChildFragmentManager());
+      }
+  }
+
+  @Override
+  public void showButton(@InCallButtonIds int buttonId, boolean show) {
+    LogUtil.v(
+        "VideoCallFragment.showButton",
+        "buttonId: %s, show: %b",
+        InCallButtonIdsExtension.toString(buttonId),
+        show);
+    // Donot show SIP DTMF icons for MT call without video CRS
+    if (!getArguments().getBoolean(ARG_HAS_VIDEO_CRS)) {
+        show = false;
+    }
+    if (buttonId == InCallButtonIds.BUTTON_LIKE) {
+      likeButton.setVisibility(show ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_SHARE) {
+      shareButton.setVisibility(show ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_FAVORITE) {
+      favoriteButton.setVisibility(show ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_COPY) {
+      copyButton.setVisibility(show ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_COMMENT) {
+      commentButton.setVisibility(show ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_DETAIL) {
+      detailButton.setVisibility(show ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_DETAIL) {
+      moneyButton.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+  }
+
+  @Override
+  public void enableButton(@InCallButtonIds int buttonId, boolean enable) {}
+
+  @Override
+  public void setEnabled(boolean on) {}
+
+  @Override
+  public void setHold(boolean on) {}
+
+  @Override
+  public void setCameraSwitched(boolean isBackFacingCamera) {}
+
+  @Override
+  public void setVideoPaused(boolean isPaused) {}
+
+  @Override
+  public void setAudioState(CallAudioState audioState) {}
+
+  @Override
+  public void updateButtonStates() {}
+
+  @Override
+  public void updateInCallButtonUiColors(@ColorInt int color) {}
+
+  @Override
+  public Fragment getInCallButtonUiFragment() {return null;}
+
+  @Override
+  public void showAudioRouteSelector() {}
+
+  @Override
+  public void onCheckedChanged(CheckableImageButton button, boolean isChecked) {
+    if (button == likeButton && !likeButton.isChecked()) {
+      likeButton.setChecked(isChecked);
+      inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_LIKE);
+    } else if (button == shareButton && !shareButton.isChecked()) {
+      shareButton.setChecked(isChecked);
+      inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_SHARE);
+    } else if (button == favoriteButton && !favoriteButton.isChecked()) {
+      favoriteButton.setChecked(isChecked);
+      inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_FAVORITE);
+    } else if (button == copyButton && !copyButton.isChecked()) {
+      copyButton.setChecked(isChecked);
+      inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_COPY);
+    } else if (button == commentButton && !commentButton.isChecked()) {
+      commentButton.setChecked(isChecked);
+      inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_COMMENT);
+    } else if (button == detailButton && !detailButton.isChecked()) {
+      detailButton.setChecked(isChecked);
+      inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_DETAIL);
+    } else if (button == moneyButton && !moneyButton.isChecked()) {
+      moneyButton.setChecked(isChecked);
+      inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_RED_ENVELOPE);
+    }
   }
 
   @Override
@@ -733,7 +847,7 @@ public class AnswerFragment extends Fragment
 
   @Override
   public int getAnswerAndDialpadContainerResourceId() {
-    throw Assert.createUnsupportedOperationFailException();
+    return R.id.videocall_dialpad_container;
   }
 
   @Override
@@ -762,6 +876,22 @@ public class AnswerFragment extends Fragment
     View view = inflater.inflate(R.layout.fragment_incoming_call, container, false);
     secondaryButton = (SwipeButtonView) view.findViewById(R.id.incoming_secondary_button);
     answerAndReleaseButton = (SwipeButtonView) view.findViewById(R.id.incoming_secondary_button2);
+    view.findViewById(R.id.sip_dtmf_controls)
+        .setVisibility(getActivity().isInMultiWindowMode() ? View.GONE : View.VISIBLE);
+    likeButton = (CheckableImageButton) view.findViewById(R.id.crs_crbt_like_button);
+    likeButton.setOnCheckedChangeListener(this);
+    shareButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_share_button);
+    shareButton.setOnCheckedChangeListener(this);
+    favoriteButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_favorite_button);
+    favoriteButton.setOnCheckedChangeListener(this);
+    copyButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_copy_button);
+    copyButton.setOnCheckedChangeListener(this);
+    commentButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_comment_button);
+    commentButton.setOnCheckedChangeListener(this);
+    detailButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_detail_button);
+    detailButton.setOnCheckedChangeListener(this);
+    moneyButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_money_button);
+    moneyButton.setOnCheckedChangeListener(this);
     moreOptionsMenuButton = (ImageButton) view.findViewById(R.id.qti_dialer_incoming_botton_more);
     moreOptionsMenuButton.setOnClickListener(this);
 
@@ -818,7 +948,8 @@ public class AnswerFragment extends Fragment
       flags |= STATUS_BAR_DISABLE_BACK | STATUS_BAR_DISABLE_HOME | STATUS_BAR_DISABLE_RECENT;
     }
     view.setSystemUiVisibility(flags);
-    if (isVideoCall() || isVideoUpgradeRequest()) {
+    if ((isVideoCall() || isVideoUpgradeRequest())
+            && !getArguments().getBoolean(ARG_HAS_VIDEO_CRS) ) {
       final DialerCall call = QtiCallUtils.getIncomingOrActiveCall();
       int requestedVideoState = VideoProfile.STATE_AUDIO_ONLY;
       if (call != null) {
@@ -836,6 +967,9 @@ public class AnswerFragment extends Fragment
       } else {
         view.findViewById(R.id.videocall_video_off).setVisibility(View.VISIBLE);
       }
+    } else if(getArguments().getBoolean(ARG_HAS_VIDEO_CRS)) {
+        LogUtil.i("AnswerFragment.onCreateView", "CRS is coming, show remote view");
+        answerVideoCallScreen = new AnswerVideoCallScreen(getCallId(), this, view);
     }
 
     Trace.endSection();
@@ -853,6 +987,7 @@ public class AnswerFragment extends Fragment
     Trace.beginSection("AnswerFragment.onViewCreated");
     super.onViewCreated(view, savedInstanceState);
     createInCallScreenDelegate();
+    createInCallButtonUiDelegate();
     updateUI();
 
     if (savedInstanceState == null || !savedInstanceState.getBoolean(STATE_HAS_ANIMATED_ENTRY)) {
@@ -915,6 +1050,8 @@ public class AnswerFragment extends Fragment
     super.onDestroyView();
     inCallScreenDelegate.onInCallScreenUnready();
     answerScreenDelegate.onAnswerScreenUnready();
+    inCallButtonUiDelegate.onInCallButtonUiUnready();
+    InCallPresenter.getInstance().updateSipDtmfMaskToUi(false);
   }
 
   @Override
@@ -951,7 +1088,8 @@ public class AnswerFragment extends Fragment
 
   @Override
   public boolean isVideoCall() {
-    return getArguments().getBoolean(ARG_IS_VIDEO_CALL);
+    return getArguments().getBoolean(ARG_IS_VIDEO_CALL)
+        && getArguments().getBoolean(ARG_IS_VIDEO_ORIGINALLY);
   }
 
   public boolean isSelfManagedCamera() {
@@ -983,7 +1121,11 @@ public class AnswerFragment extends Fragment
 
   @Override
   public void answerFromMethod() {
-    acceptCallByUser(false /* answerVideoAsAudio */);
+    if (isVideoUpgradeRequest() || getArguments().getBoolean(ARG_IS_VIDEO_ORIGINALLY)) {
+        acceptCallByUser(false /* answerVideoAsAudio */);
+    } else {
+        acceptCallByUser(true /* answerVideoAsAudio */);
+    }
   }
 
   @Override
@@ -1169,6 +1311,14 @@ public class AnswerFragment extends Fragment
     Assert.isNotNull(inCallScreenDelegate);
     inCallScreenDelegate.onInCallScreenDelegateInit(this);
     inCallScreenDelegate.onInCallScreenReady();
+  }
+
+  private void createInCallButtonUiDelegate() {
+    inCallButtonUiDelegate =
+        FragmentUtils.getParent(this, InCallButtonUiDelegateFactory.class)
+            .newInCallButtonUiDelegate();
+    inCallButtonUiDelegate.onInCallButtonUiReady(this);
+    InCallPresenter.getInstance().updateSipDtmfMaskToUi(true);
   }
 
   private void updateImportanceBadgeVisibility() {
