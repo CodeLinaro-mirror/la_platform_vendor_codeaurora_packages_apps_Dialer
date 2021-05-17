@@ -27,6 +27,7 @@ import android.telecom.VideoProfile.CameraCapabilities;
 import com.android.dialer.common.LogUtil;
 import com.android.dialer.logging.DialerImpression;
 import com.android.dialer.logging.LoggingBindings;
+import com.android.dialer.telecom.TelecomCallUtil;
 import com.android.incallui.PrimaryCallTracker;
 import com.android.incallui.BottomSheetHelper;
 import com.android.incallui.QtiCallUtils;
@@ -73,6 +74,11 @@ public class ImsVideoCallCallback extends VideoCall.Callback {
     if (wasVideoCall && !isVideoCall) {
       LogUtil.i(
           "ImsVideoTech.onSessionModifyRequestReceived", "call downgraded to %d", newVideoState);
+    } else if (shallAutoAcceptSessionModificationRequest(call, wasVideoCall,
+                QtiCallUtils.isVideoRxOnly(newVideoState))) {
+        LogUtil.i(
+                "ImsVideoTech.onSessionModifyRequestReceived", "Auto accept to %d", newVideoState);
+        videoTech.acceptVideoRequest(newVideoState);
     } else if (previousVideoState != newVideoState) {
       requestedVideoState = newVideoState;
       videoTech.setSessionModificationState(
@@ -237,4 +243,11 @@ public class ImsVideoCallCallback extends VideoCall.Callback {
   int getRequestedVideoState() {
     return requestedVideoState;
   }
+
+  private boolean shallAutoAcceptSessionModificationRequest(Call call, boolean wasVideoCall,
+          boolean isVtRxOnly) {
+      return !wasVideoCall && isVtRxOnly && QtiCallUtils.isCustomerServiceNumber(context,
+              TelecomCallUtil.getNumber(call)) && (call.getState() == Call.STATE_ACTIVE);
+  }
+
 }

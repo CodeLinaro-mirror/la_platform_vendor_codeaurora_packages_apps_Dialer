@@ -568,6 +568,15 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     return telecomCall.getDetails().getStatusHints();
   }
 
+  public boolean isCustomerServiceCall() {
+    final String number = getNumber();
+    if (context == null || number == null
+            || TextUtils.isEmpty(number)) {
+        return false;
+    }
+    return QtiCallUtils.isCustomerServiceNumber(context, number);
+  }
+
   public int getCameraDir() {
     return cameraDirection;
   }

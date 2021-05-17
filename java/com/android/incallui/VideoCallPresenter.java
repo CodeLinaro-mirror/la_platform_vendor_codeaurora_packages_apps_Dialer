@@ -555,7 +555,8 @@ public class VideoCallPresenter
     // happens after any call state changes but we're unregistering from InCallPresenter above so
     // we won't get any more call state changes. See a bug.
     if (primaryCall != null) {
-      if (!primaryCall.isVideoCall() && isVideoMode()) {
+      if ((!primaryCall.isVideoCall() ||
+              primaryCall.getNonConferenceState() == DialerCallState.ONHOLD) && isVideoMode()) {
         exitVideoMode();
       }
       maybeUnsetPauseImage();
@@ -1167,6 +1168,20 @@ public class VideoCallPresenter
                   || primaryCall.getState() == DialerCallState.CONNECTING
                   || primaryCall.getState() == DialerCallState.INCOMING)
           && mIsIncomingVideoAvailable;
+  }
+
+  /** Remove the preview window entirely and do not display any icon
+   *  1. Video CRBT for VoLTE call (VT-RX) in DIALING stage
+   *  2. Video service call(VT-RX) in ACTIVE stage
+   *  3. Video CRBT for VT call (VT-BI) in DIALING stage
+   **/
+  @Override
+  public boolean shallRemovePreviewWindow(boolean shouldShowPreview) {
+    boolean isCrbtReady = isIncomingVideoAvailableForEarlyMedia();
+    return ((QtiCallUtils.hasVideoCrbtVoLteCall(context)
+                || (primaryCall != null && primaryCall.isCustomerServiceCall()))
+            && !shouldShowPreview)
+        || (QtiCallUtils.hasVideoCrbtVtCall(context) && isCrbtReady);
   }
 
   /** Checks for a change to the video call and changes it if required. */
