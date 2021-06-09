@@ -483,6 +483,9 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
 
     @Override
     public void onOutgoingVideoSourceChanged(int videoSource) {
+      if (mCall == null) {
+          return;
+      }
       if (videoSource == ScreenShareHelper.SCREEN && !mCall.isVideoCall()) {
         changeToVideoClicked(mCall, VideoProfile.STATE_TX_ENABLED);
       }

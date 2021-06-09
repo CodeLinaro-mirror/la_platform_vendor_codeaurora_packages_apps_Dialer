@@ -211,6 +211,9 @@ public class CallButtonPresenter
   /** Function assumes that bluetooth is not supported. */
   @Override
   public void toggleSpeakerphone() {
+    if (call == null) {
+      return;
+    }
     // This function should not be called if bluetooth is available.
     CallAudioState audioState = getCurrentAudioState();
     if (0 != (CallAudioState.ROUTE_BLUETOOTH & audioState.getSupportedRouteMask())) {
