@@ -781,25 +781,24 @@ public class VideoCallPresenter
 
   /**
    * Handles a change to the video call hide me selection
-   *
-   * @param shallTransmitStaticImage {@code true} if the app should show static image in preview,
-   * {@code false} otherwise.
    */
    @Override
-   public void onSendStaticImageStateChanged(boolean shallTransmitStaticImage) {
-    LogUtil.d("VideoCallPresenter.onSendStaticImageStateChanged"," shallTransmitStaticImage: "
-        + shallTransmitStaticImage + " primaryCall: " + primaryCall);
+   public void onHideMeUiModeChanged() {
 
-    sShallTransmitStaticImage = shallTransmitStaticImage;
+    sShallTransmitStaticImage = BottomSheetHelper.getInstance()
+        .isInHideMeMode(primaryCall);
+
+    LogUtil.d("VideoCallPresenter.onHideMeUiModeChanged"," shallTransmitStaticImage: "
+        + sShallTransmitStaticImage + " primaryCall: " + primaryCall);
 
     if (!isActiveVideoCall(primaryCall)) {
-      LogUtil.w("VideoCallPresenter.onSendStaticImageStateChanged",
+      LogUtil.w("VideoCallPresenter.onHideMeUiModeChanged",
           " received for non-active video call");
       return;
     }
 
     if (videoCall == null || videoCallScreen == null) {
-      LogUtil.w("VideoCallPresenter.onSendStaticImageStateChanged",
+      LogUtil.w("VideoCallPresenter.onHideMeUiModeChanged",
           " mVideoCall/mVideoCallScreen is null");
       return;
     }
@@ -807,7 +806,7 @@ public class VideoCallPresenter
     enableCamera(primaryCall, isCameraRequired(currentVideoState,
         SessionModificationState.NO_REQUEST));
 
-    if (shallTransmitStaticImage) {
+    if (sShallTransmitStaticImage) {
       // Handle showing static image in preview based on external storage permissions
       videoCallScreen.onRequestReadStoragePermission();
     } else {
@@ -1028,12 +1027,15 @@ public class VideoCallPresenter
   private void onPrimaryCallChanged(DialerCall newPrimaryCall) {
     final boolean shouldShowVideoUi = shouldShowVideoUiForCall(newPrimaryCall);
     final boolean isVideoMode = isVideoMode();
-
-    LogUtil.v(
+    // get the hide me mode for the new call
+    sShallTransmitStaticImage = BottomSheetHelper.getInstance()
+        .isInHideMeMode(newPrimaryCall);
+    LogUtil.i(
         "VideoCallPresenter.onPrimaryCallChanged",
-        "shouldShowVideoUi: %b, isVideoMode: %b",
+        "shouldShowVideoUi: %b, isVideoMode: %b, shallTransmitStaticImage: %b",
         shouldShowVideoUi,
-        isVideoMode);
+        isVideoMode,
+        sShallTransmitStaticImage);
 
     if (!shouldShowVideoUi && isVideoMode) {
       // Terminate video mode if new primary call is not a video call

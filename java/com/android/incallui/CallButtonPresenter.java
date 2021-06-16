@@ -588,7 +588,7 @@ public class CallButtonPresenter
     inCallButtonUi.showButton(
         InCallButtonIds.BUTTON_SWITCH_CAMERA,
         isVideo && hasCameraPermission && call.getVideoTech().isTransmitting()
-        && !BottomSheetHelper.getInstance().isInHideMeMode()
+        && !BottomSheetHelper.getInstance().isInHideMeMode(call)
         && !ScreenShareHelper.screenShareRequested());
     inCallButtonUi.showButton(InCallButtonIds.BUTTON_PAUSE_VIDEO, showPauseVideo);
     if (isVideo) {
@@ -626,12 +626,9 @@ public class CallButtonPresenter
 
   /**
    * Handles a change to the video call hide me selection
-   *
-   * @param shallTransmitStaticImage {@code true} if the app should show static image in preview,
-   * {@code false} otherwise.
    */
   @Override
-  public void onSendStaticImageStateChanged(boolean shallTransmitStaticImage) {
+  public void onHideMeUiModeChanged() {
     if (call == null) {
        return;
      }
