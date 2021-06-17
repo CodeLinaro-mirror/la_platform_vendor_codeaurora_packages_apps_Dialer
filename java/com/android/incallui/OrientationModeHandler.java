@@ -260,7 +260,7 @@ public class OrientationModeHandler implements InCallDetailsListener, InCallUiLi
     public void onFullscreenModeChanged(boolean isFullscreenMode) {}
 
     @Override
-    public void onSendStaticImageStateChanged(boolean isEnabled) {}
+    public void onHideMeUiModeChanged() {}
 
     @Override
     public void onOutgoingVideoSourceChanged(int videoSource) {}
