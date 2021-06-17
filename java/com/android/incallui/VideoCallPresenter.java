@@ -62,6 +62,7 @@ import java.util.Objects;
 
 import org.codeaurora.ims.ImsScreenShareListenerBase;
 import org.codeaurora.ims.ImsScreenShareManager;
+import org.codeaurora.ims.QtiCallConstants;
 import org.codeaurora.ims.QtiImsException;
 import org.codeaurora.ims.QtiImsExtConnector;
 import org.codeaurora.ims.QtiImsExtManager;
@@ -785,8 +786,7 @@ public class VideoCallPresenter
    @Override
    public void onHideMeUiModeChanged() {
 
-    sShallTransmitStaticImage = BottomSheetHelper.getInstance()
-        .isInHideMeMode(primaryCall);
+    maybeUpdateTransmitStaticImageState(primaryCall);
 
     LogUtil.d("VideoCallPresenter.onHideMeUiModeChanged"," shallTransmitStaticImage: "
         + sShallTransmitStaticImage + " primaryCall: " + primaryCall);
@@ -1027,9 +1027,8 @@ public class VideoCallPresenter
   private void onPrimaryCallChanged(DialerCall newPrimaryCall) {
     final boolean shouldShowVideoUi = shouldShowVideoUiForCall(newPrimaryCall);
     final boolean isVideoMode = isVideoMode();
-    // get the hide me mode for the new call
-    sShallTransmitStaticImage = BottomSheetHelper.getInstance()
-        .isInHideMeMode(newPrimaryCall);
+    // Get the hide me mode for the new call
+    maybeUpdateTransmitStaticImageState(newPrimaryCall);
     LogUtil.i(
         "VideoCallPresenter.onPrimaryCallChanged",
         "shouldShowVideoUi: %b, isVideoMode: %b, shallTransmitStaticImage: %b",
@@ -1114,12 +1113,22 @@ public class VideoCallPresenter
   }
 
   private void updateVideoCall(DialerCall call) {
+    maybeUpdateTransmitStaticImageState(call);
     checkForVideoCallChange(call);
     checkForVideoStateChange(call);
     checkForCallStateChange(call);
     checkForOrientationAllowedChange(call);
     updateFullscreenAndGreenScreenMode(
         call.getState(), call.getVideoTech().getSessionModificationState());
+  }
+
+  private void maybeUpdateTransmitStaticImageState(DialerCall call) {
+    // Phone id extra is not updated at the time a dialing call is created.
+    // Update the static image mode only when we are sure about the phoneid
+    if (QtiCallUtils.getPhoneId(call) != QtiCallConstants.INVALID_PHONE_ID) {
+      sShallTransmitStaticImage = BottomSheetHelper.getInstance()
+          .isInHideMeMode(call);
+    }
   }
 
   private void checkForOrientationAllowedChange(@Nullable DialerCall call) {
