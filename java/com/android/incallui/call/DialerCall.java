@@ -339,7 +339,9 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
         @Override
         public void onRttInitiationFailure(Call call, int reason) {
           LogUtil.v("TelecomCallCallback.onRttInitiationFailure", "reason=%d", reason);
-          Toast.makeText(context, R.string.rtt_call_not_available_toast, Toast.LENGTH_LONG).show();
+          Integer resourceId = call.isRttActive() ? R.string.rtt_call_not_downgraded_toast :
+              R.string.rtt_call_not_available_toast;
+          Toast.makeText(context, resourceId, Toast.LENGTH_LONG).show();
           update();
         }
 
