@@ -27,6 +27,8 @@ import static com.android.incallui.NotificationBroadcastReceiver.ACTION_DECLINE_
 import static com.android.incallui.NotificationBroadcastReceiver.ACTION_HANG_UP_ONGOING_CALL;
 import static com.android.incallui.NotificationBroadcastReceiver.ACTION_TURN_OFF_SPEAKER;
 import static com.android.incallui.NotificationBroadcastReceiver.ACTION_TURN_ON_SPEAKER;
+import static com.android.incallui.NotificationBroadcastReceiver.ACTION_NEXT_INCOMING_CALL;
+import static com.android.incallui.NotificationBroadcastReceiver.EXTRA_CALL_ID;
 
 import android.Manifest;
 import android.app.Notification;
@@ -97,6 +99,7 @@ import com.android.incallui.ringtone.ToneGeneratorFactory;
 import com.android.incallui.speakeasy.SpeakEasyComponent;
 import com.android.incallui.videotech.utils.SessionModificationState;
 import com.google.common.base.Optional;
+import java.util.ArrayList;
 import java.util.Objects;
 
 /** This class adds Notifications to the status bar for the in-call experience. */
@@ -107,6 +110,7 @@ public class StatusBarNotifier
         ContactInfoCacheCallback {
 
   private static final int NOTIFICATION_ID = 1;
+  private static final int NOTIFICATION_ID_SECOND = 2;
 
   // Notification types
   // Indicates that no notification is currently showing.
@@ -132,8 +136,14 @@ public class StatusBarNotifier
   private Bitmap savedLargeIcon;
   private String savedContentTitle;
   private CallAudioState savedCallAudioState;
+  private int savedIncomingCallCount;
   private Uri ringtone;
   private StatusBarCallListener statusBarCallListener;
+
+  // Stores the call Id of the incoming call which is currently shown.
+  private String visibleIncomingCallId;
+  // Stores the index of the incoming call which is currently shown.
+  private int visibleIncomingCallIndex = 0;
 
   public StatusBarNotifier(@NonNull Context context, @NonNull ContactInfoCache contactInfoCache) {
     Trace.beginSection("StatusBarNotifier.Constructor");
@@ -171,11 +181,14 @@ public class StatusBarNotifier
 
   /**
    * Returns PendingIntent for answering a phone call. This will typically be used from Notification
-   * context.
+   * context. Call Id is added as an extra to the intent if there are multiple incoming calls.
    */
-  private static PendingIntent createNotificationPendingIntent(Context context, String action) {
+  private PendingIntent createNotificationPendingIntent(Context context, String action) {
     final Intent intent = new Intent(action, null, context, NotificationBroadcastReceiver.class);
-    return PendingIntent.getBroadcast(context, 0, intent, 0);
+    if(hasMultipleIncomingCalls()) {
+      intent.putExtra(EXTRA_CALL_ID, visibleIncomingCallId);
+    }
+    return PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
   }
 
   /** Creates notifications according to the state we receive from {@link InCallPresenter}. */
@@ -277,6 +290,10 @@ public class StatusBarNotifier
     Trace.endSection();
   }
 
+  private boolean hasMultipleIncomingCalls() {
+      return CallList.getInstance().getIncomingCalls().size() > 1;
+  }
+
   /** Sets up the main Ui for the notification */
   @RequiresPermission(Manifest.permission.READ_PHONE_STATE)
   private void buildAndSendNotification(
@@ -313,8 +330,11 @@ public class StatusBarNotifier
       if (ConfigProviderComponent.get(context)
           .getConfigProvider()
           .getBoolean("quiet_incoming_call_if_ui_showing", true)) {
+        // When incallUi is shown but there are multiple incoming calls we want the notification
+        // to be disruptive.
         notificationType =
-            InCallPresenter.getInstance().isShowingInCallUi()
+            InCallPresenter.getInstance().isShowingInCallUi() &&
+            !hasMultipleIncomingCalls()
                 ? NOTIFICATION_INCOMING_CALL_QUIET
                 : NOTIFICATION_INCOMING_CALL;
       } else {
@@ -328,7 +348,6 @@ public class StatusBarNotifier
       notificationType = NOTIFICATION_IN_CALL;
     }
     Trace.endSection(); // prepare work
-
     if (!checkForChangeAndSaveData(
         iconResId,
         content.toString(),
@@ -338,7 +357,8 @@ public class StatusBarNotifier
         call.getVideoState(),
         notificationType,
         contactInfo.contactRingtoneUri,
-        callAudioState)) {
+        callAudioState,
+        callList.getIncomingCalls().size())) {
       Trace.endSection();
       return;
     }
@@ -443,14 +463,46 @@ public class StatusBarNotifier
     LogUtil.i(
         "StatusBarNotifier.buildAndSendNotification",
         "displaying notification for " + notificationType);
-
-    // If a notification exists, this will only update it.
-    TelecomAdapter.getInstance().startForegroundNotification(NOTIFICATION_ID, notification);
+    /* If there are more than one incoming call and incall UI is showing
+    then pass diff notification id so that we create a new notification instead of
+    updating same notification otherwise we have some issues like first call notification
+    is shown for a few seconds after declining second call.
+    If a notification exists, this will only update it when same id is passed. */
+    int id = hasMultipleIncomingCalls() && InCallPresenter.getInstance().isShowingInCallUi() ?
+        NOTIFICATION_ID_SECOND : NOTIFICATION_ID;
+    TelecomAdapter.getInstance().startForegroundNotification(id, notification);
 
     Trace.endSection();
     call.getLatencyReport().onNotificationShown();
     currentNotification = notificationType;
     Trace.endSection();
+  }
+
+  private void moveToNextIncomingCall() {
+    ArrayList<DialerCall> incomingCalls = CallList.getInstance().getIncomingCalls();
+    if (incomingCalls.isEmpty()) {
+      // No incoming calls.
+      return;
+    }
+
+    // Compute the next incoming call.
+    int totalIncomingCalls = incomingCalls.size();
+    int nextIncomingCallIndex = (visibleIncomingCallIndex + 1) % totalIncomingCalls;
+    DialerCall nextIncomingCall = incomingCalls.get(nextIncomingCallIndex);
+    DialerCall currentIncomingCall = visibleIncomingCallIndex < totalIncomingCalls ?
+        incomingCalls.get(visibleIncomingCallIndex) : null;
+
+    // Ignore if next and current incoming calls are the same.
+    if (DialerCall.areSame(nextIncomingCall, currentIncomingCall)) {
+      return;
+    }
+    visibleIncomingCallIndex = nextIncomingCallIndex;
+    visibleIncomingCallId = nextIncomingCall.getId();
+  }
+
+  public void showNextIncomingCall() {
+    moveToNextIncomingCall();
+    updateInCallNotification();
   }
 
   private void createIncomingCallNotification(
@@ -470,6 +522,10 @@ public class StatusBarNotifier
       } else {
         addAnswerAction(builder);
         addSpeakeasyAnswerAction(builder, call);
+      }
+      // Add next button when there are more than one incoming call but incall ui is not shown
+      if(hasMultipleIncomingCalls() && !InCallPresenter.getInstance().isShowingInCallUi()) {
+        addNextAction(builder);
       }
     }
   }
@@ -502,7 +558,8 @@ public class StatusBarNotifier
       int videoState,
       int notificationType,
       Uri ringtone,
-      CallAudioState callAudioState) {
+      CallAudioState callAudioState,
+      int numOfIncomingCalls) {
 
     // The two are different:
     // if new title is not null, it should be different from saved version OR
@@ -527,12 +584,13 @@ public class StatusBarNotifier
             || largeIconChanged
             || contentTitleChanged
             || !Objects.equals(this.ringtone, ringtone)
-            || !Objects.equals(savedCallAudioState, callAudioState);
+            || !Objects.equals(savedCallAudioState, callAudioState)
+            || (numOfIncomingCalls != savedIncomingCallCount);
 
     LogUtil.d(
         "StatusBarNotifier.checkForChangeAndSaveData",
         "data changed: icon: %b, content: %b, state: %b, videoState: %b, largeIcon: %b, title: %b,"
-            + "ringtone: %b, audioState: %b, type: %b",
+            + "ringtone: %b, audioState: %b, type: %b numOfIncomingCalls: %b",
         (savedIcon != icon),
         !Objects.equals(savedContent, content),
         (callState != state),
@@ -541,7 +599,8 @@ public class StatusBarNotifier
         contentTitleChanged,
         !Objects.equals(this.ringtone, ringtone),
         !Objects.equals(savedCallAudioState, callAudioState),
-        currentNotification != notificationType);
+        currentNotification != notificationType,
+        numOfIncomingCalls != savedIncomingCallCount);
     // If we aren't showing a notification right now or the notification type is changing,
     // definitely do an update.
     if (currentNotification != notificationType) {
@@ -560,6 +619,7 @@ public class StatusBarNotifier
     savedContentTitle = contentTitle;
     this.ringtone = ringtone;
     savedCallAudioState = callAudioState;
+    savedIncomingCallCount = numOfIncomingCalls;
 
     if (retval) {
       LogUtil.d(
@@ -863,6 +923,22 @@ public class StatusBarNotifier
       return null;
     }
     DialerCall call = callList.getIncomingCall();
+    // If there are more than one incoming call update notification for the currently visible
+    // incoming call.
+    if(hasMultipleIncomingCalls()) {
+      // If a new incoming call is added move to the nextIncomingCall which will
+      // update visibleIncomingCallIndex so that we show notification for the new call
+      // when IncallActivity is showing.
+      if(InCallPresenter.getInstance().isShowingInCallUi() &&
+          callList.getIncomingCalls().size() > savedIncomingCallCount) {
+        moveToNextIncomingCall();
+      }
+      call = callList.getIncomingCalls().get(visibleIncomingCallIndex);
+    } else if(visibleIncomingCallIndex != 0) {
+      // Reset visibleIncomingCallIndex if there are no multiple incoming calls so that when we
+      // receive another incoming call we have proper value of visibleIncomingCallIndex.
+      visibleIncomingCallIndex = 0;
+    }
     if (call == null) {
       call = callList.getOutgoingCall();
     }
@@ -900,6 +976,21 @@ public class StatusBarNotifier
                     R.string.notification_action_answer, R.color.notification_action_accept),
                 answerVoicePendingIntent)
             .build());
+  }
+
+  private void addNextAction(Notification.Builder builder) {
+    LogUtil.d(
+        "StatusBarNotifier.addNextAction",
+        "will show \"next\" action in the incoming call Notification");
+        PendingIntent nextPendingIntent =
+        createNotificationPendingIntent(context, ACTION_NEXT_INCOMING_CALL);
+    builder.addAction(
+            new Notification.Action.Builder(
+              Icon.createWithResource(context, R.drawable.quantum_ic_call_end_white_24),
+              getActionText(
+                R.string.notification_action_next, R.color.notification_action_next),
+              nextPendingIntent)
+          .build());
   }
 
   private void addSpeakeasyAnswerAction(Notification.Builder builder, DialerCall call) {
