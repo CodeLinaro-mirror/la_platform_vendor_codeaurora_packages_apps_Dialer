@@ -664,6 +664,10 @@ public class CallLogAdapter extends GroupingListAdapter
     this.loading = loading;
   }
 
+  public boolean isLoading() {
+      return loading;
+  }
+
   public boolean isEmpty() {
     if (loading) {
       // We don't want the empty state to show when loading.
