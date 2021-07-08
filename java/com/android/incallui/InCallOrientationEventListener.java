@@ -100,7 +100,12 @@ public class InCallOrientationEventListener extends OrientationEventListener {
 
   @ScreenOrientation
   public static int getCurrentOrientation() {
-    return currentOrientation;
+    // Update currentOrientation cache value with UI display orientation.
+    // currentOrientation will be a dirty data when DISPLAY_MODE_EVENT
+    // comes with value ORIENTATION_MODE_LANDSCAPE or SCREEN_ORIENTATION_PORTRAIT
+    // and OrientationEventListener is disabled. This can happen like MO VT call
+    // at landscape mode + Video CRBT.
+    return getCurrentUiOrientation();
   }
 
   /**
@@ -126,7 +131,14 @@ public class InCallOrientationEventListener extends OrientationEventListener {
           "orientation: %d -> %d",
           currentOrientation,
           orientation);
-      currentOrientation = orientation;
+      // Sometimes UI display orientation is not changed even though it receives sensor
+      // rotation, that is, UI display orientation is different from sensor rotation
+      // degrees, then incoming or preview video orientation will display wrong degree.
+      // To solve the issue below code updates currentOrientation with UI display
+      // orientation to guatantee local and remote video display properly when user
+      // rotates the UE during VT call(DIALING or ACTIVE).
+      currentOrientation = getCurrentUiOrientation();
+
       InCallPresenter.getInstance().onDeviceOrientationChange(currentOrientation);
     }
   }
@@ -211,8 +223,11 @@ public class InCallOrientationEventListener extends OrientationEventListener {
    * -1 if unknown
    */
   private static int getCurrentUiOrientation() {
+    if (sWindowManager == null) {
+      return SCREEN_ORIENTATION_UNKNOWN;
+    }
     final Display display = sWindowManager.getDefaultDisplay();
-    if (sWindowManager == null || display == null ) {
+    if (display == null) {
       return SCREEN_ORIENTATION_UNKNOWN;
     }
 
