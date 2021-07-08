@@ -122,8 +122,6 @@ public class VideoCallPresenter
   private int currentVideoState;
   /** DialerCall's current state */
   private int currentCallState = DialerCallState.INVALID;
-  /** Determines the device orientation (portrait/lanscape). */
-  private int deviceOrientation = InCallOrientationEventListener.SCREEN_ORIENTATION_UNKNOWN;
   /** Tracks the state of the preview surface negotiation with the telephony layer. */
   private int previewSurfaceState = PreviewSurfaceState.NONE;
   /**
@@ -492,7 +490,6 @@ public class VideoCallPresenter
     Assert.checkState(!isVideoCallScreenUiReady);
 
     this.videoCallScreen = videoCallScreen;
-    deviceOrientation = InCallOrientationEventListener.getCurrentOrientation();
 
     // Register for call state changes last
     InCallPresenter.getInstance().addListener(this);
@@ -623,7 +620,8 @@ public class VideoCallPresenter
 
   @Override
   public int getDeviceOrientation() {
-    return deviceOrientation;
+    // Update deviceOrientation with real time data to avoiding dirty data
+    return InCallOrientationEventListener.getCurrentOrientation();
   }
 
   /**
@@ -1276,6 +1274,7 @@ public class VideoCallPresenter
         videoCall.setDisplaySurface(surface);
       }
 
+      int deviceOrientation = getDeviceOrientation();
       Assert.checkState(
           deviceOrientation != InCallOrientationEventListener.SCREEN_ORIENTATION_UNKNOWN);
       videoCall.setDeviceOrientation(deviceOrientation);
@@ -1546,10 +1545,8 @@ public class VideoCallPresenter
   public void onDeviceOrientationChanged(int orientation) {
     LogUtil.i(
         "VideoCallPresenter.onDeviceOrientationChanged",
-        "orientation: %d -> %d",
-        deviceOrientation,
+        "new orientation: %d",
         orientation);
-    deviceOrientation = orientation;
 
     if (videoCallScreen == null) {
       LogUtil.e("VideoCallPresenter.onDeviceOrientationChanged", "videoCallScreen is null");
