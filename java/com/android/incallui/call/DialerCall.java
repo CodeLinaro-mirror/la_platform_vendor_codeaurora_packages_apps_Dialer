@@ -237,6 +237,8 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
    */
   private boolean isCallSubjectSupported;
 
+  private boolean isPhoneAccountRttCapable;
+
   public RttTranscript getRttTranscript() {
     return rttTranscript;
   }
@@ -337,7 +339,9 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
         @Override
         public void onRttInitiationFailure(Call call, int reason) {
           LogUtil.v("TelecomCallCallback.onRttInitiationFailure", "reason=%d", reason);
-          Toast.makeText(context, R.string.rtt_call_not_available_toast, Toast.LENGTH_LONG).show();
+          Integer resourceId = call.isRttActive() ? R.string.rtt_call_not_downgraded_toast :
+              R.string.rtt_call_not_available_toast;
+          Toast.makeText(context, resourceId, Toast.LENGTH_LONG).show();
           update();
         }
 
@@ -356,6 +360,8 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
 
         @Override
         public void onConnectionEvent(android.telecom.Call call, String event, Bundle extras) {
+          final String EVENT_PHONE_ACCOUNT_CHANGED =
+              "org.codeaurora.telecom.event.EVENT_PHONE_ACCOUNT_CHANGED";
           LogUtil.v(
               "TelecomCallCallback.onConnectionEvent",
               "Call: " + call + ", Event: " + event + ", Extras: " + extras);
@@ -408,6 +414,9 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
               break;
             case TelephonyManagerCompat.EVENT_SUPPLEMENTARY_SERVICE_NOTIFICATION:
                 notifySuplServiceMessage(extras);
+                break;
+            case EVENT_PHONE_ACCOUNT_CHANGED:
+                maybeUpdatePhoneAccountRttCapability();
                 break;
             default:
               break;
@@ -706,6 +715,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     PhoneAccountHandle newPhoneAccountHandle = telecomCall.getDetails().getAccountHandle();
     if (!Objects.equals(phoneAccountHandle, newPhoneAccountHandle)) {
       phoneAccountHandle = newPhoneAccountHandle;
+      isPhoneAccountRttCapable = isPhoneAccountRttCapable();
       callbackNumber = null;
 
       if (phoneAccountHandle != null) {
@@ -738,6 +748,16 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
       countryIso = GeoUtil.getCurrentCountryIso(context);
     }
     Trace.endSection();
+  }
+
+  private void maybeUpdatePhoneAccountRttCapability() {
+    boolean isRttCapable = isPhoneAccountRttCapable();
+    LogUtil.v("DialerCall.maybeUpdatePhoneAccountRttCapability",
+        "oldValue = " + isPhoneAccountRttCapable + " newValue = " + isRttCapable);
+    if (isRttCapable != isPhoneAccountRttCapable) {
+      isPhoneAccountRttCapable = isRttCapable;
+      update();
+    }
   }
 
   /**

@@ -87,7 +87,6 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    private static final int BLIND_TRANSFER = 0;
    private static final int ASSURED_TRANSFER = 1;
    private static final int CONSULTATIVE_TRANSFER = 2;
-   private boolean mShowStaticImageUiConfig = false;
 
    private QtiImsExtListenerBaseImpl imsInterfaceListener =
       new QtiImsExtListenerBaseImpl() {
@@ -159,7 +158,6 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
        mPrimaryCallTracker = null;
      }
      mIsHideMe = false;
-     mShowStaticImageUiConfig = false;
      if (mQtiImsExtConnector != null) {
        mQtiImsExtConnector.disconnect();
        mQtiImsExtConnector = null;
@@ -390,14 +388,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      }
    }
 
-   private void notifyStaticImageStateChanged(boolean staticImageState) {
-     LogUtil.v("BottomSheetHelper.notifyStaticImageStateChanged",
-         " notifying static image changed = " + staticImageState);
-     InCallPresenter.getInstance().notifyStaticImageStateChanged(staticImageState);
-   }
-
    private boolean isHideMeOptionVisible() {
-     if (!mShowStaticImageUiConfig ||
+     if (!QtiImsExtUtils.shallShowStaticImageUi(getPhoneId(), mContext) ||
          !VideoUtils.hasCameraPermissionAndShownPrivacyToast(mContext)) {
        return false;
      }
@@ -407,12 +399,6 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
 
    private void maybeUpdateHideMeInMap() {
      LogUtil.v("BottomSheetHelper.maybeUpdateHideMeInMap", " mIsHideMe = " + mIsHideMe);
-     boolean showStaticImageUiConfig = QtiImsExtUtils.shallShowStaticImageUi(getPhoneId(),
-         mContext);
-     if(mShowStaticImageUiConfig != showStaticImageUiConfig) {
-       mShowStaticImageUiConfig = showStaticImageUiConfig;
-       notifyStaticImageStateChanged(mShowStaticImageUiConfig && mIsHideMe);
-     }
      String hideMeText = mIsHideMe ? mResources.getString(R.string.qti_ims_hideMeText_selected) :
          mResources.getString(R.string.qti_ims_hideMeText_unselected);
      moreOptionsMap.put(hideMeText, isHideMeOptionVisible());
@@ -438,17 +424,20 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      /* Click on hideme shall change the static image state i.e. decision
         is made in VideoCallPresenter whether to replace preview video with
         static image or whether to resume preview video streaming */
-       notifyStaticImageStateChanged(isHideMe);
+     InCallPresenter.getInstance().notifyHideMeUiModeChanged();
    }
 
    // Returns TRUE if UE is in hide me mode else returns FALSE
-   public boolean isInHideMeMode() {
-     LogUtil.v("BottomSheetHelper.isInHideMeMode", "mIsHideMe: " + mIsHideMe +
-         " mShowStaticImageUiConfig: " + mShowStaticImageUiConfig);
-     return mIsHideMe && mShowStaticImageUiConfig;
+   public boolean isInHideMeMode(DialerCall call) {
+     LogUtil.v("BottomSheetHelper.isInHideMeMode", "mIsHideMe: " + mIsHideMe);
+     return mIsHideMe &&
+         QtiImsExtUtils.shallShowStaticImageUi(getPhoneIdExtra(call), mContext);
    }
 
    private int getPhoneIdExtra(DialerCall call) {
+     if (call == null) {
+       return QtiCallConstants.INVALID_PHONE_ID;
+     }
      final Bundle extras = call.getExtras();
      return ((extras == null) ? QtiCallConstants.INVALID_PHONE_ID :
          extras.getInt(QtiImsExtUtils.QTI_IMS_PHONE_ID_EXTRA_KEY,
@@ -477,7 +466,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    }
 
     @Override
-    public void onSendStaticImageStateChanged(boolean isEnabled) {
+    public void onHideMeUiModeChanged() {
       //No-op
     }
 
