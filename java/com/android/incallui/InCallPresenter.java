@@ -1381,7 +1381,6 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   public void addInCallEventListener(InCallEventListener listener) {
     Objects.requireNonNull(listener);
     inCallEventListeners.add(listener);
-    listener.onSendStaticImageStateChanged(BottomSheetHelper.getInstance().isInHideMeMode());
   }
 
   public void removeInCallEventListener(InCallEventListener listener) {
@@ -1709,12 +1708,10 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
   /**
    * Called by the {@link BottomSheetHelper} to inform of a change in hide me selection.
-   *
-   * @param isEnabled {@code True} if entering hide me mode.
    */
-  public void notifyStaticImageStateChanged(boolean isEnabled) {
+  public void notifyHideMeUiModeChanged() {
     for (InCallEventListener listener : inCallEventListeners) {
-      listener.onSendStaticImageStateChanged(isEnabled);
+      listener.onHideMeUiModeChanged();
     }
   }
 
@@ -2247,7 +2244,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   public interface InCallEventListener {
     void onSessionModificationStateChange(DialerCall call);
     void onFullscreenModeChanged(boolean isFullscreenMode);
-    void onSendStaticImageStateChanged(boolean isEnabled);
+    void onHideMeUiModeChanged();
     void onOutgoingVideoSourceChanged(int videoSource);
     void onSipDtmfChanged(int bitMask);
   }
