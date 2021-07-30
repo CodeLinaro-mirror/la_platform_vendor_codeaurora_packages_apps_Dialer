@@ -1087,7 +1087,7 @@ public class CallCardPresenter
   }
 
   @Override
-  public void onSendStaticImageStateChanged(boolean isEnabled) {
+  public void onHideMeUiModeChanged() {
     //No-op
   }
 
