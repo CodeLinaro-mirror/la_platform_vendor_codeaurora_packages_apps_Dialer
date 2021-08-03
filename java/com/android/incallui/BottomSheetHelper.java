@@ -1,4 +1,4 @@
-/* Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -388,18 +388,20 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      }
    }
 
-   private void maybeUpdateHideMeInMap() {
+   private boolean isHideMeOptionVisible() {
      if (!QtiImsExtUtils.shallShowStaticImageUi(getPhoneId(), mContext) ||
          !VideoUtils.hasCameraPermissionAndShownPrivacyToast(mContext)) {
-       return;
+       return false;
      }
+     return mCall != null && mCall.isVideoCall() && mCall.getState() == DialerCallState.ACTIVE
+         && !mCall.hasReceivedVideoUpgradeRequest();
+   }
 
+   private void maybeUpdateHideMeInMap() {
      LogUtil.v("BottomSheetHelper.maybeUpdateHideMeInMap", " mIsHideMe = " + mIsHideMe);
      String hideMeText = mIsHideMe ? mResources.getString(R.string.qti_ims_hideMeText_selected) :
          mResources.getString(R.string.qti_ims_hideMeText_unselected);
-     moreOptionsMap.put(hideMeText, mCall.isVideoCall()
-         && mCall.getState() == DialerCallState.ACTIVE
-         && !mCall.hasReceivedVideoUpgradeRequest());
+     moreOptionsMap.put(hideMeText, isHideMeOptionVisible());
    }
 
    /**
@@ -422,16 +424,20 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      /* Click on hideme shall change the static image state i.e. decision
         is made in VideoCallPresenter whether to replace preview video with
         static image or whether to resume preview video streaming */
-     InCallPresenter.getInstance().notifyStaticImageStateChanged(isHideMe);
+     InCallPresenter.getInstance().notifyHideMeUiModeChanged();
    }
 
    // Returns TRUE if UE is in hide me mode else returns FALSE
-   public boolean isHideMeSelected() {
-     LogUtil.v("BottomSheetHelper.isHideMeSelected", "mIsHideMe: " + mIsHideMe);
-     return mIsHideMe;
+   public boolean isInHideMeMode(DialerCall call) {
+     LogUtil.v("BottomSheetHelper.isInHideMeMode", "mIsHideMe: " + mIsHideMe);
+     return mIsHideMe &&
+         QtiImsExtUtils.shallShowStaticImageUi(getPhoneIdExtra(call), mContext);
    }
 
    private int getPhoneIdExtra(DialerCall call) {
+     if (call == null) {
+       return QtiCallConstants.INVALID_PHONE_ID;
+     }
      final Bundle extras = call.getExtras();
      return ((extras == null) ? QtiCallConstants.INVALID_PHONE_ID :
          extras.getInt(QtiImsExtUtils.QTI_IMS_PHONE_ID_EXTRA_KEY,
@@ -460,7 +466,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    }
 
     @Override
-    public void onSendStaticImageStateChanged(boolean isEnabled) {
+    public void onHideMeUiModeChanged() {
       //No-op
     }
 
@@ -473,6 +479,11 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
 
     @Override
     public void onSessionModificationStateChange(DialerCall call) {
+      //No-op
+    }
+
+    @Override
+    public void onSipDtmfChanged(int bitMask) {
       //No-op
     }
 
@@ -656,14 +667,15 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    }
 
    private void maybeUpdateDialpadOptionInMap() {
-     // Enable dialpad option in bottomsheet only for video calls.
+     // Enable dialpad option in bottomsheet for video calls or video CRS.
      // When video call is held, UI displays onscreen dialpad button
      // similar to volte calls.
      final int primaryCallState = mCall.getNonConferenceState();
-     final boolean enable = mCall.isVideoCall()
-         && primaryCallState != DialerCallState.INCOMING
-         && primaryCallState != DialerCallState.CALL_WAITING
-         && primaryCallState != DialerCallState.ONHOLD;
+     final boolean enable = (mCall.isVideoCall()
+             && primaryCallState != DialerCallState.INCOMING
+             && primaryCallState != DialerCallState.CALL_WAITING
+             && primaryCallState != DialerCallState.ONHOLD)
+         || QtiCallUtils.isVideoCrs(mCall);
      moreOptionsMap.put(mResources.getString(R.string.dialpad_label), enable);
    }
 

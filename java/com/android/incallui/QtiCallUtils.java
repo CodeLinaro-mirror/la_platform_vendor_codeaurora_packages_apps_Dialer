@@ -37,6 +37,7 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Resources;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
@@ -74,6 +75,7 @@ public class QtiCallUtils {
     // ensure this extra is same the one defined in ConferenceURIDialer.java
     public static final String EXTRA_ADD_PARTICIPANT_NUMBER =
             "org.codeaurora.extra.ADD_PARTICIPANT_NUMBER";
+    private static final int UNKNOWN_CALL_TYPE = -1;
 
     /**
      * Returns true if it is emergency number else false
@@ -232,6 +234,10 @@ public class QtiCallUtils {
         }
 
         final int requestedVideoState = call.getVideoTech().getRequestedVideoState();
+
+        if (isVideoCrs(call)) {
+            return context.getString(R.string.incoming_video_crs_call);
+        }
 
         if (QtiCallUtils.isVideoRxOnly(call)
             || requestedVideoState == VideoProfile.STATE_RX_ENABLED) {
@@ -535,5 +541,71 @@ public class QtiCallUtils {
             hasConfCall = bgCall != null ? bgCall.isConferenceCall() : false;
         }
         return hasConfCall;
+    }
+
+    //Checks if incoming call has video CRS
+    public static boolean isVideoCrs(DialerCall call) {
+        if (call == null) {
+            Log.w(LOG_TAG, "call is null");
+            return false;
+        }
+        if (call.getState() != DialerCallState.INCOMING) {
+            Log.w(LOG_TAG, "call is not incoming state.");
+            return false;
+        }
+        Bundle extras = call.getExtras();
+        if (extras == null) {
+            return false;
+        }
+        int crsType = extras.getInt(QtiCallConstants.EXTRA_CRS_TYPE,
+                QtiCallConstants.CRS_TYPE_INVALID);
+        return crsType == (QtiCallConstants.CRS_TYPE_VIDEO | QtiCallConstants.CRS_TYPE_AUDIO);
+    }
+
+    //Checks what's original call type of video CRS
+    private static int getOriginalCallType(DialerCall call) {
+        if (!isVideoCrs(call)) {
+            return call.getVideoState();
+        }
+        //Ideally if call has video CRS, then original call type should be there.
+        Bundle extras = call.getExtras();
+        if (extras == null) {
+            return UNKNOWN_CALL_TYPE;
+        }
+        return extras.getInt(QtiCallConstants.EXTRA_ORIGINAL_CALL_TYPE,
+                UNKNOWN_CALL_TYPE);
+    }
+
+    //Checks if original call type is VT with or without video CRS
+    public static boolean isVideoCallOriginally(DialerCall call) {
+        if (!isVideoCrs(call)) {
+            return call == null ? false : call.isVideoCall();
+        }
+        int originalCallType = getOriginalCallType(call);
+        if (originalCallType == UNKNOWN_CALL_TYPE) {
+            Log.w(LOG_TAG, "Video CRS call has no original call type, it's not expected.");
+        }
+        return VideoProfile.STATE_BIDIRECTIONAL == originalCallType;
+    }
+
+    public static boolean isPreparatory(DialerCall call) {
+        if (!isVideoCrs(call)) {
+            return false;
+        }
+        Bundle extras = call.getExtras();
+        if (extras == null) {
+            return false;
+        }
+        return extras.getBoolean(QtiCallConstants.EXTRA_IS_PREPARATORY, false);
+    }
+
+    public static int getPhoneId(DialerCall call) {
+        if (call == null) {
+            return QtiCallConstants.INVALID_PHONE_ID;
+        }
+        final Bundle extras = call.getExtras();
+        return ((extras == null) ? QtiCallConstants.INVALID_PHONE_ID :
+            extras.getInt(QtiImsExtUtils.QTI_IMS_PHONE_ID_EXTRA_KEY,
+            QtiCallConstants.INVALID_PHONE_ID));
     }
 }

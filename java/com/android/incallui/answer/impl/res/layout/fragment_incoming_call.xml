@@ -191,15 +191,118 @@
       android:visibility="invisible"
       tools:visibility="visible"/>
 
-  <ImageButton
+<LinearLayout
+  android:id="@+id/sip_dtmf_controls"
+  android:layout_width="wrap_content"
+  android:layout_height="wrap_content"
+  android:layout_gravity="center|end"
+  android:scaleType="center"
+  android:orientation="vertical"
+  android:layout_margin="15dp">
+  <com.android.incallui.video.impl.CheckableImageButton
+    android:id="@+id/crs_crbt_like_button"
+    style="@style/Incall.Button.VideoCall"
+    android:layout_width="@dimen/videocall_button_size"
+    android:layout_height="@dimen/videocall_button_size"
+    android:layout_marginBottom="@dimen/videocall_button_spacing"
+    android:checked="false"
+    android:src="@drawable/quantum_ic_baseline_favorite_border_24"
+    android:contentDescription="@string/crs_crbt_description_like"
+    android:layout_marginEnd="24dp"
+    android:visibility="gone"
+    tools:visibility="visible"/>
+    <com.android.incallui.video.impl.CheckableImageButton
+      android:id="@+id/crs_crbt_share_button"
+      style="@style/Incall.Button.VideoCall"
+      android:layout_width="@dimen/videocall_button_size"
+      android:layout_height="@dimen/videocall_button_size"
+      android:layout_marginBottom="@dimen/videocall_button_spacing"
+      android:checked="false"
+      android:src="@drawable/quantum_ic_baseline_share_24"
+      android:contentDescription="@string/crs_crbt_description_share"
+      android:visibility="gone"
+      android:layout_marginEnd="24dp"
+      tools:visibility="visible"/>
+    <com.android.incallui.video.impl.CheckableImageButton
+      android:id="@+id/crs_crbt_favorite_button"
+      style="@style/Incall.Button.VideoCall"
+      android:layout_width="@dimen/videocall_button_size"
+      android:layout_height="@dimen/videocall_button_size"
+      android:layout_marginBottom="@dimen/videocall_button_spacing"
+      android:checked="false"
+      android:src="@drawable/quantum_ic_baseline_cloud_queue_24"
+      android:contentDescription="@string/crs_crbt_description_favorite"
+      android:visibility="gone"
+      android:layout_marginEnd="24dp"
+      tools:visibility="visible"/>
+    <com.android.incallui.video.impl.CheckableImageButton
+      android:id="@+id/crs_crbt_copy_button"
+      style="@style/Incall.Button.VideoCall"
+      android:layout_width="@dimen/videocall_button_size"
+      android:layout_height="@dimen/videocall_button_size"
+      android:layout_marginBottom="@dimen/videocall_button_spacing"
+      android:checked="false"
+      android:src="@drawable/quantum_ic_baseline_content_copy_24"
+      android:contentDescription="@string/crs_crbt_description_copy"
+      android:visibility="gone"
+      android:layout_marginEnd="24dp"
+      tools:visibility="visible"/>
+    <com.android.incallui.video.impl.CheckableImageButton
+      android:id="@+id/crs_crbt_comment_button"
+      style="@style/Incall.Button.VideoCall"
+      android:layout_width="@dimen/videocall_button_size"
+      android:layout_height="@dimen/videocall_button_size"
+      android:layout_marginBottom="@dimen/videocall_button_spacing"
+      android:checked="false"
+      android:src="@drawable/quantum_ic_baseline_comment_24"
+      android:contentDescription="@string/crs_crbt_description_comment"
+      android:visibility="gone"
+      android:layout_marginEnd="24dp"
+      tools:visibility="visible"
+      />
+    <com.android.incallui.video.impl.CheckableImageButton
+      android:id="@+id/crs_crbt_detail_button"
+      style="@style/Incall.Button.VideoCall"
+      android:layout_width="@dimen/videocall_button_size"
+      android:layout_height="@dimen/videocall_button_size"
+      android:layout_marginBottom="@dimen/videocall_button_spacing"
+      android:src="@drawable/quantum_ic_baseline_info_24"
+      android:checked="false"
+      android:contentDescription="@string/crs_crbt_description_detail"
+      android:visibility="gone"
+      android:layout_marginEnd="24dp"
+      tools:visibility="visible"
+      />
+    <com.android.incallui.video.impl.CheckableImageButton
+      android:id="@+id/crs_crbt_money_button"
+      style="@style/Incall.Button.VideoCall"
+      android:layout_width="@dimen/videocall_button_size"
+      android:layout_height="@dimen/videocall_button_size"
+      android:layout_marginBottom="@dimen/videocall_button_spacing"
+      android:src="@drawable/quantum_ic_baseline_money_24"
+      android:checked="false"
+      android:contentDescription="@string/crs_crbt_description_money"
+      android:visibility="gone"
+      android:layout_marginEnd="24dp"
+      tools:visibility="visible"
+      />
+    <ImageButton
       android:id="@+id/qti_dialer_incoming_botton_more"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
-      android:layout_gravity="center|end"
-      android:layout_margin="15dp"
-      android:scaleType="center"
       style="@style/Incall.Button.VideoCall"
       android:src="@drawable/quantum_ic_more_vert_white_24"
       tools:visibility="visible"/>
+</LinearLayout>
+  <FrameLayout
+    android:id="@+id/videocall_dialpad_container"
+    style="@style/DialpadContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center|bottom"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    tools:background="@android:color/white"
+    tools:visibility="gone"/>
 
 </com.android.incallui.answer.impl.AffordanceHolderLayout>

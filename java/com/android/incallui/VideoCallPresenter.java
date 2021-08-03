@@ -62,6 +62,7 @@ import java.util.Objects;
 
 import org.codeaurora.ims.ImsScreenShareListenerBase;
 import org.codeaurora.ims.ImsScreenShareManager;
+import org.codeaurora.ims.QtiCallConstants;
 import org.codeaurora.ims.QtiImsException;
 import org.codeaurora.ims.QtiImsExtConnector;
 import org.codeaurora.ims.QtiImsExtManager;
@@ -780,25 +781,23 @@ public class VideoCallPresenter
 
   /**
    * Handles a change to the video call hide me selection
-   *
-   * @param shallTransmitStaticImage {@code true} if the app should show static image in preview,
-   * {@code false} otherwise.
    */
    @Override
-   public void onSendStaticImageStateChanged(boolean shallTransmitStaticImage) {
-    LogUtil.d("VideoCallPresenter.onSendStaticImageStateChanged"," shallTransmitStaticImage: "
-        + shallTransmitStaticImage + " primaryCall: " + primaryCall);
+   public void onHideMeUiModeChanged() {
 
-    sShallTransmitStaticImage = shallTransmitStaticImage;
+    maybeUpdateTransmitStaticImageState(primaryCall);
+
+    LogUtil.d("VideoCallPresenter.onHideMeUiModeChanged"," shallTransmitStaticImage: "
+        + sShallTransmitStaticImage + " primaryCall: " + primaryCall);
 
     if (!isActiveVideoCall(primaryCall)) {
-      LogUtil.w("VideoCallPresenter.onSendStaticImageStateChanged",
+      LogUtil.w("VideoCallPresenter.onHideMeUiModeChanged",
           " received for non-active video call");
       return;
     }
 
     if (videoCall == null || videoCallScreen == null) {
-      LogUtil.w("VideoCallPresenter.onSendStaticImageStateChanged",
+      LogUtil.w("VideoCallPresenter.onHideMeUiModeChanged",
           " mVideoCall/mVideoCallScreen is null");
       return;
     }
@@ -806,7 +805,7 @@ public class VideoCallPresenter
     enableCamera(primaryCall, isCameraRequired(currentVideoState,
         SessionModificationState.NO_REQUEST));
 
-    if (shallTransmitStaticImage) {
+    if (sShallTransmitStaticImage) {
       // Handle showing static image in preview based on external storage permissions
       videoCallScreen.onRequestReadStoragePermission();
     } else {
@@ -837,6 +836,12 @@ public class VideoCallPresenter
     } else {
       exitScreenShare();
     }
+  }
+
+
+  @Override
+  public void onSipDtmfChanged(int bitMask) {
+    //No-op
   }
 
   private void enterScreenShare() {
@@ -1021,12 +1026,14 @@ public class VideoCallPresenter
   private void onPrimaryCallChanged(DialerCall newPrimaryCall) {
     final boolean shouldShowVideoUi = shouldShowVideoUiForCall(newPrimaryCall);
     final boolean isVideoMode = isVideoMode();
-
-    LogUtil.v(
+    // Get the hide me mode for the new call
+    maybeUpdateTransmitStaticImageState(newPrimaryCall);
+    LogUtil.i(
         "VideoCallPresenter.onPrimaryCallChanged",
-        "shouldShowVideoUi: %b, isVideoMode: %b",
+        "shouldShowVideoUi: %b, isVideoMode: %b, shallTransmitStaticImage: %b",
         shouldShowVideoUi,
-        isVideoMode);
+        isVideoMode,
+        sShallTransmitStaticImage);
 
     if (!shouldShowVideoUi && isVideoMode) {
       // Terminate video mode if new primary call is not a video call
@@ -1105,12 +1112,22 @@ public class VideoCallPresenter
   }
 
   private void updateVideoCall(DialerCall call) {
+    maybeUpdateTransmitStaticImageState(call);
     checkForVideoCallChange(call);
     checkForVideoStateChange(call);
     checkForCallStateChange(call);
     checkForOrientationAllowedChange(call);
     updateFullscreenAndGreenScreenMode(
         call.getState(), call.getVideoTech().getSessionModificationState());
+  }
+
+  private void maybeUpdateTransmitStaticImageState(DialerCall call) {
+    // Phone id extra is not updated at the time a dialing call is created.
+    // Update the static image mode only when we are sure about the phoneid
+    if (QtiCallUtils.getPhoneId(call) != QtiCallConstants.INVALID_PHONE_ID) {
+      sShallTransmitStaticImage = BottomSheetHelper.getInstance()
+          .isInHideMeMode(call);
+    }
   }
 
   private void checkForOrientationAllowedChange(@Nullable DialerCall call) {
@@ -1158,7 +1175,8 @@ public class VideoCallPresenter
   public boolean isIncomingVideoAvailableForEarlyMedia() {
       return primaryCall != null
           && (primaryCall.getState() == DialerCallState.DIALING
-                  || primaryCall.getState() == DialerCallState.CONNECTING)
+                  || primaryCall.getState() == DialerCallState.CONNECTING
+                  || primaryCall.getState() == DialerCallState.INCOMING)
           && mIsIncomingVideoAvailable;
   }
 
@@ -1897,6 +1915,8 @@ public class VideoCallPresenter
         if (primaryCall == null) {
           return;
         }
+        InCallPresenter.getInstance()
+            .updateSipDtmfMaskToUi(isIncomingVideoAvailableForEarlyMedia());
         showVideoUi(
           primaryCall.getVideoState(),
           primaryCall.getState(),

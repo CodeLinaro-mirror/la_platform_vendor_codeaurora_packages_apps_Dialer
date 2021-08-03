@@ -1087,7 +1087,7 @@ public class CallCardPresenter
   }
 
   @Override
-  public void onSendStaticImageStateChanged(boolean isEnabled) {
+  public void onHideMeUiModeChanged() {
     //No-op
   }
 
@@ -1102,6 +1102,11 @@ public class CallCardPresenter
 
   @Override
   public void onSessionModificationStateChange(DialerCall call) {
+   //No-op
+  }
+
+  @Override
+  public void onSipDtmfChanged(int bitMask) {
    //No-op
   }
 

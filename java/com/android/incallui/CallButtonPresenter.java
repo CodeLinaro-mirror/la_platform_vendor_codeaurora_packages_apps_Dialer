@@ -443,6 +443,11 @@ public class CallButtonPresenter
     inCallButtonUi.enableButton(InCallButtonIds.BUTTON_PAUSE_VIDEO, false);
   }
 
+  @Override
+  public void sendSipDtmfClicked(int buttonId) {
+    InCallPresenter.getInstance().sendSipDtmfClicked(buttonId);
+  }
+
   private void updateCamera(boolean useFrontFacingCamera) {
     InCallCameraManager cameraManager = InCallPresenter.getInstance().getInCallCameraManager();
     cameraManager.setUseFrontFacingCamera(useFrontFacingCamera);
@@ -558,7 +563,7 @@ public class CallButtonPresenter
     inCallButtonUi.showButton(
         InCallButtonIds.BUTTON_SWITCH_CAMERA,
         isVideo && hasCameraPermission && call.getVideoTech().isTransmitting()
-        && !BottomSheetHelper.getInstance().isHideMeSelected()
+        && !BottomSheetHelper.getInstance().isInHideMeMode(call)
         && !ScreenShareHelper.screenShareRequested());
     inCallButtonUi.showButton(InCallButtonIds.BUTTON_PAUSE_VIDEO, showPauseVideo);
     if (isVideo) {
@@ -567,6 +572,7 @@ public class CallButtonPresenter
     inCallButtonUi.showButton(InCallButtonIds.BUTTON_DIALPAD, true);
     inCallButtonUi.showButton(InCallButtonIds.BUTTON_MERGE, showMerge);
 
+    updateSipDtmfButtons(InCallPresenter.getInstance().getSipDtmfBitMask());
     inCallButtonUi.updateButtonStates();
     if (BottomSheetHelper.getInstance().shallShowMoreButton(getActivity())) {
       BottomSheetHelper.getInstance().updateMap();
@@ -592,17 +598,12 @@ public class CallButtonPresenter
 
   /**
    * Handles a change to the video call hide me selection
-   *
-   * @param shallTransmitStaticImage {@code true} if the app should show static image in preview,
-   * {@code false} otherwise.
    */
   @Override
-  public void onSendStaticImageStateChanged(boolean shallTransmitStaticImage) {
-    if (call == null || !QtiImsExtUtils.shallShowStaticImageUi(
-         BottomSheetHelper.getInstance().getPhoneId(), context)) {
+  public void onHideMeUiModeChanged() {
+    if (call == null) {
        return;
      }
-
      updateButtonsState(call);
   }
 
@@ -626,6 +627,37 @@ public class CallButtonPresenter
         updateButtonsState(call);
       }
     }
+  }
+
+  @Override
+  public void onSipDtmfChanged(int sipDtmfbitMap) {
+      if (inCallButtonUi != null && call != null) {
+        updateSipDtmfButtons(sipDtmfbitMap);
+      }
+  }
+
+  private void updateSipDtmfButtons(int sipDtmfbitMap) {
+      boolean enable = (sipDtmfbitMap & SipDtmfUtil.SIP_DTMF_TYPE_LIKE)
+          == SipDtmfUtil.SIP_DTMF_TYPE_LIKE;
+      inCallButtonUi.showButton(InCallButtonIds.BUTTON_LIKE, enable);
+      enable =  (sipDtmfbitMap & SipDtmfUtil.SIP_DTMF_TYPE_SHARE)
+          == SipDtmfUtil.SIP_DTMF_TYPE_SHARE;
+      inCallButtonUi.showButton(InCallButtonIds.BUTTON_SHARE, enable);
+      enable =  (sipDtmfbitMap & SipDtmfUtil.SIP_DTMF_TYPE_FAVORITE)
+          == SipDtmfUtil.SIP_DTMF_TYPE_FAVORITE;
+      inCallButtonUi.showButton(InCallButtonIds.BUTTON_FAVORITE, enable);
+      enable =  (sipDtmfbitMap & SipDtmfUtil.SIP_DTMF_TYPE_COPY)
+          == SipDtmfUtil.SIP_DTMF_TYPE_COPY;
+      inCallButtonUi.showButton(InCallButtonIds.BUTTON_COPY, enable);
+      enable =  (sipDtmfbitMap & SipDtmfUtil.SIP_DTMF_TYPE_COMMENT)
+          == SipDtmfUtil.SIP_DTMF_TYPE_COMMENT;
+      inCallButtonUi.showButton(InCallButtonIds.BUTTON_COMMENT, enable);
+      enable =  (sipDtmfbitMap & SipDtmfUtil.SIP_DTMF_TYPE_DETAIL)
+          == SipDtmfUtil.SIP_DTMF_TYPE_DETAIL;
+      inCallButtonUi.showButton(InCallButtonIds.BUTTON_DETAIL, enable);
+      enable =  (sipDtmfbitMap & SipDtmfUtil.SIP_DTMF_TYPE_RED_ENVELOPE)
+          == SipDtmfUtil.SIP_DTMF_TYPE_RED_ENVELOPE;
+      inCallButtonUi.showButton(InCallButtonIds.BUTTON_RED_ENVELOPE, enable);
   }
 
   @Override
