@@ -799,6 +799,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
         return;
       }
 
+      boolean isVideoEnabled = CallUtil.isVideoEnabled(mContext);
       final ArrayList<CharSequence> items = new ArrayList<CharSequence>();
       final ArrayList<Integer> itemToCallType = new ArrayList<Integer>();
 
@@ -808,19 +809,20 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
         itemToCallType.add(VideoProfile.STATE_AUDIO_ONLY);
       }
 
-      if (QtiCallUtils.hasReceiveVideoCapabilities(mCall) && !QtiCallUtils.isVideoRxOnly(mCall)) {
+      if (isVideoEnabled && QtiCallUtils.hasReceiveVideoCapabilities(mCall)
+                  && !QtiCallUtils.isVideoRxOnly(mCall)) {
         items.add(mResources.getText(R.string.modify_call_option_vt_rx));
         itemToCallType.add(VideoProfile.STATE_RX_ENABLED);
       }
 
-      if (QtiCallUtils.hasTransmitVideoCapabilities(mCall)
+      if (isVideoEnabled && QtiCallUtils.hasTransmitVideoCapabilities(mCall)
           && (!QtiCallUtils.isVideoTxOnly(mCall)
           || ScreenShareHelper.screenShareRequested())) {
         items.add(mResources.getText(R.string.modify_call_option_vt_tx));
         itemToCallType.add(VideoProfile.STATE_TX_ENABLED);
       }
 
-      if (QtiCallUtils.hasReceiveVideoCapabilities(mCall)
+      if (isVideoEnabled && QtiCallUtils.hasReceiveVideoCapabilities(mCall)
           && QtiCallUtils.hasTransmitVideoCapabilities(mCall)
           && (!QtiCallUtils.isVideoBidirectional(mCall)
           || ScreenShareHelper.screenShareRequested())) {
@@ -828,7 +830,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
         itemToCallType.add(VideoProfile.STATE_BIDIRECTIONAL);
       }
 
-      if (canDisplayScreenShareButton() &&
+      if (isVideoEnabled && canDisplayScreenShareButton() &&
           mCall.getState() == DialerCallState.ACTIVE &&
           QtiCallUtils.hasTransmitVideoCapabilities(mCall)
           && !ScreenShareHelper.screenShareRequested()

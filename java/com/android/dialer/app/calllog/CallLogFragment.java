@@ -883,7 +883,11 @@ public class CallLogFragment extends Fragment
 
     @Override
     public void onChange(boolean selfChange) {
+      LogUtil.enterBlock("CallLogFragment#CustomContentObserver.onChange");
       refreshDataRequired = true;
+      if (isResumed() && !adapter.isLoading()) {
+        refreshData();
+      }
     }
   }
 
