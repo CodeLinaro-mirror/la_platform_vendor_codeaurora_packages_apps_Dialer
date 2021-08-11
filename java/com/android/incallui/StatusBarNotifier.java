@@ -80,6 +80,7 @@ import com.android.dialer.lettertile.LetterTileDrawable;
 import com.android.dialer.lettertile.LetterTileDrawable.ContactType;
 import com.android.dialer.multimedia.MultimediaData;
 import com.android.dialer.notification.NotificationChannelId;
+import com.android.dialer.notification.NotificationChannelManager;
 import com.android.dialer.oem.MotorolaUtils;
 import com.android.dialer.theme.base.ThemeComponent;
 import com.android.dialer.util.DrawableConverter;
@@ -463,6 +464,11 @@ public class StatusBarNotifier
     LogUtil.i(
         "StatusBarNotifier.buildAndSendNotification",
         "displaying notification for " + notificationType);
+
+    if (BuildCompat.isAtLeastO()) {
+      // initChannels already checks for missing channels before creating them
+      NotificationChannelManager.initChannels(context);
+    }
     /* If there are more than one incoming call and incall UI is showing
     then pass diff notification id so that we create a new notification instead of
     updating same notification otherwise we have some issues like first call notification
