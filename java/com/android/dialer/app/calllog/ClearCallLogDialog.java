@@ -39,14 +39,18 @@ import com.android.dialer.phonenumbercache.PhoneNumberCache;
 
 /** Dialog that clears the call log after confirming with the user */
 public class ClearCallLogDialog extends DialogFragment {
+  private static final String FRAGEMENT_TAG = "deleteCallLog";
 
   private DialerExecutor<Void> clearCallLogTask;
   private ProgressDialog progressDialog;
 
   /** Preferred way to show this dialog */
   public static void show(FragmentManager fragmentManager) {
+    if (fragmentManager.findFragmentByTag(FRAGEMENT_TAG) != null) {
+      return;
+    }
     ClearCallLogDialog dialog = new ClearCallLogDialog();
-    dialog.show(fragmentManager, "deleteCallLog");
+    dialog.show(fragmentManager, FRAGEMENT_TAG);
   }
 
   @Override
