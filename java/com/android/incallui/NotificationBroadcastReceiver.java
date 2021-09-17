@@ -65,6 +65,10 @@ public class NotificationBroadcastReceiver extends BroadcastReceiver {
       "com.android.incallui.ACTION_TURN_OFF_SPEAKER";
   public static final String ACTION_ANSWER_SPEAKEASY_CALL =
       "com.android.incallui.ACTION_ANSWER_SPEAKEASY_CALL";
+  public static final String ACTION_NEXT_INCOMING_CALL =
+      "com.android.incallui.ACTION_NEXT_INCOMING_CALL";
+  public static final String EXTRA_CALL_ID =
+      "com.android.incallui.EXTRA_CALL_ID";
 
   @RequiresApi(VERSION_CODES.N_MR1)
   public static final String ACTION_PULL_EXTERNAL_CALL =
@@ -80,16 +84,19 @@ public class NotificationBroadcastReceiver extends BroadcastReceiver {
 
     // TODO: Commands of this nature should exist in the CallList.
     if (action.equals(ACTION_ANSWER_VIDEO_INCOMING_CALL)) {
-      answerIncomingCall(context);
+      String callId = intent.getStringExtra(EXTRA_CALL_ID);
+      answerIncomingCall(context, callId);
     } else if (action.equals(ACTION_ANSWER_VOICE_INCOMING_CALL)) {
-      answerIncomingCall(VideoProfile.STATE_AUDIO_ONLY, context);
+      String callId = intent.getStringExtra(EXTRA_CALL_ID);
+      answerIncomingCall(VideoProfile.STATE_AUDIO_ONLY, context, callId);
     } else if (action.equals(ACTION_ANSWER_SPEAKEASY_CALL)) {
       markIncomingCallAsSpeakeasyCall();
       answerIncomingCall(VideoProfile.STATE_AUDIO_ONLY, context);
     } else if (action.equals(ACTION_DECLINE_INCOMING_CALL)) {
       Logger.get(context)
           .logImpression(DialerImpression.Type.REJECT_INCOMING_CALL_FROM_NOTIFICATION);
-      declineIncomingCall();
+      String callId = intent.getStringExtra(EXTRA_CALL_ID);
+      declineIncomingCall(callId);
     } else if (action.equals(ACTION_HANG_UP_ONGOING_CALL)) {
       hangUpOngoingCall();
     } else if (action.equals(ACTION_ACCEPT_VIDEO_UPGRADE_REQUEST)) {
@@ -104,6 +111,13 @@ public class NotificationBroadcastReceiver extends BroadcastReceiver {
       TelecomAdapter.getInstance().setAudioRoute(CallAudioState.ROUTE_SPEAKER);
     } else if (action.equals(ACTION_TURN_OFF_SPEAKER)) {
       TelecomAdapter.getInstance().setAudioRoute(CallAudioState.ROUTE_WIRED_OR_EARPIECE);
+    } else if (action.equals(ACTION_NEXT_INCOMING_CALL)) {
+      StatusBarNotifier statusBarNotifier = InCallPresenter.getInstance().getStatusBarNotifier();
+      if(statusBarNotifier == null) {
+        LogUtil.e("NotificationBroadcastReceiver.onReceive", "statusBarNotifier is null");
+        return;
+      }
+      statusBarNotifier.showNextIncomingCall();
     }
   }
 
@@ -165,12 +179,16 @@ public class NotificationBroadcastReceiver extends BroadcastReceiver {
   }
 
   private void answerIncomingCall(int videoState, @NonNull Context context) {
+    answerIncomingCall(videoState, context, null);
+  }
+
+  private void answerIncomingCall(int videoState, @NonNull Context context, String callId) {
     CallList callList = InCallPresenter.getInstance().getCallList();
     if (callList == null) {
       StatusBarNotifier.clearAllCallNotifications();
       LogUtil.e("NotificationBroadcastReceiver.answerIncomingCall", "call list is empty");
     } else {
-      DialerCall call = callList.getIncomingCall();
+      DialerCall call = callId != null ? callList.getCallById(callId) : callList.getIncomingCall();
       if (call != null) {
         if (call.answeringDisconnectsOtherCall()) {
           AnswerUtils.disconnectAllAndAnswer(videoState);
@@ -211,26 +229,26 @@ public class NotificationBroadcastReceiver extends BroadcastReceiver {
     InCallPresenter.getInstance().showInCall(false /* showDialpad */, false /* newOutgoingCall */);
   }
 
-  private void answerIncomingCall(Context context) {
+  private void answerIncomingCall(Context context, String callId) {
     CallList callList = InCallPresenter.getInstance().getCallList();
     if (callList == null) {
       StatusBarNotifier.clearAllCallNotifications();
       LogUtil.e("NotificationBroadcastReceiver.answerIncomingCall", "call list is empty");
     } else {
-      DialerCall call = callList.getIncomingCall();
+      DialerCall call = callId != null ? callList.getCallById(callId) : callList.getIncomingCall();
       if (call != null) {
-        answerIncomingCall(call.getVideoState(), context);
+        answerIncomingCall(call.getVideoState(), context, callId);
       }
     }
   }
 
-  private void declineIncomingCall() {
+  private void declineIncomingCall(String callId) {
     CallList callList = InCallPresenter.getInstance().getCallList();
     if (callList == null) {
       StatusBarNotifier.clearAllCallNotifications();
       LogUtil.e("NotificationBroadcastReceiver.declineIncomingCall", "call list is empty");
     } else {
-      DialerCall call = callList.getIncomingCall();
+      DialerCall call = callId != null ? callList.getCallById(callId) : callList.getIncomingCall();
       if (call != null) {
         call.reject(false /* rejectWithMessage */, null);
       }

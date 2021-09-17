@@ -127,6 +127,9 @@
   <string name="notification_action_dismiss">Decline</string>
   <string name="notification_action_speaker_on">Turn speaker on</string>
   <string name="notification_action_speaker_off">Turn speaker off</string>
+  <!-- Label for "Next" notification action which displays the next incoming call details
+       in case of more than one incoming call -->
+  <string name="notification_action_next">Next</string>
 
   <!-- The "label" of the in-call Notification for an ongoing external call.
        External calls are a representation of a call which is in progress on the user's other

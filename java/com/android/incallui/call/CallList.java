@@ -48,6 +48,7 @@ import com.android.incallui.videotech.utils.SessionModificationState;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -450,6 +451,17 @@ public class CallList implements DialerCallDelegate {
     }
 
     return call;
+  }
+
+  public ArrayList<DialerCall> getIncomingCalls() {
+    ArrayList<DialerCall> incomingCalls = new ArrayList<>();
+    for (DialerCall call : getAllCalls()) {
+      if (call.getState() == DialerCallState.INCOMING ||
+          call.getState() == DialerCallState.CALL_WAITING) {
+        incomingCalls.add(call);
+      }
+    }
+    return incomingCalls;
   }
 
   public DialerCall getFirstCall() {

@@ -52,6 +52,8 @@ public final class DialerNotificationManager {
 
     if (BuildCompat.isAtLeastO()) {
       Assert.checkArgument(!TextUtils.isEmpty(notification.getChannelId()));
+      // initChannels already checks for missing channels before creating them
+      NotificationChannelManager.initChannels(context);
     }
 
     getNotificationManager(context).notify(tag, id, notification);
