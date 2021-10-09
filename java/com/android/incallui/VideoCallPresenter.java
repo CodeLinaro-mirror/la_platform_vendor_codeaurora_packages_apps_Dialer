@@ -843,6 +843,11 @@ public class VideoCallPresenter
     //No-op
   }
 
+  @Override
+  public void onShowNextSecondaryCall(DialerCall nextSecondaryCall) {
+    //No-op
+  }
+
   private void enterScreenShare() {
     LogUtil.i("VideoCallPresenter.enterScreenShare", "enter screen share");
     if (mQtiImsExtConnector == null) {

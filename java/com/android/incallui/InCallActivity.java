@@ -1544,6 +1544,15 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     return new ShouldShowUiResult(false, null);
   }
 
+  /**
+   * Function to check if there are more than one held/active call with same account
+   * as that of the call parameter passed.
+   */
+  private boolean hasMaxCallsOnSameSub(DialerCall call) {
+    return call != null &&
+        CallList.getInstance().getActiveAndBackgroundCalls(call.getAccountHandle()).size() > 1;
+  }
+
   private boolean showAnswerScreenFragment(FragmentTransaction transaction, DialerCall call) {
     // When rejecting a call the active call can become null in which case we should continue
     // showing the answer screen.
@@ -1588,7 +1597,7 @@ public class InCallActivity extends TransactionSafeFragmentActivity
             isVideoUpgradeRequest,
             call.getVideoTech().isSelfManagedCamera(),
             shouldAllowAnswerAndRelease(call),
-            CallList.getInstance().getBackgroundCall() != null,
+            hasMaxCallsOnSameSub(call),
             getSpeakEasyCallManager().isAvailable(getApplicationContext())
                 && call.isSpeakEasyEligible(),
             QtiCallUtils.isVideoCrs(call),
@@ -1604,8 +1613,8 @@ public class InCallActivity extends TransactionSafeFragmentActivity
   }
 
   private boolean shouldAllowAnswerAndRelease(DialerCall call) {
-    if (CallList.getInstance().getActiveCall() == null) {
-      LogUtil.i("InCallActivity.shouldAllowAnswerAndRelease", "no active call");
+    if (CallList.getInstance().getActiveOrBackgroundCall() == null) {
+      LogUtil.i("InCallActivity.shouldAllowAnswerAndRelease", "no active or background call");
       return false;
     }
     if (getSystemService(TelephonyManager.class).getPhoneType()
