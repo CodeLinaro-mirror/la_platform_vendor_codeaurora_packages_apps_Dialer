@@ -491,6 +491,11 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
     }
 
     @Override
+    public void onShowNextSecondaryCall(DialerCall nextSecondaryCall) {
+      //No-op
+    }
+
+    @Override
     public void onPrimaryCallChanged(DialerCall call) {
       LogUtil.d("BottomSheetHelper.onPrimaryCallChanged", "");
       dismissBottomSheet();

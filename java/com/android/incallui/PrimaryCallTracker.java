@@ -23,6 +23,7 @@ import com.android.incallui.InCallPresenter.InCallStateListener;
 import com.android.incallui.InCallPresenter.IncomingCallListener;
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.CallList;
+import com.android.incallui.call.state.DialerCallState;
 import com.google.common.base.Preconditions;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.List;
@@ -89,6 +90,16 @@ public class PrimaryCallTracker implements InCallStateListener, IncomingCallList
             primaryCall = callList.getPendingOutgoingCall();
         } else if (newState == InCallPresenter.InCallState.INCALL) {
             primaryCall = callList.getActiveOrBackgroundCall();
+          // If we have multiple held calls and only held calls, the call in
+          // foreground will be the last call which went into held state.
+          if (primaryCall != null && primaryCall.getState() == DialerCallState.ONHOLD &&
+              callList.getBackgroundCalls().size() > 1) {
+            DialerCall lastPrimary = callList.getLastHeldCall();
+            Log.v(this, "onStateChange: lastPrimary call: " + lastPrimary);
+            if (lastPrimary != null) {
+              primaryCall = lastPrimary;
+            }
+          }
         }
 
         if (!Objects.equals(mPrimaryCall, primaryCall)) {

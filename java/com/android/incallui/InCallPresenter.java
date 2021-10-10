@@ -81,6 +81,7 @@ import com.android.incallui.videosurface.bindings.VideoSurfaceBindings;
 import com.android.incallui.videosurface.protocol.VideoSurfaceTexture;
 import com.android.incallui.videotech.utils.VideoUtils;
 import com.google.protobuf.InvalidProtocolBufferException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -294,6 +295,8 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   private static boolean mIsPreparatoryMode = false;
   private DialerCall mCrsCrbtCall = null;
   private int mCacheSipDtmfBitMask = SipDtmfUtil.SIP_DTMF_TYPE_INVALID;
+  private DialerCall mPrimary = null;
+  private DialerCall mSecondary = null;
 
   /** Inaccessible constructor. Must use getRunningInstance() to get this singleton. */
   @VisibleForTesting
@@ -576,6 +579,24 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   public int getSipDtmfBitMask() {
     return mCacheSipDtmfBitMask;
   }
+
+  public void showNextSecondaryCallClicked() {
+    LogUtil.d("InCallPresenter.showNextSecondaryCallClicked", "");
+    ArrayList<DialerCall> backgroundCalls = CallList.getInstance().getBackgroundCalls(mPrimary);
+    if (backgroundCalls.isEmpty() || mSecondary == null) {
+      // No backgroundCalls calls or secondary call is null.
+      return;
+    }
+    int totalBackgroundCalls = backgroundCalls.size();
+    int visibleSecondaryCallIndex = backgroundCalls.indexOf(mSecondary);
+    int nextSecondaryCallIndex = (visibleSecondaryCallIndex + 1) % totalBackgroundCalls;
+    mSecondary = backgroundCalls.get(nextSecondaryCallIndex);
+
+    for (InCallEventListener listener : inCallEventListeners) {
+        listener.onShowNextSecondaryCall(mSecondary);
+    }
+  }
+
   /**
    * Return whether we should start call in bubble mode and not show InCallActivity. The call mode
    * should be set in CallConfiguration in EXTRA_OUTGOING_CALL_EXTRAS when starting a call intent.
@@ -1046,6 +1067,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
     // Foreground call changed
     DialerCall primary = null;
+    DialerCall secondary = null;
     if (newState == InCallState.INCOMING) {
       primary = callList.getIncomingCall();
     } else if (newState == InCallState.PENDING_OUTGOING || newState == InCallState.OUTGOING) {
@@ -1053,8 +1075,14 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       if (primary == null) {
         primary = callList.getPendingOutgoingCall();
       }
+      secondary = getCallToDisplay(callList, null, true);
     } else if (newState == InCallState.INCALL) {
       primary = getCallToDisplay(callList, null, false);
+      secondary = getCallToDisplay(callList, primary, true);
+    }
+    mPrimary = primary;
+    if (secondary != null) {
+      mSecondary = secondary;
     }
     if (primary != null) {
       onForegroundCallChanged(primary);
@@ -1103,6 +1131,24 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     retval = callList.getSecondActiveCall();
     if (retval != null && retval != ignore) {
       return retval;
+    }
+
+    // If we have multiple held calls and only held calls, the call in
+    // foreground will be the last call which went into held state.
+    if (ignore == null && callList.getBackgroundCalls().size() > 1) {
+      retval = callList.getLastHeldCall();
+      if (retval != null) {
+        return retval;
+      }
+    }
+
+    // If we have multiple held calls we will continue displaying the
+    // previous held call in banner.
+    if(ignore != null && callList.getBackgroundCalls().size() > 1) {
+      retval = inCallPresenter.mSecondary;
+      if (retval != null && retval != ignore && retval.getState() == DialerCallState.ONHOLD) {
+        return retval;
+      }
     }
 
     // Disconnected calls get primary position if there are no active calls
@@ -2247,6 +2293,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     void onHideMeUiModeChanged();
     void onOutgoingVideoSourceChanged(int videoSource);
     void onSipDtmfChanged(int bitMask);
+    void onShowNextSecondaryCall(DialerCall nextSecondaryCall);
   }
 
   public interface InCallUiListener {
