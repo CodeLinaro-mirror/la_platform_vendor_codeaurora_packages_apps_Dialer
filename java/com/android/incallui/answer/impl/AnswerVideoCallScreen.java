@@ -22,6 +22,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.view.TextureView;
 import android.view.View;
+import android.view.View.OnLayoutChangeListener;
 import com.android.dialer.common.Assert;
 import com.android.dialer.common.FragmentUtils;
 import com.android.dialer.common.LogUtil;
@@ -30,6 +31,7 @@ import com.android.incallui.video.protocol.VideoCallScreen;
 import com.android.incallui.video.protocol.VideoCallScreenDelegate;
 import com.android.incallui.video.protocol.VideoCallScreenDelegateFactory;
 import com.android.incallui.videosurface.bindings.VideoSurfaceBindings;
+import com.android.incallui.videosurface.protocol.VideoSurfaceTexture;
 import com.android.incallui.QtiCallUtils;
 
 /** Shows a video preview for an incoming call. */
@@ -38,6 +40,7 @@ public class AnswerVideoCallScreen implements VideoCallScreen {
   @NonNull private final Fragment fragment;
   @NonNull private final TextureView textureView;
   @NonNull private final VideoCallScreenDelegate delegate;
+  private static final float ASPECT_RATIO_MATCH_THRESHOLD = 0.1f;
 
   public AnswerVideoCallScreen(
       @NonNull String callId, @NonNull Fragment fragment, @NonNull View view) {
@@ -60,14 +63,31 @@ public class AnswerVideoCallScreen implements VideoCallScreen {
 
   @Override
   public void onVideoScreenStart() {
-    LogUtil.i("AnswerVideoCallScreen.onStart", null);
+    LogUtil.i("AnswerVideoCallScreen.onVideoScreenStart", null);
     delegate.onVideoCallScreenUiReady(this);
     DialerCall call = QtiCallUtils.getIncomingCall();
     if (QtiCallUtils.isVideoCrs(call)) {
-        LogUtil.i("AnswerVideoCallScreen.onStart, video CRS, create remote surface", null);
+        LogUtil.i("AnswerVideoCallScreen.onVideoScreenStart", "create remote surface for CRS");
         delegate.getRemoteVideoSurfaceTexture().attachToTextureView(textureView);
+        textureView.addOnLayoutChangeListener(
+            new OnLayoutChangeListener() {
+              @Override
+              public void onLayoutChange(
+                  View v,
+                  int left,
+                  int top,
+                  int right,
+                  int bottom,
+                  int oldLeft,
+                  int oldTop,
+                  int oldRight,
+                  int oldBottom) {
+              LogUtil.i("AnswerVideoCallScreen.onLayoutChange", "remoteTextureView layout changed");
+              updateRemoteVideoScaling();
+              }
+            });
     } else {
-        LogUtil.i("AnswerVideoCallScreen.onStart, no video CRS, create local surface", null);
+        LogUtil.i("AnswerVideoCallScreen.onVideoScreenStart", "no video CRS, create local surface");
         delegate.getLocalVideoSurfaceTexture().attachToTextureView(textureView);
     }
   }
@@ -95,7 +115,13 @@ public class AnswerVideoCallScreen implements VideoCallScreen {
   }
 
   @Override
-  public void onRemoteVideoDimensionsChanged() {}
+  public void onRemoteVideoDimensionsChanged() {
+    LogUtil.i("AnswerVideoCallScreen.onRemoteVideoDimensionsChanged", null);
+    DialerCall call = QtiCallUtils.getIncomingCall();
+    if (QtiCallUtils.isVideoCrs(call)) {
+      updateRemoteVideoScaling();
+    }
+  }
 
   @Override
   public void onLocalVideoOrientationChanged() {
@@ -144,6 +170,34 @@ public class AnswerVideoCallScreen implements VideoCallScreen {
       //noinspection SuspiciousNameCombination
       VideoSurfaceBindings.scaleVideoAndFillView(
           textureView, cameraDimensions.y, cameraDimensions.x, delegate.getDeviceOrientation());
+    }
+  }
+
+  private void updateRemoteVideoScaling() {
+    if (textureView.getWidth() == 0 || textureView.getHeight() == 0) {
+      LogUtil.i("AnswerVideoCallScreen.updateRemoteVideoScaling",
+             "view layout hasn't finished yet");
+      return;
+    }
+
+    VideoSurfaceTexture remoteVideoSurfaceTexture =
+        delegate.getRemoteVideoSurfaceTexture();
+    Point videoSize = remoteVideoSurfaceTexture.getSourceVideoDimensions();
+    if (videoSize == null) {
+      LogUtil.i("AnswerVideoCallScreen.updateRemoteVideoScaling", "video size is null");
+      return;
+    }
+    // If the video and display aspect ratio's are close then scale video to fill display
+    float videoAspectRatio = ((float) videoSize.x) / videoSize.y;
+    float displayAspectRatio =
+        ((float) textureView.getWidth()) / textureView.getHeight();
+    float delta = Math.abs(videoAspectRatio - displayAspectRatio);
+    float sum = videoAspectRatio + displayAspectRatio;
+    if (delta / sum < ASPECT_RATIO_MATCH_THRESHOLD) {
+      VideoSurfaceBindings.scaleVideoAndFillView(textureView, videoSize.x, videoSize.y, 0);
+    } else {
+      VideoSurfaceBindings.scaleVideoMaintainingAspectRatio(
+          textureView, videoSize.x, videoSize.y);
     }
   }
 
