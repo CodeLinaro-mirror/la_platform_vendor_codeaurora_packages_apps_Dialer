@@ -194,6 +194,9 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
           for (InCallDetailsListener listener : detailsListeners) {
             listener.onDetailsChanged(call, details);
           }
+          if (statusBarNotifier != null) {
+            statusBarNotifier.updateNotification();
+          }
         }
 
         @Override
