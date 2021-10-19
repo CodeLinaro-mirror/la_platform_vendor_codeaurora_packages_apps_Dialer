@@ -585,7 +585,8 @@ public class CallCardPresenter
     if (secondary == null) {
       return ButtonState.NOT_SUPPORT;
     }
-    if (!primary.isEmergencyCall() && (primary.getState() == DialerCallState.ACTIVE ||
+    if (!primary.isSwapDisabled() && !primary.isEmergencyCall() &&
+        (primary.getState() == DialerCallState.ACTIVE ||
         primary.getState() == DialerCallState.ONHOLD)) {
       return ButtonState.ENABLED;
     }
