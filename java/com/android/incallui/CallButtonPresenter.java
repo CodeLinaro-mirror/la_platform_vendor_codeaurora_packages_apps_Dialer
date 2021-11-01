@@ -549,7 +549,9 @@ public class CallButtonPresenter
                 .stream()
                 .noneMatch(c -> c != null && c.isSpeakEasyCall())
             && call.can(android.telecom.Call.Details.CAPABILITY_MERGE_CONFERENCE)
-            && !call.hasSentVideoUpgradeRequest();
+            && !call.hasSentVideoUpgradeRequest()
+            && call.isConferenceable(InCallPresenter.getInstance().getSecondaryCall());
+
     final boolean isRttMergeSupported = QtiImsExtUtils.isRttMergeSupported(
                                           BottomSheetHelper.getInstance().getPhoneId(),
                                           context);
@@ -676,7 +678,9 @@ public class CallButtonPresenter
 
   @Override
   public void onShowNextSecondaryCall(DialerCall nextSecondaryCall) {
-    //No-op
+    if (inCallButtonUi != null && call != null) {
+      updateButtonsState(call);
+    }
   }
 
   private void updateSipDtmfButtons(int sipDtmfbitMap) {

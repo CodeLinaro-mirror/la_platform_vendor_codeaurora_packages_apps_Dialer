@@ -194,6 +194,9 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
           for (InCallDetailsListener listener : detailsListeners) {
             listener.onDetailsChanged(call, details);
           }
+          if (statusBarNotifier != null) {
+            statusBarNotifier.updateNotification();
+          }
         }
 
         @Override
@@ -2393,5 +2396,10 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
   public StatusBarNotifier getStatusBarNotifier() {
     return statusBarNotifier;
+  }
+
+  /** Gets the secondary call. */
+  public DialerCall getSecondaryCall() {
+    return mSecondary;
   }
 }
