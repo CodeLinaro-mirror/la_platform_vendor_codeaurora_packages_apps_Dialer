@@ -55,7 +55,7 @@ public class AudioRouteSelectorDialogFragment extends BottomSheetDialogFragment 
 
   /** Called when an audio route is picked */
   public interface AudioRouteSelectorPresenter {
-    void onAudioRouteSelected(int audioRoute);
+    void onAudioRouteSelected(int audioRoute, BluetoothDevice device);
 
     void onAudioRouteSelectorDismiss();
   }
@@ -169,7 +169,7 @@ public class AudioRouteSelectorDialogFragment extends BottomSheetDialogFragment 
           logCallAudioRouteImpression(impressionType);
           FragmentUtils.getParentUnsafe(
                   AudioRouteSelectorDialogFragment.this, AudioRouteSelectorPresenter.class)
-              .onAudioRouteSelected(itemRoute);
+              .onAudioRouteSelected(itemRoute, null);
           dismiss();
         });
   }
@@ -189,11 +189,11 @@ public class AudioRouteSelectorDialogFragment extends BottomSheetDialogFragment 
         (v) -> {
           logCallAudioRouteImpression(DialerImpression.Type.IN_CALL_SWITCH_AUDIO_ROUTE_BLUETOOTH);
           // Set Bluetooth audio route
+          LogUtil.i("AudioRouteSelectorDialogFragment:onClick", "Switch to BT device: " +
+              bluetoothDevice);
           FragmentUtils.getParentUnsafe(
                   AudioRouteSelectorDialogFragment.this, AudioRouteSelectorPresenter.class)
-              .onAudioRouteSelected(CallAudioState.ROUTE_BLUETOOTH);
-          // Set active Bluetooth device
-          TelecomAdapter.getInstance().requestBluetoothAudio(bluetoothDevice);
+              .onAudioRouteSelected(CallAudioState.ROUTE_BLUETOOTH, bluetoothDevice);
           dismiss();
         });
 
