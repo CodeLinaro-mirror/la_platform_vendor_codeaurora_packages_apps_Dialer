@@ -1014,6 +1014,9 @@ public class CallCardPresenter
         != PackageManager.PERMISSION_GRANTED) {
       return null;
     }
+    if (primary != null && primary.hasProperty(Details.PROPERTY_CROSS_SIM)) {
+      return context.getString(R.string.incall_cross_sim);
+    }
     StatusHints statusHints = primary.getStatusHints();
     if (statusHints != null && !TextUtils.isEmpty(statusHints.getLabel())) {
       return statusHints.getLabel().toString();
@@ -1050,6 +1053,10 @@ public class CallCardPresenter
   }
 
   private Drawable getCallStateIcon() {
+    // Show no icon if the call is cross sim.
+    if (primary != null && primary.hasProperty(Details.PROPERTY_CROSS_SIM)) {
+      return null;
+    }
     // Return connection icon if one exists.
     StatusHints statusHints = primary.getStatusHints();
     if (statusHints != null && statusHints.getIcon() != null) {
