@@ -384,6 +384,7 @@ public class CallCardPresenter
     secondaryNumber = nextSecondaryNumber;
     secondaryContactInfo = ContactInfoCache.buildCacheEntryFromCall(context, secondary);
     updateSecondaryDisplayInfo();
+    maybeStartSearch(secondary, false);
   }
 
   @Override

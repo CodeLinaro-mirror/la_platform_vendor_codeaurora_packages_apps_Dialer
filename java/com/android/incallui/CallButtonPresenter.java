@@ -16,6 +16,7 @@
 
 package com.android.incallui;
 
+import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -211,11 +212,16 @@ public class CallButtonPresenter
   }
 
   @Override
-  public void setAudioRoute(int route) {
+  public void setAudioRoute(int route, BluetoothDevice device) {
     LogUtil.i(
         "CallButtonPresenter.setAudioRoute",
-        "sending new audio route: " + CallAudioState.audioRouteToString(route));
-    TelecomAdapter.getInstance().setAudioRoute(route);
+        "sending new audio route: " + CallAudioState.audioRouteToString(route)
+        + " Bt device: " + device);
+    if (route == CallAudioState.ROUTE_BLUETOOTH && device != null) {
+      TelecomAdapter.getInstance().requestBluetoothAudio(device);
+    } else {
+      TelecomAdapter.getInstance().setAudioRoute(route);
+    }
   }
 
   /** Function assumes that bluetooth is not supported. */
@@ -251,7 +257,7 @@ public class CallButtonPresenter
               call.getTimeAddedMs());
     }
 
-    setAudioRoute(newRoute);
+    setAudioRoute(newRoute, null);
   }
 
   @Override

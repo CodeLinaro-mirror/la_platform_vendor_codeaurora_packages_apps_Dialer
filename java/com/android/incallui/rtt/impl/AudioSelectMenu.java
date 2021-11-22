@@ -73,7 +73,7 @@ public class AudioSelectMenu extends PopupWindow {
     }
     item.setOnClickListener(
         (v) -> {
-          inCallButtonUiDelegate.setAudioRoute(itemRoute);
+          inCallButtonUiDelegate.setAudioRoute(itemRoute, null);
         });
   }
 
