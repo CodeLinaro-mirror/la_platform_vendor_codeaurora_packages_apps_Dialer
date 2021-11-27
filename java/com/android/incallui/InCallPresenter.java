@@ -12,6 +12,40 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted (subject to the limitations in the
+ * disclaimer below) provided that the following conditions are met:
+ *
+ *  * Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ *  * Redistributions in binary form must reproduce the above
+ *    copyright notice, this list of conditions and the following
+ *    disclaimer in the documentation and/or other materials provided
+ *    with the distribution.
+ *
+ *  * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+ * GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+ * HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 package com.android.incallui;
@@ -81,6 +115,7 @@ import com.android.incallui.videosurface.bindings.VideoSurfaceBindings;
 import com.android.incallui.videosurface.protocol.VideoSurfaceTexture;
 import com.android.incallui.videotech.utils.VideoUtils;
 import com.google.protobuf.InvalidProtocolBufferException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -193,6 +228,9 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
           for (InCallDetailsListener listener : detailsListeners) {
             listener.onDetailsChanged(call, details);
           }
+          if (statusBarNotifier != null) {
+            statusBarNotifier.updateNotification();
+          }
         }
 
         @Override
@@ -218,6 +256,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   private boolean isFullScreen = false;
 
   private boolean screenTimeoutEnabled = true;
+  private final CallDetailsListener callDetailsListener = new CallDetailsListener();
 
   private PhoneStateListener phoneStateListener =
       new PhoneStateListener() {
@@ -294,6 +333,8 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   private static boolean mIsPreparatoryMode = false;
   private DialerCall mCrsCrbtCall = null;
   private int mCacheSipDtmfBitMask = SipDtmfUtil.SIP_DTMF_TYPE_INVALID;
+  private DialerCall mPrimary = null;
+  private DialerCall mSecondary = null;
 
   /** Inaccessible constructor. Must use getRunningInstance() to get this singleton. */
   @VisibleForTesting
@@ -436,6 +477,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     OrientationModeHandler.getInstance().setUp();
     addDetailsListener(SessionModificationCauseNotifier.getInstance());
     CallProgressNotification.getInstance().setUp(context);
+    addDetailsListener(callDetailsListener);
 
     LogUtil.d("InCallPresenter.setUp", "Finished InCallPresenter.setUp");
     Trace.endSection();
@@ -576,6 +618,24 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   public int getSipDtmfBitMask() {
     return mCacheSipDtmfBitMask;
   }
+
+  public void showNextSecondaryCallClicked() {
+    LogUtil.d("InCallPresenter.showNextSecondaryCallClicked", "");
+    ArrayList<DialerCall> backgroundCalls = CallList.getInstance().getBackgroundCalls(mPrimary);
+    if (backgroundCalls.isEmpty() || mSecondary == null) {
+      // No backgroundCalls calls or secondary call is null.
+      return;
+    }
+    int totalBackgroundCalls = backgroundCalls.size();
+    int visibleSecondaryCallIndex = backgroundCalls.indexOf(mSecondary);
+    int nextSecondaryCallIndex = (visibleSecondaryCallIndex + 1) % totalBackgroundCalls;
+    mSecondary = backgroundCalls.get(nextSecondaryCallIndex);
+
+    for (InCallEventListener listener : inCallEventListeners) {
+        listener.onShowNextSecondaryCall(mSecondary);
+    }
+  }
+
   /**
    * Return whether we should start call in bubble mode and not show InCallActivity. The call mode
    * should be set in CallConfiguration in EXTRA_OUTGOING_CALL_EXTRAS when starting a call intent.
@@ -664,6 +724,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     removeDetailsListener(SessionModificationCauseNotifier.getInstance());
     InCallZoomController.getInstance().tearDown();
     CallProgressNotification.getInstance().tearDown();
+    removeDetailsListener(callDetailsListener);
   }
 
   private void attemptFinishActivity() {
@@ -1046,6 +1107,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
     // Foreground call changed
     DialerCall primary = null;
+    DialerCall secondary = null;
     if (newState == InCallState.INCOMING) {
       primary = callList.getIncomingCall();
     } else if (newState == InCallState.PENDING_OUTGOING || newState == InCallState.OUTGOING) {
@@ -1053,8 +1115,14 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       if (primary == null) {
         primary = callList.getPendingOutgoingCall();
       }
+      secondary = getCallToDisplay(callList, null, true);
     } else if (newState == InCallState.INCALL) {
       primary = getCallToDisplay(callList, null, false);
+      secondary = getCallToDisplay(callList, primary, true);
+    }
+    mPrimary = primary;
+    if (secondary != null) {
+      mSecondary = secondary;
     }
     if (primary != null) {
       onForegroundCallChanged(primary);
@@ -1103,6 +1171,24 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     retval = callList.getSecondActiveCall();
     if (retval != null && retval != ignore) {
       return retval;
+    }
+
+    // If we have multiple held calls and only held calls, the call in
+    // foreground will be the last call which went into held state.
+    if (ignore == null && callList.getBackgroundCalls().size() > 1) {
+      retval = callList.getLastHeldCall();
+      if (retval != null) {
+        return retval;
+      }
+    }
+
+    // If we have multiple held calls we will continue displaying the
+    // previous held call in banner.
+    if(ignore != null && callList.getBackgroundCalls().size() > 1) {
+      retval = inCallPresenter.mSecondary;
+      if (retval != null && retval != ignore && retval.getState() == DialerCallState.ONHOLD) {
+        return retval;
+      }
     }
 
     // Disconnected calls get primary position if there are no active calls
@@ -2247,6 +2333,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     void onHideMeUiModeChanged();
     void onOutgoingVideoSourceChanged(int videoSource);
     void onSipDtmfChanged(int bitMask);
+    void onShowNextSecondaryCall(DialerCall nextSecondaryCall);
   }
 
   public interface InCallUiListener {
@@ -2346,5 +2433,10 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
   public StatusBarNotifier getStatusBarNotifier() {
     return statusBarNotifier;
+  }
+
+  /** Gets the secondary call. */
+  public DialerCall getSecondaryCall() {
+    return mSecondary;
   }
 }

@@ -17,6 +17,7 @@
 package com.android.incallui.video.impl;
 
 import android.app.Activity;
+import android.bluetooth.BluetoothDevice;
 import android.Manifest.permission;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -1269,9 +1270,9 @@ public class VideoCallFragment extends Fragment
   }
 
   @Override
-  public void onAudioRouteSelected(int audioRoute) {
+  public void onAudioRouteSelected(int audioRoute, BluetoothDevice device) {
     LogUtil.i("VideoCallFragment.onAudioRouteSelected", "audioRoute: " + audioRoute);
-    inCallButtonUiDelegate.setAudioRoute(audioRoute);
+    inCallButtonUiDelegate.setAudioRoute(audioRoute, device);
   }
 
   @Override

@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
+import java.util.Objects;
 
 import org.codeaurora.ims.QtiCallConstants;
 import org.codeaurora.ims.QtiImsExtListenerBaseImpl;
@@ -491,6 +492,11 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
     }
 
     @Override
+    public void onShowNextSecondaryCall(DialerCall nextSecondaryCall) {
+      //No-op
+    }
+
+    @Override
     public void onPrimaryCallChanged(DialerCall call) {
       LogUtil.d("BottomSheetHelper.onPrimaryCallChanged", "");
       dismissBottomSheet();
@@ -592,7 +598,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
 
    private ArrayList<CharSequence> getCallTransferOptions() {
      final ArrayList<CharSequence> items = new ArrayList<CharSequence>();
-     if (mCall.can(android.telecom.Call.Details.CAPABILITY_TRANSFER_CONSULTATIVE)) {
+     if (mCall.can(android.telecom.Call.Details.CAPABILITY_TRANSFER_CONSULTATIVE)
+         && isConsultativeTransferOnSameSub()) {
        items.add(mResources.getText(R.string.qti_ims_onscreenBlindTransfer));
        items.add(mResources.getText(R.string.qti_ims_onscreenAssuredTransfer));
        items.add(mResources.getText(R.string.qti_ims_onscreenConsultativeTransfer));
@@ -601,6 +608,16 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
        items.add(mResources.getText(R.string.qti_ims_onscreenAssuredTransfer));
      }
      return items;
+   }
+
+   /**
+    * Returns true if active and secondary banner call are on the same sub, false otherwise.
+    */
+   private static boolean isConsultativeTransferOnSameSub() {
+     DialerCall secondaryCall = InCallPresenter.getInstance().getSecondaryCall();
+     DialerCall foregroundCall = CallList.getInstance().getActiveCall();
+     return secondaryCall != null && foregroundCall != null &&
+         Objects.equals(secondaryCall.getAccountHandle(), foregroundCall.getAccountHandle());
    }
 
    private void onCallTransferItemClicked(int item) {
@@ -646,14 +663,16 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    //Called for consultative transfer
    private void transferCallConsultative() {
      LogUtil.enterBlock("BottomSheetHelper.transferCallConsultative");
-     if(mCall == null ) {
+     if (mCall == null) {
        LogUtil.w("BottomSheetHelper.transferCallConsultative", "mCall is null");
        return;
      }
      //For Consultative transfer number is not needed
      DialerCall backgroundCall = CallList.getInstance().getBackgroundCall();
-     if(backgroundCall == null) {
-       LogUtil.w("BottomSheetHelper.transferCallConsultative", "backgroundCall is null");
+     if (backgroundCall == null ||
+         !Objects.equals(backgroundCall.getAccountHandle(), mCall.getAccountHandle())) {
+       LogUtil.w("BottomSheetHelper.transferCallConsultative", "backgroundCall is null" +
+           " or background call is on a different sub.");
        return;
      }
      mCall.transferCall(backgroundCall);

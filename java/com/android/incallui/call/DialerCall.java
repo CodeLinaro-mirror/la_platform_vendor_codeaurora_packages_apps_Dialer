@@ -2151,4 +2151,10 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   public int getPeerDimensionHeight() {
     return peerDimensionHeight;
   }
+
+  /** To check if this call is conferenceable with another DialerCall passed as an argument. */
+  public boolean isConferenceable(DialerCall call) {
+    return call != null &&
+        this.telecomCall.getConferenceableCalls().contains(call.getTelecomCall());
+  }
 }

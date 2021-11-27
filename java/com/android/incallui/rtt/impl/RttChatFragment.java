@@ -17,6 +17,7 @@
 package com.android.incallui.rtt.impl;
 
 import android.app.Activity;
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.SystemClock;
@@ -605,8 +606,8 @@ public class RttChatFragment extends Fragment
   }
 
   @Override
-  public void onAudioRouteSelected(int audioRoute) {
-    inCallButtonUiDelegate.setAudioRoute(audioRoute);
+  public void onAudioRouteSelected(int audioRoute, BluetoothDevice device) {
+    inCallButtonUiDelegate.setAudioRoute(audioRoute, device);
   }
 
   @Override

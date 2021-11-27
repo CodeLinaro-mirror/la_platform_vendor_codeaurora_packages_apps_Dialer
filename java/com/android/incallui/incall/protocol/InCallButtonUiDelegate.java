@@ -16,6 +16,7 @@
 
 package com.android.incallui.incall.protocol;
 
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.os.Bundle;
 import android.telecom.CallAudioState;
@@ -59,7 +60,7 @@ public interface InCallButtonUiDelegate {
 
   CallAudioState getCurrentAudioState();
 
-  void setAudioRoute(int route);
+  void setAudioRoute(int route, BluetoothDevice device);
 
   void onEndCallClicked();
 
