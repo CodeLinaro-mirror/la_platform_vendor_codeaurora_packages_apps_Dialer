@@ -16,6 +16,7 @@
 
 package com.android.incallui;
 
+import android.bluetooth.BluetoothDevice;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -45,8 +46,12 @@ public class AudioRouteSelectorActivity extends FragmentActivity
   }
 
   @Override
-  public void onAudioRouteSelected(int audioRoute) {
-    TelecomAdapter.getInstance().setAudioRoute(audioRoute);
+  public void onAudioRouteSelected(int audioRoute, BluetoothDevice device) {
+    if (audioRoute == CallAudioState.ROUTE_BLUETOOTH && device != null) {
+      TelecomAdapter.getInstance().requestBluetoothAudio(device);
+    } else {
+      TelecomAdapter.getInstance().setAudioRoute(audioRoute);
+    }
     finish();
 
     // Log the select action with audio route and call
