@@ -556,7 +556,7 @@ public class CallButtonPresenter
                 .noneMatch(c -> c != null && c.isSpeakEasyCall())
             && call.can(android.telecom.Call.Details.CAPABILITY_MERGE_CONFERENCE)
             && !call.hasSentVideoUpgradeRequest()
-            && call.isConferenceable(InCallPresenter.getInstance().getSecondaryCall());
+            && call.hasSamePhoneAccount(InCallPresenter.getInstance().getSecondaryCall());
 
     final boolean isRttMergeSupported = QtiImsExtUtils.isRttMergeSupported(
                                           BottomSheetHelper.getInstance().getPhoneId(),
