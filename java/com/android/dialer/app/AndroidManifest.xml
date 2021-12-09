@@ -47,7 +47,7 @@
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
   <uses-permission android:name="android.permission.BROADCAST_STICKY"/>
   <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-  <uses-permission android:name="com.qti.permission.RECEIVE_CALLCOMPOSER_INFO"/>
+  <uses-permission android:name="com.qti.permission.RECEIVE_PRE_ALERTING_CALL_INFO"/>
 
   <!-- This tells the activity manager to not delay any of our activity
    start requests, even if they happen immediately after the user
@@ -138,9 +138,9 @@
 
     <receiver
       android:directBootAware="true"
-      android:name="com.android.dialer.app.CallComposerNotificationReceiver">
+      android:name="com.android.dialer.app.PreAlertingCallNotificationReceiver">
       <intent-filter>
-        <action android:name="org.codeaurora.intent.action.CALL_COMPOSER_INFO"/>
+        <action android:name="org.codeaurora.intent.action.PRE_ALERTING_CALL_INFO"/>
       </intent-filter>
     </receiver>
 
