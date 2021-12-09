@@ -565,7 +565,7 @@ public class QtiCallUtils {
         }
         int crsType = extras.getInt(QtiCallConstants.EXTRA_CRS_TYPE,
                 QtiCallConstants.CRS_TYPE_INVALID);
-        return crsType == (QtiCallConstants.CRS_TYPE_VIDEO | QtiCallConstants.CRS_TYPE_AUDIO);
+        return  (crsType & QtiCallConstants.CRS_TYPE_VIDEO) == QtiCallConstants.CRS_TYPE_VIDEO;
     }
 
     //Checks what's original call type of video CRS
