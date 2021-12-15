@@ -396,7 +396,7 @@ public class SpecialCharSequenceMgr {
           boolean isPrimary = false;
           if (qtiImeiInfo != null) {
               for (int i = 0; i < qtiImeiInfo.length; i++) {
-                  if (qtiImeiInfo[i].getSlotId() == slot) {
+                  if (null != qtiImeiInfo[i] && qtiImeiInfo[i].getSlotId() == slot) {
                       imei = qtiImeiInfo[i].getImei();
                       if (qtiImeiInfo[i].getImeiType() == QtiImeiInfo.IMEI_TYPE_PRIMARY) {
                           isPrimary = true;
