@@ -189,7 +189,8 @@ public class StatusBarNotifier
     if(hasMultipleIncomingCalls()) {
       intent.putExtra(EXTRA_CALL_ID, visibleIncomingCallId);
     }
-    return PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+    return PendingIntent.getBroadcast(context, 0, intent,
+        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
   }
 
   /** Creates notifications according to the state we receive from {@link InCallPresenter}. */
@@ -1200,7 +1201,7 @@ public class StatusBarNotifier
     // launch the InCallActivity immediately when when there's an incoming
     // call (see the "fullScreenIntent" field below).
     return PendingIntent.getActivity(context, requestCode, intent,
-        PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
   }
 
   private void setStatusBarCallListener(StatusBarCallListener listener) {

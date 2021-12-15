@@ -19,6 +19,7 @@
   <application>
 
     <activity
+      android:exported="true"
       android:name="com.android.contacts.common.dialog.CallSubjectDialog"
       android:theme="@style/Theme.CallSubjectDialogTheme"
       android:windowSoftInputMode="stateVisible|adjustResize">
