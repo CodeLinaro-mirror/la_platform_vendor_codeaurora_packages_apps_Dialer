@@ -1184,6 +1184,9 @@ public class StatusBarNotifier
         InCallActivity.getIntent(
             context, false /* showDialpad */, false /* newOutgoingCall */, isFullScreen);
 
+    if (hasMultipleIncomingCalls()) {
+        intent.putExtra(EXTRA_CALL_ID, visibleIncomingCallId);
+    }
     int requestCode = InCallActivity.PendingIntentRequestCodes.NON_FULL_SCREEN;
     if (isFullScreen) {
       // Use a unique request code so that the pending intent isn't clobbered by the
@@ -1196,7 +1199,8 @@ public class StatusBarNotifier
     // and clicks the notification's expanded view.  It's also used to
     // launch the InCallActivity immediately when when there's an incoming
     // call (see the "fullScreenIntent" field below).
-    return PendingIntent.getActivity(context, requestCode, intent, 0);
+    return PendingIntent.getActivity(context, requestCode, intent,
+        PendingIntent.FLAG_UPDATE_CURRENT);
   }
 
   private void setStatusBarCallListener(StatusBarCallListener listener) {

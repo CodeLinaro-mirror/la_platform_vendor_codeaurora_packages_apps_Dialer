@@ -150,6 +150,7 @@ LOCAL_JAVA_LIBRARIES := \
 	ims-ext-common \
         ims-common \
 	telephony-ext \
+        extphonelib \
 
 LOCAL_ANNOTATION_PROCESSORS := \
 	qti-dialer-auto-value \

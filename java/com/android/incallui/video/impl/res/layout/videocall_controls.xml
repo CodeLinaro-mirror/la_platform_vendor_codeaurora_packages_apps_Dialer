@@ -156,6 +156,18 @@
       android:layout_marginEnd="24dp"
       tools:visibility="visible"
       />
+    <ImageButton
+      android:id="@+id/crs_crbt_liked_button"
+      style="@style/Incall.Button.VideoCall"
+      android:layout_width="@dimen/videocall_button_size"
+      android:layout_height="@dimen/videocall_button_size"
+      android:layout_marginBottom="@dimen/videocall_button_spacing"
+      android:src="@drawable/quantum_ic_baseline_favorite_24"
+      android:contentDescription="@string/crs_crbt_description_liked"
+      android:visibility="gone"
+      android:layout_marginEnd="24dp"
+      tools:visibility="visible"
+      />
     <com.android.incallui.video.impl.CheckableImageButton
       android:id="@+id/crs_crbt_share_button"
       style="@style/Incall.Button.VideoCall"

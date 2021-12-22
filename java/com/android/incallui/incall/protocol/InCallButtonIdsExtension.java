@@ -72,6 +72,8 @@ public class InCallButtonIdsExtension {
       return "DETAIL";
     } else if (id == InCallButtonIds.BUTTON_RED_ENVELOPE) {
       return "RED_ENVELOPE";
+    } else if (id == InCallButtonIds.BUTTON_LIKED) {
+        return "LIKED";
     } else {
       return "INVALID_BUTTON: " + id;
     }
