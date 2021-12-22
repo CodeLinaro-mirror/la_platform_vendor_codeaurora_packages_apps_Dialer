@@ -185,6 +185,7 @@ public class AnswerFragment extends Fragment
   private CheckableImageButton commentButton;
   private CheckableImageButton detailButton;
   private CheckableImageButton moneyButton;
+  private ImageButton likedButton;
   private ImageButton moreOptionsMenuButton;
   private AffordanceHolderLayout affordanceHolderLayout;
   private LinearLayout chipContainer;
@@ -582,6 +583,8 @@ public class AnswerFragment extends Fragment
       detailButton.setVisibility(show ? View.VISIBLE : View.GONE);
     } else if (buttonId == InCallButtonIds.BUTTON_DETAIL) {
       moneyButton.setVisibility(show ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_LIKED) {
+      likedButton.setVisibility(show ? View.VISIBLE : View.GONE);
     }
   }
 
@@ -897,6 +900,7 @@ public class AnswerFragment extends Fragment
     detailButton.setOnCheckedChangeListener(this);
     moneyButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_money_button);
     moneyButton.setOnCheckedChangeListener(this);
+    likedButton = (ImageButton) view.findViewById(R.id.crs_crbt_liked_button);
     moreOptionsMenuButton = (ImageButton) view.findViewById(R.id.qti_dialer_incoming_botton_more);
     moreOptionsMenuButton.setOnClickListener(this);
 

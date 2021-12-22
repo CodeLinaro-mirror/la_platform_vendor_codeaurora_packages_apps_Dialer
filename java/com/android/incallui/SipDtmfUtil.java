@@ -40,6 +40,7 @@ public class SipDtmfUtil {
   public static final int SIP_DTMF_TYPE_COMMENT = 1 << 4;
   public static final int SIP_DTMF_TYPE_DETAIL = 1 << 5;
   public static final int SIP_DTMF_TYPE_RED_ENVELOPE = 1 << 6;
+  public static final int SIP_DTMF_TYPE_LIKED = 1 << 7;
 
   private static final String IN_SIP_DTMF_LIKE_MSG = "2*001";
   private static final String IN_SIP_DTMF_SHARE_MSG = "2*002";
@@ -48,6 +49,7 @@ public class SipDtmfUtil {
   private static final String IN_SIP_DTMF_COMMENT_MSG = "2*005";
   private static final String IN_SIP_DTMF_DETAIL_MSG = "2*006";
   private static final String IN_SIP_DTMF_RED_ENVELOPE = "2*007";
+  private static final String IN_SIP_DTMF_LIKED_MSG = "2*008";
 
   private static final String OUT_SIP_DTMF_LIKE_MSG = "1*001#";
   private static final String OUT_SIP_DTMF_SHARE_MSG = "1*002#";
@@ -114,6 +116,8 @@ public class SipDtmfUtil {
             return SIP_DTMF_TYPE_DETAIL;
         case IN_SIP_DTMF_RED_ENVELOPE:
             return SIP_DTMF_TYPE_RED_ENVELOPE;
+        case IN_SIP_DTMF_LIKED_MSG:
+            return SIP_DTMF_TYPE_LIKED;
         default:
             return SIP_DTMF_TYPE_INVALID;
     }

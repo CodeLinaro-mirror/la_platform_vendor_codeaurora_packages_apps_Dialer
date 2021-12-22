@@ -711,6 +711,9 @@ public class CallButtonPresenter
       enable =  (sipDtmfbitMap & SipDtmfUtil.SIP_DTMF_TYPE_RED_ENVELOPE)
           == SipDtmfUtil.SIP_DTMF_TYPE_RED_ENVELOPE;
       inCallButtonUi.showButton(InCallButtonIds.BUTTON_RED_ENVELOPE, enable);
+      enable = (sipDtmfbitMap & SipDtmfUtil.SIP_DTMF_TYPE_LIKED)
+          == SipDtmfUtil.SIP_DTMF_TYPE_LIKED;
+      inCallButtonUi.showButton(InCallButtonIds.BUTTON_LIKED, enable);
   }
 
   @Override

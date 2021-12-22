@@ -47,7 +47,8 @@ import java.lang.annotation.RetentionPolicy;
   InCallButtonIds.BUTTON_COPY,
   InCallButtonIds.BUTTON_COMMENT,
   InCallButtonIds.BUTTON_DETAIL,
-  InCallButtonIds.BUTTON_RED_ENVELOPE
+  InCallButtonIds.BUTTON_RED_ENVELOPE,
+  InCallButtonIds.BUTTON_LIKED
 })
 public @interface InCallButtonIds {
 
@@ -76,4 +77,5 @@ public @interface InCallButtonIds {
   int BUTTON_COMMENT = 22;
   int BUTTON_DETAIL = 23;
   int BUTTON_RED_ENVELOPE = 24;
+  int BUTTON_LIKED = 25;
 }
