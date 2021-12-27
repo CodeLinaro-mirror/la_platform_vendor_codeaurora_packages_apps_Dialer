@@ -16,6 +16,7 @@
 
 package com.android.incallui;
 
+import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -211,11 +212,16 @@ public class CallButtonPresenter
   }
 
   @Override
-  public void setAudioRoute(int route) {
+  public void setAudioRoute(int route, BluetoothDevice device) {
     LogUtil.i(
         "CallButtonPresenter.setAudioRoute",
-        "sending new audio route: " + CallAudioState.audioRouteToString(route));
-    TelecomAdapter.getInstance().setAudioRoute(route);
+        "sending new audio route: " + CallAudioState.audioRouteToString(route)
+        + " Bt device: " + device);
+    if (route == CallAudioState.ROUTE_BLUETOOTH && device != null) {
+      TelecomAdapter.getInstance().requestBluetoothAudio(device);
+    } else {
+      TelecomAdapter.getInstance().setAudioRoute(route);
+    }
   }
 
   /** Function assumes that bluetooth is not supported. */
@@ -251,7 +257,7 @@ public class CallButtonPresenter
               call.getTimeAddedMs());
     }
 
-    setAudioRoute(newRoute);
+    setAudioRoute(newRoute, null);
   }
 
   @Override
@@ -550,7 +556,7 @@ public class CallButtonPresenter
                 .noneMatch(c -> c != null && c.isSpeakEasyCall())
             && call.can(android.telecom.Call.Details.CAPABILITY_MERGE_CONFERENCE)
             && !call.hasSentVideoUpgradeRequest()
-            && call.isConferenceable(InCallPresenter.getInstance().getSecondaryCall());
+            && call.hasSamePhoneAccount(InCallPresenter.getInstance().getSecondaryCall());
 
     final boolean isRttMergeSupported = QtiImsExtUtils.isRttMergeSupported(
                                           BottomSheetHelper.getInstance().getPhoneId(),
@@ -705,6 +711,9 @@ public class CallButtonPresenter
       enable =  (sipDtmfbitMap & SipDtmfUtil.SIP_DTMF_TYPE_RED_ENVELOPE)
           == SipDtmfUtil.SIP_DTMF_TYPE_RED_ENVELOPE;
       inCallButtonUi.showButton(InCallButtonIds.BUTTON_RED_ENVELOPE, enable);
+      enable = (sipDtmfbitMap & SipDtmfUtil.SIP_DTMF_TYPE_LIKED)
+          == SipDtmfUtil.SIP_DTMF_TYPE_LIKED;
+      inCallButtonUi.showButton(InCallButtonIds.BUTTON_LIKED, enable);
   }
 
   @Override

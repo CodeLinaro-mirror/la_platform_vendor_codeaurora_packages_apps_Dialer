@@ -16,6 +16,7 @@
 
 package com.android.incallui.callpending;
 
+import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -276,7 +277,7 @@ public class CallPendingActivity extends FragmentActivity
           }
 
           @Override
-          public void setAudioRoute(int route) {}
+          public void setAudioRoute(int route, BluetoothDevice device) {}
 
           @Override
           public void onEndCallClicked() {}
