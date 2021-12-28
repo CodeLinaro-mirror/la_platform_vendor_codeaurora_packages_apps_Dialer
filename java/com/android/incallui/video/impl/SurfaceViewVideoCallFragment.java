@@ -16,6 +16,7 @@
 
 package com.android.incallui.video.impl;
 
+import android.bluetooth.BluetoothDevice;
 import android.Manifest.permission;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -823,9 +824,9 @@ public class SurfaceViewVideoCallFragment extends Fragment
   }
 
   @Override
-  public void onAudioRouteSelected(int audioRoute) {
+  public void onAudioRouteSelected(int audioRoute, BluetoothDevice device) {
     LogUtil.i("SurfaceViewVideoCallFragment.onAudioRouteSelected", "audioRoute: " + audioRoute);
-    inCallButtonUiDelegate.setAudioRoute(audioRoute);
+    inCallButtonUiDelegate.setAudioRoute(audioRoute, device);
   }
 
   @Override

@@ -68,6 +68,11 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
+
+import com.qti.extphone.ExtTelephonyManager;
+import com.qti.extphone.QtiImeiInfo;
+import com.qti.extphone.ServiceCallback;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -86,6 +91,9 @@ public class SpecialCharSequenceMgr {
 
   private static final String ADN_NAME_COLUMN_NAME = "name";
   private static final int ADN_QUERY_TOKEN = -1;
+
+  private static ExtTelephonyManager mExtTelephonyManager = null;
+  private static boolean mIsServiceBound;
 
   /**
    * Remembers the previous {@link QueryHandler} and cancel the operation when needed, to prevent
@@ -322,6 +330,23 @@ public class SpecialCharSequenceMgr {
     return false;
   }
 
+  private static ServiceCallback mServiceCallback = new ServiceCallback() {
+      @Override
+      public void onConnected() {
+          LogUtil.d("SpecialCharSequenceMgr", "ExtTelephony Service connected");
+          mIsServiceBound = true;
+      }
+      @Override
+      public void onDisconnected() {
+          LogUtil.d("SpecialCharSequenceMgr", "ExtTelephony Service disconnected...");
+          mIsServiceBound = false;
+      }
+  };
+
+  public static boolean isServiceConnected() {
+      return mIsServiceBound;
+  }
+
   // TODO: Use TelephonyCapabilities.getDeviceIdLabel() to get the device id label instead of a
   // hard-coded string.
   @SuppressLint("HardwareIds")
@@ -332,6 +357,13 @@ public class SpecialCharSequenceMgr {
     TelephonyManager telephonyManager =
         (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
 
+    if (TelephonyManagerCompat.getPhoneCount(telephonyManager) > 1 &&
+            mExtTelephonyManager == null) {
+        mExtTelephonyManager = ExtTelephonyManager.getInstance(context);
+        mExtTelephonyManager.connectService(mServiceCallback);
+        LogUtil.d("SpecialCharSequenceMgr", "Connect to ExtTelephony bound service...");
+    }
+
     if (telephonyManager != null && input.equals(MMI_IMEI_DISPLAY)) {
       final String label = context.getResources().getString(R.string.meid) + " & " +
           context.getResources().getString(R.string.imei);
@@ -339,6 +371,10 @@ public class SpecialCharSequenceMgr {
       ViewGroup holder = customView.findViewById(R.id.deviceids_holder);
 
       if (TelephonyManagerCompat.getPhoneCount(telephonyManager) > 1) {
+        QtiImeiInfo[] qtiImeiInfo = null;
+        if (isServiceConnected()) {
+          qtiImeiInfo = mExtTelephonyManager.getImeiInfo();
+        }
         String deviceId = null;
         for (int slot = 0; slot < telephonyManager.getPhoneCount(); slot++) {
           // Add MEID
@@ -356,7 +392,25 @@ public class SpecialCharSequenceMgr {
           deviceId = meid;
 
           // Add IMEI
-          final String imei = telephonyManager.getImei(slot);
+          String imei = null;
+          boolean isPrimary = false;
+          if (qtiImeiInfo != null) {
+              for (int i = 0; i < qtiImeiInfo.length; i++) {
+                  if (null != qtiImeiInfo[i] && qtiImeiInfo[i].getSlotId() == slot) {
+                      imei = qtiImeiInfo[i].getImei();
+                      if (qtiImeiInfo[i].getImeiType() == QtiImeiInfo.IMEI_TYPE_PRIMARY) {
+                          isPrimary = true;
+                          break;
+                      }
+                  }
+              }
+          }
+          if (TextUtils.isEmpty(imei)) {
+              imei = telephonyManager.getImei(slot);
+          }
+          if (isPrimary) {
+              imei += " (Primary)";
+          }
           if (!TextUtils.isEmpty(imei)) {
             addDeviceIdRow(
                 holder,

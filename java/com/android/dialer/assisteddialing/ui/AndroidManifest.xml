@@ -17,10 +17,11 @@
 
   <uses-sdk
       android:minSdkVersion="24"
-      android:targetSdkVersion="29"/>
+      android:targetSdkVersion="31"/>
 
   <application>
     <activity
+        android:exported="true"
         android:label="@string/assisted_dialing_setting_title"
         android:name=".AssistedDialingSettingActivity"
         android:parentActivityName="com.android.dialer.app.settings.DialerSettingsActivity"

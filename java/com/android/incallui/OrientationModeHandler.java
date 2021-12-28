@@ -269,4 +269,9 @@ public class OrientationModeHandler implements InCallDetailsListener, InCallUiLi
     public void onSipDtmfChanged(int bitMask) {
       //No-op
     }
+
+    @Override
+    public void onShowNextSecondaryCall(DialerCall nextSecondaryCall) {
+      //No-op
+    }
 }
