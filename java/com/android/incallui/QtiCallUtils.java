@@ -333,7 +333,9 @@ public class QtiCallUtils {
     }
 
    /**
-    * Show 4G Conference call menu option if phone account has adhoc conf capability.
+    * Show 4G Conference call menu option if a phone account has adhoc conf capability.
+    * If default outgoing phone account is set, only show the menu option if no conference
+    * call exists on that account, regardless of the adhoc capability of the other account.
     * @param context of the activity.
     * @return boolean whether should show 4G conference dialer menu option.
     */
@@ -345,6 +347,16 @@ public class QtiCallUtils {
         }
 
         TelecomManager telecomManager = context.getSystemService(TelecomManager.class);
+        //When default phone account does not have adhoc conference capability, remove the menu
+        //option regardless of whether the other account has the adhoc conference
+        //capability or not.
+        PhoneAccountHandle defaultPhoneAccount = telecomManager.getDefaultOutgoingPhoneAccount(
+                PhoneAccount.SCHEME_TEL);
+        PhoneAccount defaultAccount = telecomManager.getPhoneAccount(defaultPhoneAccount);
+        if (defaultAccount != null &&
+                !defaultAccount.hasCapabilities(PhoneAccount.CAPABILITY_ADHOC_CONFERENCE_CALLING)) {
+            return false;
+        }
         for (PhoneAccountHandle accountHandle : telecomManager.getCallCapablePhoneAccounts()) {
             PhoneAccount account = telecomManager.getPhoneAccount(accountHandle);
             if (account != null &&
@@ -565,7 +577,7 @@ public class QtiCallUtils {
         }
         int crsType = extras.getInt(QtiCallConstants.EXTRA_CRS_TYPE,
                 QtiCallConstants.CRS_TYPE_INVALID);
-        return crsType == (QtiCallConstants.CRS_TYPE_VIDEO | QtiCallConstants.CRS_TYPE_AUDIO);
+        return  (crsType & QtiCallConstants.CRS_TYPE_VIDEO) == QtiCallConstants.CRS_TYPE_VIDEO;
     }
 
     //Checks what's original call type of video CRS
