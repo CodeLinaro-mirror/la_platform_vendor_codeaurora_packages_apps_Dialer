@@ -93,7 +93,8 @@ public class GetTranscriptReceiver extends BroadcastReceiver {
 
   static boolean hasPendingAlarm(Context context) {
     Intent intent = makeBaseAlarmIntent(context);
-    return getPendingIntent(context, intent, PendingIntent.FLAG_NO_CREATE) != null;
+    return getPendingIntent(context, intent,
+        PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_MUTABLE) != null;
   }
 
   // Alarm fired, poll for transcription result on a background thread
@@ -123,7 +124,8 @@ public class GetTranscriptReceiver extends BroadcastReceiver {
 
   private static void scheduleAlarm(Context context, long delayMillis, Intent intent) {
     PendingIntent alarmIntent =
-        getPendingIntent(context, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        getPendingIntent(context, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
     AlarmManager alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
     alarmMgr.set(
         AlarmManager.ELAPSED_REALTIME_WAKEUP,
@@ -132,7 +134,9 @@ public class GetTranscriptReceiver extends BroadcastReceiver {
   }
 
   private static boolean cancelAlarm(Context context, Intent intent) {
-    PendingIntent alarmIntent = getPendingIntent(context, intent, PendingIntent.FLAG_NO_CREATE);
+    PendingIntent alarmIntent =
+        getPendingIntent(context, intent,
+            PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_MUTABLE);
     if (alarmIntent != null) {
       AlarmManager alarmMgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
       alarmMgr.cancel(alarmIntent);
