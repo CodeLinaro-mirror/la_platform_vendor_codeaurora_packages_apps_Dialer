@@ -1282,7 +1282,7 @@ public class InCallActivity extends TransactionSafeFragmentActivity
           LogUtil.i("InCallActivity.showSuplSvcToast",
                   "Showing toast: %s", suplNotificationMessage);
           mSuplSvcToast = Toast.makeText(this, suplNotificationMessage, Toast.LENGTH_LONG);
-          mSuplSvcToast.getWindowParams().flags |= WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED;
+          getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
           mSuplSvcToast.show();
           mSuplSvcToastShowHandler.postDelayed(mSuplSvcToastShowRunnable,
                   TOAST_SHOW_LONG_DURATION_MILLIS);
