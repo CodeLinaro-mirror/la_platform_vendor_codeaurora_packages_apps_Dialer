@@ -263,7 +263,7 @@ public class FilteredNumbersUtil {
                     context,
                     0,
                     FilteredNumberCompat.createManageBlockedNumbersIntent(context),
-                    PendingIntent.FLAG_UPDATE_CURRENT));
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE));
 
             DialerNotificationManager.notify(
                 context,
