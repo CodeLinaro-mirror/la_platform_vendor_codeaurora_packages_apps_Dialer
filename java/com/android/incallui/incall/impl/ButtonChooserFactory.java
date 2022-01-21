@@ -19,8 +19,10 @@ package com.android.incallui.incall.impl;
 import android.support.v4.util.ArrayMap;
 import android.telephony.TelephonyManager;
 import com.android.incallui.incall.impl.MappedButtonConfig.MappingInfo;
+import com.android.incallui.BottomSheetHelper;
 import com.android.incallui.incall.protocol.InCallButtonIds;
 import java.util.Map;
+import org.codeaurora.ims.QtiCallConstants;
 
 /**
  * Creates {@link ButtonChooser} objects, based on the current network and phone type.
@@ -37,9 +39,15 @@ class ButtonChooserFactory {
    */
   public static ButtonChooser newButtonChooser(
       int voiceNetworkType, boolean isWiFi, int phoneType) {
+    /* In addition to checking voice network type or wifi call, for supporting simless E911
+     * RTT calls, when dialer receives network type unknown, we need to check if
+     * the call is over ims or not using phone id in bottom sheet helper, which will
+     * be invalid for CS calls.
+     */
     if (voiceNetworkType == TelephonyManager.NETWORK_TYPE_LTE ||
         voiceNetworkType == TelephonyManager.NETWORK_TYPE_NR ||
-        isWiFi) {
+        isWiFi || (voiceNetworkType == TelephonyManager.NETWORK_TYPE_UNKNOWN &&
+        BottomSheetHelper.getInstance().getPhoneId() != QtiCallConstants.INVALID_PHONE_ID)) {
       return newImsAndWiFiButtonChooser();
     }
 

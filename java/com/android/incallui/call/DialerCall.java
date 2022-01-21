@@ -1228,7 +1228,9 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
 
   @TargetApi(28)
   public boolean canUpgradeToRttCall() {
-    if (!isPhoneAccountRttCapable()) {
+    if (!isPhoneAccountRttCapable() && !(isEmergencyCall() && QtiImsExtUtils.
+            isSimlessRttSupported(BottomSheetHelper.
+            getInstance().getPhoneId(),context))) {
       return false;
     }
     if (isActiveRttCall()) {
