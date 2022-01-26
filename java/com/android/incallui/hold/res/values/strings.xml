@@ -2,5 +2,6 @@
 <resources>
 
   <string name="incall_on_hold">On hold</string>
+  <string name="next">Next</string>
 
 </resources>

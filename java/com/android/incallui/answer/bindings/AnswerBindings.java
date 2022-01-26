@@ -29,7 +29,7 @@ public class AnswerBindings {
       boolean isVideoUpgradeRequest,
       boolean isSelfManagedCamera,
       boolean allowAnswerAndRelease,
-      boolean hasCallOnHold,
+      boolean hasMaxCalls,
       boolean allowSpeakEasy,
       boolean hasCrs,
       boolean isVideoCallOriginally) {
@@ -40,7 +40,7 @@ public class AnswerBindings {
         isVideoUpgradeRequest,
         isSelfManagedCamera,
         allowAnswerAndRelease,
-        hasCallOnHold,
+        hasMaxCalls,
         allowSpeakEasy,
         hasCrs,
         isVideoCallOriginally);

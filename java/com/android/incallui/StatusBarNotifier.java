@@ -136,6 +136,7 @@ public class StatusBarNotifier
   private String savedContent = null;
   private Bitmap savedLargeIcon;
   private String savedContentTitle;
+  private boolean wasShowingInCallUi = false;
   private CallAudioState savedCallAudioState;
   private int savedIncomingCallCount;
   private Uri ringtone;
@@ -189,7 +190,8 @@ public class StatusBarNotifier
     if(hasMultipleIncomingCalls()) {
       intent.putExtra(EXTRA_CALL_ID, visibleIncomingCallId);
     }
-    return PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+    return PendingIntent.getBroadcast(context, 0, intent,
+        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
   }
 
   /** Creates notifications according to the state we receive from {@link InCallPresenter}. */
@@ -331,11 +333,16 @@ public class StatusBarNotifier
       if (ConfigProviderComponent.get(context)
           .getConfigProvider()
           .getBoolean("quiet_incoming_call_if_ui_showing", true)) {
-        // When incallUi is shown but there are multiple incoming calls we want the notification
-        // to be disruptive.
+        // Status bar notifier needs to differentiate between below 2 use cases:
+        // 1. Call 1 (InCallUi) + Call 2 (HUN)
+        // 2. Call 1 (HUN) + Call 2 (HUN)
+        // Between case 1 and case 2, difference is incomingcallcount increases for case 1,
+        // however for case 2, ststus bar notifier is already aware of both incoming calls,
+        // hence second check is needed to show the proper notification type
+
         notificationType =
             InCallPresenter.getInstance().isShowingInCallUi() &&
-            !hasMultipleIncomingCalls()
+            (callList.getIncomingCalls().size() == savedIncomingCallCount)
                 ? NOTIFICATION_INCOMING_CALL_QUIET
                 : NOTIFICATION_INCOMING_CALL;
       } else {
@@ -580,6 +587,9 @@ public class StatusBarNotifier
     } else {
       largeIconChanged = largeIcon == null || !savedLargeIcon.sameAs(largeIcon);
     }
+    // HUN is needed for the use case when we move out of InCallUi to HomeScreen
+    boolean isShowingInCallUi = InCallPresenter.getInstance().isShowingInCallUi();
+    boolean shouldUpdateNotificationForInCallUi = wasShowingInCallUi && !isShowingInCallUi;
 
     // any change means we are definitely updating
     boolean retval =
@@ -591,7 +601,8 @@ public class StatusBarNotifier
             || contentTitleChanged
             || !Objects.equals(this.ringtone, ringtone)
             || !Objects.equals(savedCallAudioState, callAudioState)
-            || (numOfIncomingCalls != savedIncomingCallCount);
+            || (numOfIncomingCalls != savedIncomingCallCount)
+            || shouldUpdateNotificationForInCallUi;
 
     LogUtil.d(
         "StatusBarNotifier.checkForChangeAndSaveData",
@@ -626,6 +637,7 @@ public class StatusBarNotifier
     this.ringtone = ringtone;
     savedCallAudioState = callAudioState;
     savedIncomingCallCount = numOfIncomingCalls;
+    wasShowingInCallUi = isShowingInCallUi;
 
     if (retval) {
       LogUtil.d(
@@ -1184,6 +1196,9 @@ public class StatusBarNotifier
         InCallActivity.getIntent(
             context, false /* showDialpad */, false /* newOutgoingCall */, isFullScreen);
 
+    if (hasMultipleIncomingCalls()) {
+        intent.putExtra(EXTRA_CALL_ID, visibleIncomingCallId);
+    }
     int requestCode = InCallActivity.PendingIntentRequestCodes.NON_FULL_SCREEN;
     if (isFullScreen) {
       // Use a unique request code so that the pending intent isn't clobbered by the
@@ -1196,7 +1211,8 @@ public class StatusBarNotifier
     // and clicks the notification's expanded view.  It's also used to
     // launch the InCallActivity immediately when when there's an incoming
     // call (see the "fullScreenIntent" field below).
-    return PendingIntent.getActivity(context, requestCode, intent, 0);
+    return PendingIntent.getActivity(context, requestCode, intent,
+        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
   }
 
   private void setStatusBarCallListener(StatusBarCallListener listener) {

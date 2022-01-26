@@ -21,7 +21,7 @@
 
   <uses-sdk
     android:minSdkVersion="24"
-    android:targetSdkVersion="29"/>
+    android:targetSdkVersion="31"/>
 
   <uses-permission android:name="android.permission.CALL_PHONE"/>
   <uses-permission android:name="android.permission.READ_CONTACTS"/>
@@ -45,6 +45,7 @@
   <uses-permission android:name="android.permission.USE_CREDENTIALS"/>
   <uses-permission android:name="android.permission.VIBRATE"/>
   <uses-permission android:name="android.permission.BLUETOOTH"/>
+  <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
   <uses-permission android:name="android.permission.READ_SYNC_SETTINGS"/>
   <uses-permission android:name="com.android.voicemail.permission.ADD_VOICEMAIL"/>
   <uses-permission android:name="com.android.voicemail.permission.WRITE_VOICEMAIL"/>
@@ -106,6 +107,7 @@
   <uses-permission android:name="com.oppo.launcher.permission.WRITE_SETTINGS"/>
 
   <uses-permission android:name="com.qti.permission.BIND_QTI_IMS_SERVICE" />
+  <uses-permission android:name="com.qualcomm.qti.permission.USE_EXT_TELEPHONY_SERVICE" />
 
   <application
     android:hardwareAccelerated="true"
@@ -117,6 +119,7 @@
     android:extractNativeLibs="false">
 
     <uses-library android:name="ims-ext-common" />
+    <uses-library android:name="com.qti.extphone.extphonelib"/>
   </application>
 
 </manifest>

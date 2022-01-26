@@ -18,6 +18,7 @@ package com.android.incallui.audioroute;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;
+import android.content.pm.PackageManager;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -53,9 +54,12 @@ public class AudioRouteSelectorDialogFragment extends BottomSheetDialogFragment 
   public static final String TAG = "AudioRouteSelectorDialogFragment";
   private static final String ARG_AUDIO_STATE = "audio_state";
 
+  public static final String BLUETOOTH_ALIAS = "Bluetooth";
+  private static final int PHONE_PERMISSIONS_REQUEST_CODE = 1;
+
   /** Called when an audio route is picked */
   public interface AudioRouteSelectorPresenter {
-    void onAudioRouteSelected(int audioRoute);
+    void onAudioRouteSelected(int audioRoute, BluetoothDevice device);
 
     void onAudioRouteSelectorDismiss();
   }
@@ -97,7 +101,11 @@ public class AudioRouteSelectorDialogFragment extends BottomSheetDialogFragment 
       LayoutInflater layoutInflater, @Nullable ViewGroup viewGroup, @Nullable Bundle bundle) {
     View view = layoutInflater.inflate(R.layout.audioroute_selector, viewGroup, false);
     CallAudioState audioState = getArguments().getParcelable(ARG_AUDIO_STATE);
-
+    if (getContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+            != PackageManager.PERMISSION_GRANTED) {
+        this.requestPermissions(new String[] { android.Manifest.permission.BLUETOOTH_CONNECT },
+                PHONE_PERMISSIONS_REQUEST_CODE);
+    }
     if (BuildCompat.isAtLeastP()) {
       // Create items for all connected Bluetooth devices
       Collection<BluetoothDevice> bluetoothDeviceSet = audioState.getSupportedBluetoothDevices();
@@ -169,7 +177,7 @@ public class AudioRouteSelectorDialogFragment extends BottomSheetDialogFragment 
           logCallAudioRouteImpression(impressionType);
           FragmentUtils.getParentUnsafe(
                   AudioRouteSelectorDialogFragment.this, AudioRouteSelectorPresenter.class)
-              .onAudioRouteSelected(itemRoute);
+              .onAudioRouteSelected(itemRoute, null);
           dismiss();
         });
   }
@@ -178,7 +186,14 @@ public class AudioRouteSelectorDialogFragment extends BottomSheetDialogFragment 
     int selectedColor = ThemeComponent.get(getContext()).theme().getColorPrimary();
     TextView textView =
         (TextView) getLayoutInflater().inflate(R.layout.audioroute_item, null, false);
-    textView.setText(getAliasName(bluetoothDevice));
+
+    if (getContext().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+            == PackageManager.PERMISSION_GRANTED) {
+        textView.setText(getAliasName(bluetoothDevice));
+    } else {
+        textView.setText(BLUETOOTH_ALIAS);
+    }
+
     if (selected) {
       textView.setSelected(true);
       textView.setTextColor(selectedColor);
@@ -189,15 +204,26 @@ public class AudioRouteSelectorDialogFragment extends BottomSheetDialogFragment 
         (v) -> {
           logCallAudioRouteImpression(DialerImpression.Type.IN_CALL_SWITCH_AUDIO_ROUTE_BLUETOOTH);
           // Set Bluetooth audio route
+          LogUtil.i("AudioRouteSelectorDialogFragment:onClick", "Switch to BT device: " +
+              bluetoothDevice);
           FragmentUtils.getParentUnsafe(
                   AudioRouteSelectorDialogFragment.this, AudioRouteSelectorPresenter.class)
-              .onAudioRouteSelected(CallAudioState.ROUTE_BLUETOOTH);
-          // Set active Bluetooth device
-          TelecomAdapter.getInstance().requestBluetoothAudio(bluetoothDevice);
+              .onAudioRouteSelected(CallAudioState.ROUTE_BLUETOOTH, bluetoothDevice);
           dismiss();
         });
 
     return textView;
+  }
+
+  @Override
+  public void onRequestPermissionsResult(
+           int requestCode, String[] permissions, int[] grantResults) {
+    if (requestCode == PHONE_PERMISSIONS_REQUEST_CODE) {
+        // Log the bluetooth permissions
+        LogUtil.i("AudioRouteSelectorDialogFragment.onRequestPermissionsResult",
+                "Permission granted status :" + (grantResults.length >= 1 &&
+                PackageManager.PERMISSION_GRANTED == grantResults[0]));
+    }
   }
 
   @SuppressLint("PrivateApi")

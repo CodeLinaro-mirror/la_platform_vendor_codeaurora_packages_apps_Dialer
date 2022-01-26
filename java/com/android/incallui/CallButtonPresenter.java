@@ -16,6 +16,7 @@
 
 package com.android.incallui;
 
+import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -135,6 +136,16 @@ public class CallButtonPresenter
     } else if (newState == InCallState.INCALL) {
       call = callList.getActiveOrBackgroundCall();
 
+      // If we have multiple held calls and no active call, the call in
+      // foreground will be the last call which went into held state.
+      if (call != null && call.getState() == DialerCallState.ONHOLD &&
+          callList.getBackgroundCalls().size() > 1) {
+        DialerCall lastPrimary = callList.getLastHeldCall();
+        LogUtil.v("CallButtonPresenter.onStateChange", "lastPrimary call: " + lastPrimary);
+        if (lastPrimary != null) {
+          call = lastPrimary;
+        }
+      }
       // When connected to voice mail, automatically shows the dialpad.
       // (On previous releases we showed it when in-call shows up, before waiting for
       // OUTGOING.  We may want to do that once we start showing "Voice mail" label on
@@ -201,11 +212,16 @@ public class CallButtonPresenter
   }
 
   @Override
-  public void setAudioRoute(int route) {
+  public void setAudioRoute(int route, BluetoothDevice device) {
     LogUtil.i(
         "CallButtonPresenter.setAudioRoute",
-        "sending new audio route: " + CallAudioState.audioRouteToString(route));
-    TelecomAdapter.getInstance().setAudioRoute(route);
+        "sending new audio route: " + CallAudioState.audioRouteToString(route)
+        + " Bt device: " + device);
+    if (route == CallAudioState.ROUTE_BLUETOOTH && device != null) {
+      TelecomAdapter.getInstance().requestBluetoothAudio(device);
+    } else {
+      TelecomAdapter.getInstance().setAudioRoute(route);
+    }
   }
 
   /** Function assumes that bluetooth is not supported. */
@@ -241,7 +257,7 @@ public class CallButtonPresenter
               call.getTimeAddedMs());
     }
 
-    setAudioRoute(newRoute);
+    setAudioRoute(newRoute, null);
   }
 
   @Override
@@ -506,6 +522,22 @@ public class CallButtonPresenter
   }
 
   /**
+   * Checks if RTT downgrade is supported or not
+   * based on the cached value of carrier config
+   * from sub
+   */
+  private boolean isRttDowngradeSupported() {
+    /* We can return the current cached value for both sim and simless case
+     * when the device has sim, cached value will have the current value
+     * for simless case, it will have the previous sub's config value, but in simless only
+     * emergency call is supported, it's assumend this API will be called for emergency
+     * RTT only.
+     */
+    return QtiImsExtUtils.isSimlessRttDowgradeSupported(BottomSheetHelper.
+            getInstance().getPhoneId(),context);
+  }
+
+  /**
    * Updates the buttons applicable for the UI.
    *
    * @param call The active call.
@@ -539,14 +571,13 @@ public class CallButtonPresenter
                 .stream()
                 .noneMatch(c -> c != null && c.isSpeakEasyCall())
             && call.can(android.telecom.Call.Details.CAPABILITY_MERGE_CONFERENCE)
-            && !call.hasSentVideoUpgradeRequest();
+            && !call.hasSentVideoUpgradeRequest()
+            && call.hasSamePhoneAccount(InCallPresenter.getInstance().getSecondaryCall());
+
     final boolean isRttMergeSupported = QtiImsExtUtils.isRttMergeSupported(
                                           BottomSheetHelper.getInstance().getPhoneId(),
                                           context);
-    final boolean showDowngradeRtt = call.isActiveRttCall() &&
-                                     QtiImsExtUtils.isRttDowngradeSupported(
-                                             BottomSheetHelper.getInstance().getPhoneId(),
-                                             context);
+    final boolean showDowngradeRtt = call.isActiveRttCall() && isRttDowngradeSupported();
     final boolean useExt = QtiCallUtils.useExt(context);
     final boolean showUpgradeToVideo = !isVideo && (hasVideoCallCapabilities(call)) && !useExt;
     final boolean showDowngradeToAudio = isVideo && isDowngradeToAudioSupported(call) && !useExt;
@@ -664,6 +695,13 @@ public class CallButtonPresenter
       }
   }
 
+  @Override
+  public void onShowNextSecondaryCall(DialerCall nextSecondaryCall) {
+    if (inCallButtonUi != null && call != null) {
+      updateButtonsState(call);
+    }
+  }
+
   private void updateSipDtmfButtons(int sipDtmfbitMap) {
       boolean enable = (sipDtmfbitMap & SipDtmfUtil.SIP_DTMF_TYPE_LIKE)
           == SipDtmfUtil.SIP_DTMF_TYPE_LIKE;
@@ -686,6 +724,9 @@ public class CallButtonPresenter
       enable =  (sipDtmfbitMap & SipDtmfUtil.SIP_DTMF_TYPE_RED_ENVELOPE)
           == SipDtmfUtil.SIP_DTMF_TYPE_RED_ENVELOPE;
       inCallButtonUi.showButton(InCallButtonIds.BUTTON_RED_ENVELOPE, enable);
+      enable = (sipDtmfbitMap & SipDtmfUtil.SIP_DTMF_TYPE_LIKED)
+          == SipDtmfUtil.SIP_DTMF_TYPE_LIKED;
+      inCallButtonUi.showButton(InCallButtonIds.BUTTON_LIKED, enable);
   }
 
   @Override

@@ -1228,7 +1228,9 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
 
   @TargetApi(28)
   public boolean canUpgradeToRttCall() {
-    if (!isPhoneAccountRttCapable()) {
+    if (!isPhoneAccountRttCapable() && !(isEmergencyCall() && QtiImsExtUtils.
+            isSimlessRttSupported(BottomSheetHelper.
+            getInstance().getPhoneId(),context))) {
       return false;
     }
     if (isActiveRttCall()) {
@@ -1344,6 +1346,17 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
       return false;
     }
     return extras.getBoolean(CallCompat.Details.EXTRA_ANSWERING_DROPS_FOREGROUND_CALL);
+  }
+
+  /**
+   * Determines if swap across calls is disabled.
+    *
+   * @return {@code true} if swap option is disabled, {@code false} otherwise.
+   */
+  public boolean isSwapDisabled() {
+    Bundle extras = getExtras();
+    return extras != null &&
+        extras.getBoolean("android.telecom.extra.DISABLE_SWAP_CALL", false);
   }
 
   private void parseCallSpecificAppData() {
@@ -2150,5 +2163,11 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   /** Gets peer dimension height. */
   public int getPeerDimensionHeight() {
     return peerDimensionHeight;
+  }
+
+  /** Check if this call and DialerCall passed are having same phone account. */
+  public boolean hasSamePhoneAccount(DialerCall call) {
+    return call != null &&
+        Objects.equals(this.getAccountHandle(), call.getAccountHandle());
   }
 }

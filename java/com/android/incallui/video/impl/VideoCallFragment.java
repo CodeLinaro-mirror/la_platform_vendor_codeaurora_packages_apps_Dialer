@@ -17,6 +17,7 @@
 package com.android.incallui.video.impl;
 
 import android.app.Activity;
+import android.bluetooth.BluetoothDevice;
 import android.Manifest.permission;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -162,6 +163,7 @@ public class VideoCallFragment extends Fragment
   private CheckableImageButton commentButton;
   private CheckableImageButton detailButton;
   private CheckableImageButton moneyButton;
+  private ImageButton likedButton;
 
   private View switchOnHoldButton;
   private View onHoldContainer;
@@ -331,6 +333,7 @@ public class VideoCallFragment extends Fragment
     detailButton.setOnCheckedChangeListener(this);
     moneyButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_money_button);
     moneyButton.setOnCheckedChangeListener(this);
+    likedButton = (ImageButton) view.findViewById(R.id.crs_crbt_liked_button);
     moreOptionsMenuButton = view.findViewById(R.id.videocall_more_button);
     moreOptionsMenuButton.setOnClickListener(this);
     previewTextureView = (TextureView) view.findViewById(R.id.videocall_video_preview);
@@ -1179,6 +1182,8 @@ public class VideoCallFragment extends Fragment
       detailButton.setVisibility((show &&isCrbtReady) ? View.VISIBLE : View.GONE);
     } else if (buttonId == InCallButtonIds.BUTTON_RED_ENVELOPE) {
       moneyButton.setVisibility((show && isCrbtReady) ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_LIKED) {
+        likedButton.setVisibility((show && isCrbtReady) ? View.VISIBLE : View.GONE);
     }
   }
 
@@ -1269,9 +1274,9 @@ public class VideoCallFragment extends Fragment
   }
 
   @Override
-  public void onAudioRouteSelected(int audioRoute) {
+  public void onAudioRouteSelected(int audioRoute, BluetoothDevice device) {
     LogUtil.i("VideoCallFragment.onAudioRouteSelected", "audioRoute: " + audioRoute);
-    inCallButtonUiDelegate.setAudioRoute(audioRoute);
+    inCallButtonUiDelegate.setAudioRoute(audioRoute, device);
   }
 
   @Override

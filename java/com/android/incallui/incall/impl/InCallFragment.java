@@ -19,6 +19,7 @@ package com.android.incallui.incall.impl;
 import android.Manifest.permission;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
@@ -584,8 +585,8 @@ public class InCallFragment extends Fragment
   }
 
   @Override
-  public void onAudioRouteSelected(int audioRoute) {
-    inCallButtonUiDelegate.setAudioRoute(audioRoute);
+  public void onAudioRouteSelected(int audioRoute, BluetoothDevice device) {
+    inCallButtonUiDelegate.setAudioRoute(audioRoute, device);
   }
 
   @Override

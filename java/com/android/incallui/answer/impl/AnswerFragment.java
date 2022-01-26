@@ -140,7 +140,7 @@ public class AnswerFragment extends Fragment
 
   static final String ARG_ALLOW_ANSWER_AND_RELEASE = "allow_answer_and_release";
 
-  static final String ARG_HAS_CALL_ON_HOLD = "has_call_on_hold";
+  static final String ARG_HAS_MAX_CALLS = "has_max_calls";
 
   @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
   static final String ARG_IS_VIDEO_UPGRADE_REQUEST = "is_video_upgrade_request";
@@ -185,6 +185,7 @@ public class AnswerFragment extends Fragment
   private CheckableImageButton commentButton;
   private CheckableImageButton detailButton;
   private CheckableImageButton moneyButton;
+  private ImageButton likedButton;
   private ImageButton moreOptionsMenuButton;
   private AffordanceHolderLayout affordanceHolderLayout;
   private LinearLayout chipContainer;
@@ -410,7 +411,7 @@ public class AnswerFragment extends Fragment
       boolean isVideoUpgradeRequest,
       boolean isSelfManagedCamera,
       boolean allowAnswerAndRelease,
-      boolean hasCallOnHold,
+      boolean hasMaxCalls,
       boolean allowSpeakEasy,
       boolean hasVideoCrs,
       boolean isVideoCallOriginally) {
@@ -421,7 +422,7 @@ public class AnswerFragment extends Fragment
     bundle.putBoolean(ARG_IS_VIDEO_UPGRADE_REQUEST, isVideoUpgradeRequest);
     bundle.putBoolean(ARG_IS_SELF_MANAGED_CAMERA, isSelfManagedCamera);
     bundle.putBoolean(ARG_ALLOW_ANSWER_AND_RELEASE, allowAnswerAndRelease);
-    bundle.putBoolean(ARG_HAS_CALL_ON_HOLD, hasCallOnHold);
+    bundle.putBoolean(ARG_HAS_MAX_CALLS, hasMaxCalls);
     bundle.putBoolean(ARG_ALLOW_SPEAK_EASY, allowSpeakEasy);
     bundle.putBoolean(ARG_HAS_VIDEO_CRS, hasVideoCrs);
     bundle.putBoolean(ARG_IS_VIDEO_ORIGINALLY, isVideoCallOriginally);
@@ -545,8 +546,8 @@ public class AnswerFragment extends Fragment
     return getArguments().getBoolean(ARG_ALLOW_SPEAK_EASY);
   }
 
-  private boolean hasCallOnHold() {
-    return getArguments().getBoolean(ARG_HAS_CALL_ON_HOLD);
+  private boolean hasMaxCalls() {
+    return getArguments().getBoolean(ARG_HAS_MAX_CALLS);
   }
 
   @Override
@@ -582,6 +583,8 @@ public class AnswerFragment extends Fragment
       detailButton.setVisibility(show ? View.VISIBLE : View.GONE);
     } else if (buttonId == InCallButtonIds.BUTTON_DETAIL) {
       moneyButton.setVisibility(show ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_LIKED) {
+      likedButton.setVisibility(show ? View.VISIBLE : View.GONE);
     }
   }
 
@@ -897,6 +900,7 @@ public class AnswerFragment extends Fragment
     detailButton.setOnCheckedChangeListener(this);
     moneyButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_money_button);
     moneyButton.setOnCheckedChangeListener(this);
+    likedButton = (ImageButton) view.findViewById(R.id.crs_crbt_liked_button);
     moreOptionsMenuButton = (ImageButton) view.findViewById(R.id.qti_dialer_incoming_botton_more);
     moreOptionsMenuButton.setOnClickListener(this);
 
@@ -1222,7 +1226,7 @@ public class AnswerFragment extends Fragment
   private void restoreSwipeHintTexts() {
     if (getAnswerMethod() != null) {
       if (allowAnswerAndRelease()) {
-        if (hasCallOnHold()) {
+        if (hasMaxCalls()) {
           getAnswerMethod()
               .setHintText(getText(R.string.call_incoming_default_label_answer_and_release_third));
         } else if (primaryCallState.supportsCallOnHold()) {

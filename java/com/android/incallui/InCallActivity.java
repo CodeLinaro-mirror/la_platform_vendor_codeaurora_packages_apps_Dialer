@@ -16,6 +16,8 @@
 
 package com.android.incallui;
 
+import static com.android.incallui.NotificationBroadcastReceiver.EXTRA_CALL_ID;
+
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.AppTask;
@@ -213,6 +215,8 @@ public class InCallActivity extends TransactionSafeFragmentActivity
       didShowSpeakEasyScreen = bundle.getBoolean(KeysForSavedInstance.DID_SHOW_SPEAK_EASY_SCREEN);
     }
 
+    CallList.getInstance().setSelectedIncomingCall(getIntent().getStringExtra(EXTRA_CALL_ID));
+
     setWindowFlags();
     setContentView(R.layout.incall_screen);
     internalResolveIntent(getIntent());
@@ -368,6 +372,8 @@ public class InCallActivity extends TransactionSafeFragmentActivity
 
     if (showPhoneAccountSelectionDialog()) {
       hideMainInCallFragment();
+    } else {
+      showMainInCallFragment();
     }
   }
 
@@ -668,6 +674,7 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     } else {
       onNewIntent(intent, false /* isRecreating */);
     }
+    CallList.getInstance().setSelectedIncomingCall(getIntent().getStringExtra(EXTRA_CALL_ID));
   }
 
   @VisibleForTesting
@@ -1277,7 +1284,7 @@ public class InCallActivity extends TransactionSafeFragmentActivity
           LogUtil.i("InCallActivity.showSuplSvcToast",
                   "Showing toast: %s", suplNotificationMessage);
           mSuplSvcToast = Toast.makeText(this, suplNotificationMessage, Toast.LENGTH_LONG);
-          mSuplSvcToast.getWindowParams().flags |= WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED;
+          getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
           mSuplSvcToast.show();
           mSuplSvcToastShowHandler.postDelayed(mSuplSvcToastShowRunnable,
                   TOAST_SHOW_LONG_DURATION_MILLIS);
@@ -1544,6 +1551,15 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     return new ShouldShowUiResult(false, null);
   }
 
+  /**
+   * Function to check if there are more than one held/active call with same account
+   * as that of the call parameter passed.
+   */
+  private boolean hasMaxCallsOnSameSub(DialerCall call) {
+    return call != null &&
+        CallList.getInstance().getActiveAndBackgroundCalls(call.getAccountHandle()).size() > 1;
+  }
+
   private boolean showAnswerScreenFragment(FragmentTransaction transaction, DialerCall call) {
     // When rejecting a call the active call can become null in which case we should continue
     // showing the answer screen.
@@ -1588,7 +1604,7 @@ public class InCallActivity extends TransactionSafeFragmentActivity
             isVideoUpgradeRequest,
             call.getVideoTech().isSelfManagedCamera(),
             shouldAllowAnswerAndRelease(call),
-            CallList.getInstance().getBackgroundCall() != null,
+            hasMaxCallsOnSameSub(call),
             getSpeakEasyCallManager().isAvailable(getApplicationContext())
                 && call.isSpeakEasyEligible(),
             QtiCallUtils.isVideoCrs(call),
@@ -1604,8 +1620,8 @@ public class InCallActivity extends TransactionSafeFragmentActivity
   }
 
   private boolean shouldAllowAnswerAndRelease(DialerCall call) {
-    if (CallList.getInstance().getActiveCall() == null) {
-      LogUtil.i("InCallActivity.shouldAllowAnswerAndRelease", "no active call");
+    if (CallList.getInstance().getActiveOrBackgroundCall() == null) {
+      LogUtil.i("InCallActivity.shouldAllowAnswerAndRelease", "no active or background call");
       return false;
     }
     if (getSystemService(TelephonyManager.class).getPhoneType()

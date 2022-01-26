@@ -67,5 +67,6 @@
   <string name="crs_crbt_description_comment">Comment</string>
   <string name="crs_crbt_description_detail">Detail</string>
   <string name="crs_crbt_description_money">Red Envelope</string>
+  <string name="crs_crbt_description_liked">Liked</string>
 
 </resources>
