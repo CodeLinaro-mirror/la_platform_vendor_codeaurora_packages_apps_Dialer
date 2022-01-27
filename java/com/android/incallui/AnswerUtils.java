@@ -38,7 +38,7 @@ public class AnswerUtils {
 
   private AnswerUtils() {}
 
-  public static void disconnectAllAndAnswer(int videoState) {
+  public static void disconnectAllAndAnswer(int videoState, boolean needLaunchUi) {
     boolean isCallAvailableToDisconnect = false;
     CallList callList = InCallPresenter.getInstance().getCallList();
     if (callList == null || callList.getIncomingCall() == null) {
@@ -50,7 +50,7 @@ public class AnswerUtils {
           !(currentCall.getState() == DialerCallState.INCOMING)) {
         isCallAvailableToDisconnect = true;
         currentCall.setReleasedByAnsweringSecondCall(true);
-        currentCall.addListener(new AnswerOnDisconnected(currentCall, videoState));
+        currentCall.addListener(new AnswerOnDisconnected(currentCall, videoState, needLaunchUi));
         if (currentCall.getParentId() == null) {
           //Send disconnect only for parent calls and not for child calls.
           currentCall.disconnect();
@@ -66,17 +66,27 @@ public class AnswerUtils {
       LogUtil.i("AnswerUtils.diconnectAllAndAnswer", "There are no calls to release," +
           " answer incoming call");
       callList.getIncomingCall().answer(videoState);
+      if (needLaunchUi) {
+        InCallPresenter.getInstance().showInCall(
+            false /* showDialpad */, false /* newOutgoingCall */);
+      }
     }
+  }
+
+  public static void disconnectAllAndAnswer(int videoState) {
+    disconnectAllAndAnswer(videoState, false);
   }
 
   private static class AnswerOnDisconnected implements DialerCallListener {
 
     private final DialerCall disconnectingCall;
     private final int videoState;
+    private final boolean needLaunchUi;
 
-    AnswerOnDisconnected(DialerCall disconnectingCall, int videoState) {
+    AnswerOnDisconnected(DialerCall disconnectingCall, int videoState, boolean needLaunchUi) {
       this.disconnectingCall = disconnectingCall;
       this.videoState = videoState;
+      this.needLaunchUi = needLaunchUi;
     }
 
     @Override
@@ -86,10 +96,14 @@ public class AnswerUtils {
         LogUtil.i(
           "AnswerUtils.AnswerOnDisconnected", "call disconnected, answering new call");
           CallList callList = InCallPresenter.getInstance().getCallList();
-          if (callList != null && callList.getIncomingCall() != null) {
-            callList.getIncomingCall().answer(videoState);
+        if (callList != null && callList.getIncomingCall() != null) {
+          callList.getIncomingCall().answer(videoState);
+          if (needLaunchUi) {
+            InCallPresenter.getInstance().showInCall(
+                false /* showDialpad */, false /* newOutgoingCall */);
           }
         }
+      }
       disconnectingCall.removeListener(this);
     }
 

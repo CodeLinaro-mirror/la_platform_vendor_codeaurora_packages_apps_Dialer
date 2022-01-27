@@ -89,7 +89,8 @@ public class StatusSmsFetcher extends BroadcastReceiver implements Closeable {
     // Because the receiver is registered dynamically, implicit intent must be used.
     // There should only be a single status SMS request at a time.
     return PendingIntent.getBroadcast(
-        context, ACTION_REQUEST_SENT_REQUEST_CODE, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+        context, ACTION_REQUEST_SENT_REQUEST_CODE, intent,
+        PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_MUTABLE);
   }
 
   @Override
