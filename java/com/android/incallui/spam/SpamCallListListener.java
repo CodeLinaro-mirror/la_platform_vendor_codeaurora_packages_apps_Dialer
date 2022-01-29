@@ -456,7 +456,8 @@ public class SpamCallListListener implements CallList.Listener {
         SpamNotificationService.createServiceIntent(
             context, call, action, getNotificationTagForCall(call), NOTIFICATION_ID);
     return PendingIntent.getService(
-        context, (int) System.currentTimeMillis(), intent, PendingIntent.FLAG_ONE_SHOT);
+        context, (int) System.currentTimeMillis(), intent,
+        PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_MUTABLE);
   }
 
   /** Creates a pending intent for {@link SpamNotificationActivity}. */
@@ -465,7 +466,8 @@ public class SpamCallListListener implements CallList.Listener {
         SpamNotificationActivity.createActivityIntent(
             context, call, action, getNotificationTagForCall(call), NOTIFICATION_ID);
     return PendingIntent.getActivity(
-        context, (int) System.currentTimeMillis(), intent, PendingIntent.FLAG_ONE_SHOT);
+        context, (int) System.currentTimeMillis(), intent,
+        PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_MUTABLE);
   }
 
   static String getNotificationTagForCall(@NonNull DialerCall call) {
