@@ -372,6 +372,8 @@ public class InCallActivity extends TransactionSafeFragmentActivity
 
     if (showPhoneAccountSelectionDialog()) {
       hideMainInCallFragment();
+    } else {
+      showMainInCallFragment();
     }
   }
 
