@@ -145,7 +145,7 @@ LOCAL_STATIC_ANDROID_LIBRARIES := \
 	android-support-v7-recyclerview \
 
 LOCAL_JAVA_LIBRARIES := \
-	qti-dialer-auto-value-target \
+	auto_value_annotations \
 	org.apache.http.legacy \
 	ims-ext-common \
         ims-common \
@@ -153,7 +153,7 @@ LOCAL_JAVA_LIBRARIES := \
         extphonelib \
 
 LOCAL_ANNOTATION_PROCESSORS := \
-	qti-dialer-auto-value \
+	auto_value_plugin \
 	qti-dialer-javapoet-prebuilt-jar \
 	qti-dialer-dagger2 \
 	qti-dialer-dagger2-compiler \
@@ -204,7 +204,6 @@ EXCLUDE_EXTRA_PACKAGES :=
 include $(CLEAR_VARS)
 
 LOCAL_PREBUILT_STATIC_JAVA_LIBRARIES := \
-    qti-dialer-auto-value:../../../../../../prebuilts/tools/common/m2/repository/com/google/auto/value/auto-value/1.5.2/auto-value-1.5.2.jar \
     qti-dialer-dagger2-compiler:../../../../../../prebuilts/tools/common/m2/repository/com/google/dagger/dagger-compiler/2.7/dagger-compiler-2.7.jar \
     qti-dialer-dagger2:../../../../../../prebuilts/tools/common/m2/repository/com/google/dagger/dagger/2.7/dagger-2.7.jar \
     qti-dialer-dagger2-producers:../../../../../../prebuilts/tools/common/m2/repository/com/google/dagger/dagger-producers/2.7/dagger-producers-2.7.jar \
@@ -218,8 +217,6 @@ LOCAL_PREBUILT_STATIC_JAVA_LIBRARIES := \
     qti-dialer-guava:../../../../../../prebuilts/tools/common/m2/repository/com/google/guava/guava/23.0/guava-23.0.jar \
     qti-dialer-javax-annotation-api:../../../../../../prebuilts/tools/common/m2/repository/javax/annotation/javax.annotation-api/1.2/javax.annotation-api-1.2.jar \
     qti-dialer-javax-inject:../../../../../../prebuilts/tools/common/m2/repository/javax/inject/javax.inject/1/javax.inject-1.jar \
-    qti-dialer-auto-service:../../../../../../prebuilts/tools/common/m2/repository/com/google/auto/service/auto-service/1.0-rc2/auto-service-1.0-rc2.jar \
-    qti-dialer-auto-common:../../../../../../prebuilts/tools/common/m2/repository/com/google/auto/auto-common/0.9/auto-common-0.9.jar \
     qti-dialer-javapoet-prebuilt-jar:../../../../../../prebuilts/tools/common/m2/repository/com/squareup/javapoet/1.8.0/javapoet-1.8.0.jar \
 
 include $(BUILD_HOST_PREBUILT)
@@ -476,16 +473,6 @@ include $(BUILD_PREBUILT)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
-LOCAL_MODULE := qti-dialer-auto-value-target
-LOCAL_SDK_VERSION := current
-LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/com/google/auto/value/auto-value/1.5.2/auto-value-1.5.2.jar
-LOCAL_UNINSTALLABLE_MODULE := true
-
-include $(BUILD_PREBUILT)
-
-include $(CLEAR_VARS)
-
-LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-zxing-target
 LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
 LOCAL_LICENSE_CONDITIONS := notice
@@ -571,8 +558,8 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
 	qti-dialer-guava \
 	qti-dialer-dagger2 \
         qti-dialer-javapoet-prebuilt-jar \
-	qti-dialer-auto-service \
-	qti-dialer-auto-common \
+	auto_service_annotations \
+	auto_common \
 	qti-dialer-javax-annotation-api \
 	qti-dialer-javax-inject
 
