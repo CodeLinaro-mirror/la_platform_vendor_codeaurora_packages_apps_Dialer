@@ -186,6 +186,9 @@ LOCAL_SYSTEM_EXT_MODULE := true
 # b/144404735 - Compiling with JDK 1.8 until Dagger & Glide fixed for Java 9
 LOCAL_JAVA_LANGUAGE_VERSION = 1.8
 
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 include $(BUILD_PACKAGE)
 
 # Cleanup local state
