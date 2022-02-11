@@ -74,13 +74,14 @@ public class PostCall {
 
   private static void promptUserToSendMessage(Activity activity, View rootView) {
     LogUtil.i("PostCall.promptUserToSendMessage", "returned from call, showing post call SnackBar");
+    String number = Assert.isNotNull(getPhoneNumber(activity));
     String message = activity.getString(R.string.post_call_message);
     EnrichedCallManager manager = EnrichedCallComponent.get(activity).getEnrichedCallManager();
-    EnrichedCallCapabilities capabilities = manager.getCapabilities(getPhoneNumber(activity));
+    EnrichedCallCapabilities capabilities = manager.getCapabilities(number);
     LogUtil.i(
         "PostCall.promptUserToSendMessage",
         "number: %s, capabilities: %s",
-        LogUtil.sanitizePhoneNumber(getPhoneNumber(activity)),
+        LogUtil.sanitizePhoneNumber(number),
         capabilities);
 
     boolean isRcsPostCall = capabilities != null && capabilities.isPostCallCapable();
@@ -89,7 +90,6 @@ public class PostCall {
             ? activity.getString(R.string.post_call_add_message)
             : activity.getString(R.string.post_call_send_message);
 
-    final String number = Assert.isNotNull(getPhoneNumber(activity));
     final int subId = getSubscriptionId(activity);
     OnClickListener onClickListener =
         v -> {
