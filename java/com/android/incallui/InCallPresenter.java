@@ -1974,6 +1974,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
       cleanupSurfaces();
       VideoCallPresenter.cleanUp();
+      clearFullscreen();
 
       isChangingConfigurations = false;
 
