@@ -668,7 +668,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
        return;
      }
      //For Consultative transfer number is not needed
-     DialerCall backgroundCall = CallList.getInstance().getBackgroundCall();
+     DialerCall backgroundCall = InCallPresenter.getInstance().getSecondaryCall();
      if (backgroundCall == null ||
          !Objects.equals(backgroundCall.getAccountHandle(), mCall.getAccountHandle())) {
        LogUtil.w("BottomSheetHelper.transferCallConsultative", "backgroundCall is null" +
