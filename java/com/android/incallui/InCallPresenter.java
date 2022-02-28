@@ -1049,7 +1049,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   @Override
   public void onSuplServiceMessage(String suplNotificationMessage ) {
       if (inCallActivity != null) {
-          inCallActivity.showSuplServiceMessageToast(suplNotificationMessage);
+          inCallActivity.showSuplServiceMessageSnackbar(suplNotificationMessage);
       }
   }
 

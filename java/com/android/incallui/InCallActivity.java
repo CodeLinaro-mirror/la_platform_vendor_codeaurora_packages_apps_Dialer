@@ -40,6 +40,7 @@ import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -170,10 +171,10 @@ public class InCallActivity extends TransactionSafeFragmentActivity
   private DialogFragment rttRequestDialogFragment;
   private Toast errorToastPrompt;
 
-  final Handler mSuplSvcToastShowHandler = new Handler();
+  final Handler mSuplSvcSnackbarShowHandler = new Handler();
   Set<String> mSuplSvcMessages = Collections.synchronizedSet(new HashSet<String>());
-  Toast mSuplSvcToast = null;
-  private static final int TOAST_SHOW_LONG_DURATION_MILLIS = 4000;
+  Snackbar mSuplSvcSnackbar = null;
+  private static final int SNACKBAR_SHOW_LONG_DURATION_MILLIS = 4000;
 
   public static Intent getIntent(
       Context context, boolean showDialpad, boolean newOutgoingCall, boolean isForFullScreen) {
@@ -611,7 +612,7 @@ public class InCallActivity extends TransactionSafeFragmentActivity
 
     InCallPresenter.getInstance().unsetActivity(this);
     InCallPresenter.getInstance().updateIsChangingConfigurations();
-    mSuplSvcToastShowHandler.removeCallbacks(mSuplSvcToastShowRunnable);
+    mSuplSvcSnackbarShowHandler.removeCallbacks(mSuplSvcSnackbarShowRunnable);
     Trace.endSection();
   }
 
@@ -1261,33 +1262,33 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     rttRequestDialogFragment.show(getSupportFragmentManager(), Tags.RTT_REQUEST_DIALOG);
   }
 
-  public void showSuplServiceMessageToast(String suplNotificationMessage) {
-      showSuplSvcToast(suplNotificationMessage);
+  public void showSuplServiceMessageSnackbar(String suplNotificationMessage) {
+      showSuplSvcSnackbar(suplNotificationMessage);
   }
 
-  final Runnable mSuplSvcToastShowRunnable = new Runnable() {
+  final Runnable mSuplSvcSnackbarShowRunnable = new Runnable() {
       @Override
       public void run() {
-          mSuplSvcToast.cancel();
-          mSuplSvcToast = null;
+          mSuplSvcSnackbar.dismiss();
+          mSuplSvcSnackbar = null;
           if (mSuplSvcMessages.size() > 0) {
               Iterator<String> itr = mSuplSvcMessages.iterator();
               String msg = itr.next();
               mSuplSvcMessages.remove(msg);
-              showSuplSvcToast(msg);
+              showSuplSvcSnackbar(msg);
           }
       }
   };
 
-  private void showSuplSvcToast(String suplNotificationMessage) {
-      if (mSuplSvcToast == null) {
-          LogUtil.i("InCallActivity.showSuplSvcToast",
-                  "Showing toast: %s", suplNotificationMessage);
-          mSuplSvcToast = Toast.makeText(this, suplNotificationMessage, Toast.LENGTH_LONG);
-          getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-          mSuplSvcToast.show();
-          mSuplSvcToastShowHandler.postDelayed(mSuplSvcToastShowRunnable,
-                  TOAST_SHOW_LONG_DURATION_MILLIS);
+  private void showSuplSvcSnackbar(String suplNotificationMessage) {
+      if (mSuplSvcSnackbar == null) {
+          LogUtil.i("InCallActivity.showSuplSvcSnackbar",
+                  "Showing Snackbar: %s", suplNotificationMessage);
+          mSuplSvcSnackbar = Snackbar.make(findViewById(R.id.main),
+                  suplNotificationMessage, Snackbar.LENGTH_LONG);
+          mSuplSvcSnackbar.show();
+          mSuplSvcSnackbarShowHandler.postDelayed(mSuplSvcSnackbarShowRunnable,
+                  SNACKBAR_SHOW_LONG_DURATION_MILLIS);
       } else {
           // Already one supplementary message toast showing, now add this message to set and
           // wait for previous toast show to finish.
