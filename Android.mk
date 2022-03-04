@@ -145,7 +145,7 @@ LOCAL_STATIC_ANDROID_LIBRARIES := \
 	android-support-v7-recyclerview \
 
 LOCAL_JAVA_LIBRARIES := \
-	qti-dialer-auto-value-target \
+	auto_value_annotations \
 	org.apache.http.legacy \
 	ims-ext-common \
         ims-common \
@@ -153,7 +153,7 @@ LOCAL_JAVA_LIBRARIES := \
         extphonelib \
 
 LOCAL_ANNOTATION_PROCESSORS := \
-	qti-dialer-auto-value \
+	auto_value_plugin \
 	qti-dialer-javapoet-prebuilt-jar \
 	qti-dialer-dagger2 \
 	qti-dialer-dagger2-compiler \
@@ -185,7 +185,11 @@ LOCAL_SYSTEM_EXT_MODULE := true
 
 # b/144404735 - Compiling with JDK 1.8 until Dagger & Glide fixed for Java 9
 LOCAL_JAVA_LANGUAGE_VERSION = 1.8
+LOCAL_USES_LIBRARIES := org.apache.http.legacy
 
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 include $(BUILD_PACKAGE)
 
 # Cleanup local state
@@ -200,7 +204,6 @@ EXCLUDE_EXTRA_PACKAGES :=
 include $(CLEAR_VARS)
 
 LOCAL_PREBUILT_STATIC_JAVA_LIBRARIES := \
-    qti-dialer-auto-value:../../../../../../prebuilts/tools/common/m2/repository/com/google/auto/value/auto-value/1.5.2/auto-value-1.5.2.jar \
     qti-dialer-dagger2-compiler:../../../../../../prebuilts/tools/common/m2/repository/com/google/dagger/dagger-compiler/2.7/dagger-compiler-2.7.jar \
     qti-dialer-dagger2:../../../../../../prebuilts/tools/common/m2/repository/com/google/dagger/dagger/2.7/dagger-2.7.jar \
     qti-dialer-dagger2-producers:../../../../../../prebuilts/tools/common/m2/repository/com/google/dagger/dagger-producers/2.7/dagger-producers-2.7.jar \
@@ -214,8 +217,6 @@ LOCAL_PREBUILT_STATIC_JAVA_LIBRARIES := \
     qti-dialer-guava:../../../../../../prebuilts/tools/common/m2/repository/com/google/guava/guava/23.0/guava-23.0.jar \
     qti-dialer-javax-annotation-api:../../../../../../prebuilts/tools/common/m2/repository/javax/annotation/javax.annotation-api/1.2/javax.annotation-api-1.2.jar \
     qti-dialer-javax-inject:../../../../../../prebuilts/tools/common/m2/repository/javax/inject/javax.inject/1/javax.inject-1.jar \
-    qti-dialer-auto-service:../../../../../../prebuilts/tools/common/m2/repository/com/google/auto/service/auto-service/1.0-rc2/auto-service-1.0-rc2.jar \
-    qti-dialer-auto-common:../../../../../../prebuilts/tools/common/m2/repository/com/google/auto/auto-common/0.9/auto-common-0.9.jar \
     qti-dialer-javapoet-prebuilt-jar:../../../../../../prebuilts/tools/common/m2/repository/com/squareup/javapoet/1.8.0/javapoet-1.8.0.jar \
 
 include $(BUILD_HOST_PREBUILT)
@@ -226,6 +227,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-guava-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/com/google/guava/guava/23.0/guava-23.0.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -236,6 +240,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-error-prone-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/com/google/errorprone/error_prone_annotations/2.0.18/error_prone_annotations-2.0.18.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -246,6 +253,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-dagger2-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/com/google/dagger/dagger/2.7/dagger-2.7.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -256,6 +266,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-disklrucache-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/maven_repo/bumptech/com/github/bumptech/glide/disklrucache/SNAPSHOT/disklrucache-SNAPSHOT.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -266,6 +279,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-gifdecoder-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/maven_repo/bumptech/com/github/bumptech/glide/gifdecoder/SNAPSHOT/gifdecoder-SNAPSHOT.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -276,6 +292,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-glide-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/maven_repo/bumptech/com/github/bumptech/glide/glide/SNAPSHOT/glide-SNAPSHOT.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -286,6 +305,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-glide-annotation-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/maven_repo/bumptech/com/github/bumptech/glide/annotation/SNAPSHOT/annotation-SNAPSHOT.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -296,6 +318,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-javax-annotation-api-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/javax/annotation/javax.annotation-api/1.2/javax.annotation-api-1.2.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -306,6 +331,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-libshortcutbadger-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/me/leolin/ShortcutBadger/1.1.13/ShortcutBadger-1.1.13.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -316,6 +344,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-javax-inject-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/javax/inject/javax.inject/1/javax.inject-1.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -326,6 +357,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-commons-io-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/commons-io/commons-io/2.4/commons-io-2.4.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -336,6 +370,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-mime4j-core-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/org/apache/james/apache-mime4j-core/0.7.2/apache-mime4j-core-0.7.2.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -346,6 +383,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-mime4j-dom-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/org/apache/james/apache-mime4j-dom/0.7.2/apache-mime4j-dom-0.7.2.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -356,6 +396,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-grpc-core-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/io/grpc/grpc-core/1.0.3/grpc-core-1.0.3.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -366,6 +409,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-grpc-okhttp-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/io/grpc/grpc-okhttp/1.0.3/grpc-okhttp-1.0.3.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -376,6 +422,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-grpc-protobuf-lite-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/io/grpc/grpc-protobuf-lite/1.0.3/grpc-protobuf-lite-1.0.3.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -386,6 +435,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-grpc-stub-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/io/grpc/grpc-stub/1.0.3/grpc-stub-1.0.3.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -396,6 +448,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-grpc-all-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/io/grpc/grpc-all/1.0.3/grpc-all-1.0.3.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -406,6 +461,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-grpc-context-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/io/grpc/grpc-context/1.0.3/grpc-context-1.0.3.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -415,17 +473,10 @@ include $(BUILD_PREBUILT)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
-LOCAL_MODULE := qti-dialer-auto-value-target
-LOCAL_SDK_VERSION := current
-LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/com/google/auto/value/auto-value/1.5.2/auto-value-1.5.2.jar
-LOCAL_UNINSTALLABLE_MODULE := true
-
-include $(BUILD_PREBUILT)
-
-include $(CLEAR_VARS)
-
-LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-zxing-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../external/zxing/core/core.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -436,6 +487,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-okhttp-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/com/squareup/okhttp/okhttp/2.7.4/okhttp-2.7.4.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -446,6 +500,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-okio-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/com/squareup/okio/okio/1.9.0/okio-1.9.0.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -456,6 +513,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-j2objc-annotations-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/com/google/j2objc/j2objc-annotations/1.1/j2objc-annotations-1.1.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -466,6 +526,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_MODULE := qti-dialer-animal-sniffer-annotations-target
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/org/codehaus/mojo/animal-sniffer-annotations/1.14/animal-sniffer-annotations-1.14.jar
 LOCAL_UNINSTALLABLE_MODULE := true
@@ -475,6 +538,9 @@ include $(BUILD_PREBUILT)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := qti-dialer-rootcomponentprocessor
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_MODULE_CLASS := JAVA_LIBRARIES
 LOCAL_IS_HOST_MODULE := true
 BASE_DIR := java/com/android
@@ -492,8 +558,8 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
 	qti-dialer-guava \
 	qti-dialer-dagger2 \
         qti-dialer-javapoet-prebuilt-jar \
-	qti-dialer-auto-service \
-	qti-dialer-auto-common \
+	auto_service_annotations \
+	auto_common \
 	qti-dialer-javax-annotation-api \
 	qti-dialer-javax-inject
 
