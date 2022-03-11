@@ -191,7 +191,7 @@ public class NotificationBroadcastReceiver extends BroadcastReceiver {
       DialerCall call = callId != null ? callList.getCallById(callId) : callList.getIncomingCall();
       if (call != null) {
         if (call.answeringDisconnectsOtherCall()) {
-          AnswerUtils.disconnectAllAndAnswer(videoState);
+          AnswerUtils.disconnectAllAndAnswer(videoState, true);
           return;
         }
         SpeakEasyCallManager speakEasyCallManager =
