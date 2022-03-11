@@ -58,6 +58,13 @@ public class AnswerMethodFactory {
       return true;
     }
 
-    return AccessibilityUtil.isTouchExplorationEnabled(activity) || activity.isInMultiWindowMode();
+    boolean isQcomWatch = SystemProperties.getBoolean("ro.product.qti.qcom_watch", false);
+    if(isQcomWatch)
+        return AccessibilityUtil.isTouchExplorationEnabled(activity)
+            || activity.isInMultiWindowMode()
+            || activity.getResources().getBoolean(R.bool.need_show_two_button);
+    else
+        return AccessibilityUtil.isTouchExplorationEnabled(activity)
+            || activity.isInMultiWindowMode();
   }
 }
