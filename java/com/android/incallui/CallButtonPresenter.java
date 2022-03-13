@@ -521,6 +521,15 @@ public class CallButtonPresenter
     updateButtonsState(call);
   }
 
+  private boolean shouldEnableSwapToSecondaryButton(DialerCall call) {
+    if (call != null && !call.isSwapDisabled() && !call.isEmergencyCall() &&
+            (call.getState() == DialerCallState.ACTIVE ||
+             call.getState() == DialerCallState.ONHOLD)) {
+        return true;
+    }
+    return false;
+  }
+
   /**
    * Checks if RTT downgrade is supported or not
    * based on the cached value of carrier config
@@ -630,6 +639,14 @@ public class CallButtonPresenter
                               call.isActiveRttCall() ? (showMerge && isRttMergeSupported)
                                                      : showMerge);
     inCallButtonUi.showButton(InCallButtonIds.BUTTON_DOWNGRADE_TO_VOICE, showDowngradeRtt);
+
+    boolean showSwitchToSecondary = InCallPresenter.getInstance().getSecondaryCall() != null
+        && !call.hasSentVideoUpgradeRequest();
+    boolean enableSwitchToSecondary = showSwitchToSecondary
+        && shouldEnableSwapToSecondaryButton(call);
+    inCallButtonUi.showButton(InCallButtonIds.BUTTON_SWITCH_TO_SECONDARY, showSwitchToSecondary);
+    inCallButtonUi.enableButton(InCallButtonIds.BUTTON_SWITCH_TO_SECONDARY,
+            enableSwitchToSecondary);
 
     updateSipDtmfButtons(InCallPresenter.getInstance().getSipDtmfBitMask());
     inCallButtonUi.updateButtonStates();
