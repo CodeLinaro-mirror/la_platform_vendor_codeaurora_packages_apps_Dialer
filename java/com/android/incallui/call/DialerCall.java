@@ -30,6 +30,7 @@ import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.SystemClock;
 import android.os.Trace;
+import android.provider.Settings;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -48,6 +49,8 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
+import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.widget.Toast;
 import com.android.contacts.common.compat.CallCompat;
@@ -1227,10 +1230,35 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   }
 
   @TargetApi(28)
+  private boolean isPhoneAccountSimlessRttCapable() {
+    boolean isSimStateAbsent = SubscriptionManager.getSimStateForSlotIndex(
+        BottomSheetHelper.getInstance().getPhoneId()) ==
+        TelephonyManager.SIM_STATE_ABSENT;
+    return QtiImsExtUtils.
+        isSimlessRttSupported(BottomSheetHelper.
+        getInstance().getPhoneId(),context) && isSimStateAbsent
+        && isUserRttSettingOn();
+  }
+
+  @TargetApi(28)
+  private boolean isUserRttSettingOn() {
+    int rttSetting = Settings.Secure.getInt(
+        context.getContentResolver(),
+        Settings.Secure.RTT_CALLING_MODE
+        + convertRttPhoneId(
+        BottomSheetHelper.getInstance().getPhoneId()) , 0);
+    return rttSetting != 0;
+  }
+
+  @TargetApi(28)
+  private static String convertRttPhoneId(int phoneId) {
+    return phoneId != 0 ? Integer.toString(phoneId) : "";
+  }
+
+  @TargetApi(28)
   public boolean canUpgradeToRttCall() {
-    if (!isPhoneAccountRttCapable() && !(isEmergencyCall() && QtiImsExtUtils.
-            isSimlessRttSupported(BottomSheetHelper.
-            getInstance().getPhoneId(),context))) {
+    if (!isPhoneAccountRttCapable() && !(isEmergencyCall() &&
+        isPhoneAccountSimlessRttCapable())) {
       return false;
     }
     if (isActiveRttCall()) {
