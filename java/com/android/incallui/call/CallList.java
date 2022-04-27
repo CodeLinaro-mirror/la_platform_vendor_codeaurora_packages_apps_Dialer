@@ -292,7 +292,7 @@ public class CallList implements DialerCallDelegate {
         LogUtil.w(
             "CallList.onCallRemoved", "Removing call not previously disconnected " + call.getId());
       }
-      if (call.getId() == selectedIncomingCall) {
+      if (Objects.equals(call.getId(), selectedIncomingCall)) {
           selectedIncomingCall = null;
       }
       call.onRemovedFromCallList();
@@ -689,7 +689,8 @@ public class CallList implements DialerCallDelegate {
     }
     DialerCall activeCall = getActiveCall();
     lastActiveCall = activeCall == null ? lastActiveCall: activeCall;
-    if (call.getId() == selectedIncomingCall && (call.getState() != DialerCallState.INCOMING ||
+    if (Objects.equals(call.getId(), selectedIncomingCall) &&
+        (call.getState() != DialerCallState.INCOMING ||
         call.getState() != DialerCallState.CALL_WAITING)) {
       selectedIncomingCall = null;
     }
