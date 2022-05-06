@@ -432,6 +432,9 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   private int peerDimensionWidth = UNKNOWN_PEER_DIMENSIONS;
   private int peerDimensionHeight = UNKNOWN_PEER_DIMENSIONS;
 
+  // to track whether the call was added to call list atleast once
+  private boolean wasCallAddedToCallList = false;
+
   public DialerCall(
       Context context,
       DialerCallDelegate dialerCallDelegate,
@@ -2198,5 +2201,13 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   public boolean hasSamePhoneAccount(DialerCall call) {
     return call != null &&
         Objects.equals(this.getAccountHandle(), call.getAccountHandle());
+  }
+
+  public void markCallAddedToCallList() {
+    wasCallAddedToCallList = true;
+  }
+
+  public boolean wasCallAddedToCallList() {
+    return wasCallAddedToCallList;
   }
 }
