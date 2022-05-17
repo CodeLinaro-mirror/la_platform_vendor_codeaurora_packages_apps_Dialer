@@ -76,6 +76,7 @@ public class QtiCallUtils {
     public static final String EXTRA_ADD_PARTICIPANT_NUMBER =
             "org.codeaurora.extra.ADD_PARTICIPANT_NUMBER";
     private static final int UNKNOWN_CALL_TYPE = -1;
+    private static final int DEFAULT_CALL_INDEX = -1;
 
     /**
      * Returns true if it is emergency number else false
@@ -615,6 +616,17 @@ public class QtiCallUtils {
             return false;
         }
         return extras.getBoolean(QtiCallConstants.EXTRA_IS_PREPARATORY, false);
+    }
+
+    public static int getImsCallId(DialerCall call) {
+        if (call == null) {
+            return DEFAULT_CALL_INDEX;
+        }
+        Bundle extras = call.getExtras();
+        if (extras == null) {
+            return DEFAULT_CALL_INDEX;
+        }
+        return extras.getInt(QtiCallConstants.EXTRA_IMS_CALL_ID, DEFAULT_CALL_INDEX);
     }
 
     public static int getPhoneId(DialerCall call) {
