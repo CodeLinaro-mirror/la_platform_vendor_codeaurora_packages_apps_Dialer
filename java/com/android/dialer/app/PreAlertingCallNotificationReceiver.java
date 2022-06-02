@@ -27,7 +27,7 @@
  *
  *  Changes from Qualcomm Innovation Center are provided under the following license:
  *
- *  Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
+ *  Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted (subject to the limitations in the
@@ -117,6 +117,8 @@ public class PreAlertingCallNotificationReceiver extends BroadcastReceiver {
                 CallComposerInfo.PRIORITY_NORMAL);
         Uri imageUrl = extras.getParcelable(
                 QtiCallConstants.EXTRA_CALL_COMPOSER_IMAGE);
+        String organization = extras.getString(
+                QtiCallConstants.EXTRA_CALL_COMPOSER_ORGANIZATION_HEADER, null);
         if (extras.containsKey(QtiCallConstants.EXTRA_CALL_COMPOSER_LOCATION)) {
             float radius = extras.getFloat(
                     QtiCallConstants.EXTRA_CALL_COMPOSER_LOCATION_RADIUS,
@@ -127,7 +129,7 @@ public class PreAlertingCallNotificationReceiver extends BroadcastReceiver {
                     QtiCallConstants.EXTRA_CALL_COMPOSER_LOCATION_LONGITUDE);
             location = new CallComposerInfo.Location(radius, latitude, longitude);
         }
-        return new CallComposerInfo(priority, subject, imageUrl, location);
+        return new CallComposerInfo(priority, subject, imageUrl, location, organization);
     }
 
     private static String toEcnamInfo(Bundle extras) {

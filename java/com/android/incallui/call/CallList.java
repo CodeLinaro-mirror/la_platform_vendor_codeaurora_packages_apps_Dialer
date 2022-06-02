@@ -292,7 +292,7 @@ public class CallList implements DialerCallDelegate {
         LogUtil.w(
             "CallList.onCallRemoved", "Removing call not previously disconnected " + call.getId());
       }
-      if (call.getId() == selectedIncomingCall) {
+      if (Objects.equals(call.getId(), selectedIncomingCall)) {
           selectedIncomingCall = null;
       }
       call.onRemovedFromCallList();
@@ -689,7 +689,8 @@ public class CallList implements DialerCallDelegate {
     }
     DialerCall activeCall = getActiveCall();
     lastActiveCall = activeCall == null ? lastActiveCall: activeCall;
-    if (call.getId() == selectedIncomingCall && (call.getState() != DialerCallState.INCOMING ||
+    if (Objects.equals(call.getId(), selectedIncomingCall) &&
+        (call.getState() != DialerCallState.INCOMING ||
         call.getState() != DialerCallState.CALL_WAITING)) {
       selectedIncomingCall = null;
     }
@@ -726,8 +727,8 @@ public class CallList implements DialerCallDelegate {
     boolean updated = false;
 
     if (call.getState() == DialerCallState.DISCONNECTED) {
-      // update existing (but do not add!!) disconnected calls
-      if (callById.containsKey(call.getId())) {
+      // Make sure disconnected calls are added only once
+      if (callById.containsKey(call.getId()) || !call.wasCallAddedToCallList()) {
         // For disconnected calls, we want to keep them alive for a few seconds so that the
         // UI has a chance to display anything it needs when a call is disconnected.
 
@@ -739,11 +740,13 @@ public class CallList implements DialerCallDelegate {
         callById.put(call.getId(), call);
         callByTelecomCall.put(call.getTelecomCall(), call);
         updated = true;
+        call.markCallAddedToCallList();
       }
     } else if (!isCallDead(call)) {
       callById.put(call.getId(), call);
       callByTelecomCall.put(call.getTelecomCall(), call);
       updated = true;
+      call.markCallAddedToCallList();
     } else if (callById.containsKey(call.getId())) {
       callById.remove(call.getId());
       callByTelecomCall.remove(call.getTelecomCall());

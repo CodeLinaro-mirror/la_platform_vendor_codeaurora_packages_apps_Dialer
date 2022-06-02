@@ -43,14 +43,18 @@ public class ExternalCallList {
       new Call.Callback() {
         @Override
         public void onDetailsChanged(Call call, Call.Details details) {
+          if (!externalCalls.contains(call)) {
+            // Due to race condition, this callback can be invoked just after the call is removed
+            // from the list
+            LogUtil.d("ExternalCallList.onDetailsChanged", "call already removed from list");
+            return;
+          }
           notifyExternalCallUpdated(call);
         }
       };
 
   /** Begins tracking an external call and notifies listeners of the new call. */
   public void onCallAdded(Call telecomCall) {
-    Assert.checkArgument(
-        telecomCall.getDetails().hasProperty(CallCompat.Details.PROPERTY_IS_EXTERNAL_CALL));
     externalCalls.add(telecomCall);
     telecomCall.registerCallback(telecomCallCallback, new Handler(Looper.getMainLooper()));
     notifyExternalCallAdded(telecomCall);
