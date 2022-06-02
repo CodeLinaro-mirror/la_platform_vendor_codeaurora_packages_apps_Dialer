@@ -1232,7 +1232,8 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
         //isPreparatorySession to get value in vendor directly.
         if (mCrsCrbtManager != null && call != null) {
             try {
-                boolean isPreparatory = mCrsCrbtManager.isPreparatorySession(call.getId());
+                boolean isPreparatory = mCrsCrbtManager.isPreparatorySession(
+                        Integer.toString(QtiCallUtils.getImsCallId(call)));
                 if (isPreparatory) {
                     LogUtil.i("InCallPresenter.onIncomingCall",
                             "enter preparatory mode for CRS call, do not show notificaion to user");
