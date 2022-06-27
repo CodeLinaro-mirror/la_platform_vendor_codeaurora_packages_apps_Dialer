@@ -956,6 +956,7 @@ public class StatusBarNotifier
       // Reset visibleIncomingCallIndex if there are no multiple incoming calls so that when we
       // receive another incoming call we have proper value of visibleIncomingCallIndex.
       visibleIncomingCallIndex = 0;
+      visibleIncomingCallId = null;
     }
     if (call == null) {
       call = callList.getOutgoingCall();
