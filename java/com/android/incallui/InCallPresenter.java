@@ -1121,9 +1121,8 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       secondary = getCallToDisplay(callList, primary, true);
     }
     mPrimary = primary;
-    if (secondary != null) {
-      mSecondary = secondary;
-    }
+    mSecondary = secondary;
+
     if (primary != null) {
       onForegroundCallChanged(primary);
       int phoneId = QtiCallUtils.getPhoneId(primary);

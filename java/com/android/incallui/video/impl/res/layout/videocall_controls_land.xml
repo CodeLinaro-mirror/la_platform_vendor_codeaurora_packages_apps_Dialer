@@ -61,13 +61,18 @@
      style="@style/Incall.Button.VideoCall"
      android:layout_width="@dimen/videocall_button_size"
      android:layout_height="@dimen/videocall_button_size"
-     android:layout_marginEnd="24dp"
+     android:layout_marginEnd="20dp"
      android:src="@drawable/quantum_ic_more_vert_white_24"/>
-
+   <ImageButton
+     android:id="@+id/videocall_switch_on_hold"
+     style="@style/Incall.Button.VideoCall"
+     android:contentDescription="@string/incall_content_description_swap_calls"
+     android:layout_marginEnd="20dp"
+     android:src="@drawable/quantum_ic_swap_calls_vd_theme_24"/>
     <com.android.incallui.video.impl.CheckableImageButton
       android:id="@+id/videocall_speaker_button"
       style="@style/Incall.Button.VideoCall"
-      android:layout_marginEnd="24dp"
+      android:layout_marginEnd="20dp"
       android:checked="true"
       android:src="@drawable/quantum_ic_volume_up_vd_theme_24"
       app:contentDescriptionChecked="@string/incall_content_description_speaker"
@@ -76,7 +81,7 @@
     <com.android.incallui.video.impl.CheckableImageButton
       android:id="@+id/videocall_mute_button"
       style="@style/Incall.Button.VideoCall"
-      android:layout_marginEnd="24dp"
+      android:layout_marginEnd="20dp"
       android:src="@drawable/quantum_ic_mic_off_vd_theme_24"
       app:contentDescriptionChecked="@string/incall_content_description_muted"
       app:contentDescriptionUnchecked="@string/incall_content_description_unmuted"
@@ -84,7 +89,7 @@
     <com.android.incallui.video.impl.CheckableImageButton
       android:id="@+id/videocall_mute_video"
       style="@style/Incall.Button.VideoCall"
-      android:layout_marginEnd="24dp"
+      android:layout_marginEnd="20dp"
       android:src="@drawable/quantum_ic_videocam_off_vd_theme_24"
       app:contentDescriptionChecked="@string/incall_content_description_video_off"
       app:contentDescriptionUnchecked="@string/incall_content_description_video_on"
@@ -93,7 +98,7 @@
       layout="@layout/switch_camera_button"
       android:layout_width="@dimen/videocall_button_size"
       android:layout_height="@dimen/videocall_button_size"
-      android:layout_marginEnd="24dp"/>
+      android:layout_marginEnd="20dp"/>
     <ImageButton
       android:id="@+id/videocall_add_call"
       style="@style/Incall.Button.VideoCall"
@@ -101,7 +106,7 @@
       android:layout_height="@dimen/videocall_button_size"
       android:contentDescription="@string/incall_content_description_add_call"
       android:src="@drawable/ic_addcall_white"
-      android:layout_marginEnd="24dp"
+      android:layout_marginEnd="20dp"
       android:visibility="gone"
       tools:visibility="visible"
       />
@@ -112,7 +117,7 @@
       android:layout_height="@dimen/videocall_button_size"
       android:contentDescription="@string/incall_content_description_merge_calls"
       android:src="@drawable/quantum_ic_call_merge_vd_theme_24"
-      android:layout_marginEnd="24dp"
+      android:layout_marginEnd="20dp"
       android:visibility="gone"
       tools:visibility="visible"
       />
@@ -126,7 +131,7 @@
       android:src="@drawable/quantum_ic_baseline_favorite_border_24"
       android:contentDescription="@string/crs_crbt_description_like"
       android:visibility="gone"
-      android:layout_marginEnd="24dp"
+      android:layout_marginEnd="20dp"
       tools:visibility="visible"
       />
     <ImageButton
@@ -138,7 +143,7 @@
       android:src="@drawable/quantum_ic_baseline_favorite_24"
       android:contentDescription="@string/crs_crbt_description_liked"
       android:visibility="gone"
-      android:layout_marginEnd="24dp"
+      android:layout_marginEnd="20dp"
       tools:visibility="visible"
       />
     <com.android.incallui.video.impl.CheckableImageButton
@@ -151,7 +156,7 @@
       android:src="@drawable/quantum_ic_baseline_share_24"
       android:contentDescription="@string/crs_crbt_description_share"
       android:visibility="gone"
-      android:layout_marginEnd="24dp"
+      android:layout_marginEnd="20dp"
       tools:visibility="visible"
       />
     <com.android.incallui.video.impl.CheckableImageButton
@@ -164,7 +169,7 @@
       android:src="@drawable/quantum_ic_baseline_cloud_queue_24"
       android:contentDescription="@string/crs_crbt_description_favorite"
       android:visibility="gone"
-      android:layout_marginEnd="24dp"
+      android:layout_marginEnd="20dp"
       tools:visibility="visible"
       />
     <com.android.incallui.video.impl.CheckableImageButton
@@ -177,7 +182,7 @@
       android:src="@drawable/quantum_ic_baseline_content_copy_24"
       android:contentDescription="@string/crs_crbt_description_copy"
       android:visibility="gone"
-      android:layout_marginEnd="24dp"
+      android:layout_marginEnd="20dp"
       tools:visibility="visible"
       />
     <com.android.incallui.video.impl.CheckableImageButton
@@ -190,7 +195,7 @@
       android:src="@drawable/quantum_ic_baseline_comment_24"
       android:contentDescription="@string/crs_crbt_description_comment"
       android:visibility="gone"
-      android:layout_marginEnd="24dp"
+      android:layout_marginEnd="20dp"
       tools:visibility="visible"
       />
     <com.android.incallui.video.impl.CheckableImageButton
@@ -203,7 +208,7 @@
       android:checked="false"
       android:contentDescription="@string/crs_crbt_description_detail"
       android:visibility="gone"
-      android:layout_marginEnd="24dp"
+      android:layout_marginEnd="20dp"
       tools:visibility="visible"
       />
     <com.android.incallui.video.impl.CheckableImageButton
@@ -216,7 +221,7 @@
       android:checked="false"
       android:contentDescription="@string/crs_crbt_description_money"
       android:visibility="gone"
-      android:layout_marginEnd="24dp"
+      android:layout_marginEnd="20dp"
       tools:visibility="visible"
       />
   </LinearLayout>
@@ -229,14 +234,6 @@
     android:layout_marginEnd="36dp"
     android:layout_alignParentEnd="true"
     android:layout_alignParentTop="true">
-    <ImageButton
-      android:id="@+id/videocall_switch_on_hold"
-      style="@style/Incall.Button.VideoCall"
-      android:contentDescription="@string/incall_content_description_swap_calls"
-      android:src="@drawable/quantum_ic_swap_calls_vd_theme_24"
-      android:visibility="gone"
-      tools:visibility="visible"
-      />
     <com.android.incallui.video.impl.CheckableImageButton
       android:id="@+id/videocall_hold_button"
       style="@style/Incall.Button.VideoCall"

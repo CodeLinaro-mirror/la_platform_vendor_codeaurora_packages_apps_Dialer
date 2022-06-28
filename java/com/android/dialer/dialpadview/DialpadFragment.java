@@ -1143,7 +1143,7 @@ public class DialpadFragment extends Fragment
           final boolean isAirplaneModeOn =
               Settings.System.getInt(getActivity().getContentResolver(),
               Settings.System.AIRPLANE_MODE_ON, 0) != 0;
-          if (isAirplaneModeOn) {
+          if (isAirplaneModeOn && !getTelephonyManager().isWifiCallingAvailable()) {
             DialogFragment dialogFragment = ErrorDialogFragment.newInstance(
                 R.string.dialog_speed_dial_airplane_mode_message);
             dialogFragment.show(getFragmentManager(),

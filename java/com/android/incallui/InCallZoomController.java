@@ -261,6 +261,12 @@ public class InCallZoomController implements  InCallPresenter.InCallUiListener,
     */
     public void onUiShowing(boolean showing) {
         Log.i(this, "onUiShowing - showing" + showing);
+        boolean isChangingConfigurations = InCallPresenter.getInstance().isChangingConfigurations();
+        if (isChangingConfigurations) {
+            Log.i(this, "onUiShowing - Configurations is changing. Ignoring.");
+            dismissAlertDialog();
+            return;
+        }
         CallList callList = InCallPresenter.getInstance().getCallList();
         if (callList == null) {
             return;
