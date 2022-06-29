@@ -1134,6 +1134,12 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       }
     }
 
+    // Refresh UI while dialing new call during ongoing call
+    if (newState == InCallState.INCALL && (oldState == InCallState.PENDING_OUTGOING
+          || oldState == InCallState.WAITING_FOR_ACCOUNT)) {
+      refreshUi();
+    }
+
     // notify listeners of new state
     for (InCallStateListener listener : listeners) {
       LogUtil.d(
