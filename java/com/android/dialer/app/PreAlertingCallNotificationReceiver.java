@@ -76,6 +76,7 @@ import org.codeaurora.ims.QtiCallConstants;
 public class PreAlertingCallNotificationReceiver extends BroadcastReceiver {
 
     private static final String LOG_TAG = "PreAlertingCallNotificationReceiver";
+    private static final int DEFAULT_MODEM_CALL_ID = -1;
 
     // TODO: When receiving this intent, there are two actions that can be taken
     //       depending on whether the call has ended or not
@@ -100,8 +101,13 @@ public class PreAlertingCallNotificationReceiver extends BroadcastReceiver {
             Bundle ccExtras = intent.getBundleExtra(
                     QtiCallConstants.EXTRA_CALL_COMPOSER_INFO);
             Bundle ecnamExtras = intent.getBundleExtra(QtiCallConstants.EXTRA_CALL_ECNAM);
+            int modemCallId = intent.getIntExtra(
+                    QtiCallConstants.EXTRA_DATA_CHANNEL_MODEM_CALL_ID, DEFAULT_MODEM_CALL_ID);
+            boolean isDcCall = intent.getBooleanExtra(
+                    QtiCallConstants.EXTRA_IS_DATA_CHANNEL_CALL, false);
             LogUtil.v(LOG_TAG, "CallComposerInfo: " + toCallComposer(ccExtras) + "EcnamInfo: "
-                    + toEcnamInfo(ecnamExtras));
+                    + toEcnamInfo(ecnamExtras) + ", modemCallId: " + modemCallId
+                    + ", isDcCall: " + isDcCall);
         }
     }
 
