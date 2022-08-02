@@ -77,6 +77,7 @@ public class QtiCallUtils {
             "org.codeaurora.extra.ADD_PARTICIPANT_NUMBER";
     private static final int UNKNOWN_CALL_TYPE = -1;
     private static final int DEFAULT_CALL_INDEX = -1;
+    private static final int INVALID_MODEM_CALL_ID = -1;
 
     /**
      * Returns true if it is emergency number else false
@@ -654,5 +655,15 @@ public class QtiCallUtils {
             }
         }
         return false;
+    }
+
+    public static int getDcModemCallId(DialerCall call) {
+        if (call == null) {
+            return INVALID_MODEM_CALL_ID;
+        }
+        final Bundle extras = call.getExtras();
+        return ((extras == null) ? INVALID_MODEM_CALL_ID :
+            extras.getInt(QtiCallConstants.EXTRA_DATA_CHANNEL_MODEM_CALL_ID,
+           INVALID_MODEM_CALL_ID));
     }
 }
