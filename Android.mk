@@ -154,7 +154,7 @@ LOCAL_JAVA_LIBRARIES := \
 
 LOCAL_ANNOTATION_PROCESSORS := \
 	auto_value_plugin \
-	qti-dialer-javapoet-prebuilt-jar \
+	javapoet \
 	qti-dialer-dagger2 \
 	qti-dialer-dagger2-compiler \
 	qti-dialer-dagger2-producers \
@@ -544,7 +544,7 @@ LOCAL_SRC_FILES := \
 LOCAL_STATIC_JAVA_LIBRARIES := \
 	qti-dialer-guava \
 	qti-dialer-dagger2 \
-        qti-dialer-javapoet-prebuilt-jar \
+        javapoet \
 	auto_service_annotations \
 	auto_common \
 	qti-dialer-javax-annotation-api \
