@@ -593,9 +593,7 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     if (!isRecreating) {
       InCallPresenter.getInstance().onUiShowing(false);
     }
-    if (errorDialog != null) {
-      errorDialog.dismiss();
-    }
+    dismissErrorDialogSafely();
     InCallCsRedialHandler.getInstance().dismissPendingDialogs();
 
     if (isFinishing()) {
@@ -1079,8 +1077,16 @@ public class InCallActivity extends TransactionSafeFragmentActivity
   }
 
   private void onDialogDismissed() {
-    errorDialog = null;
     CallList.getInstance().onErrorDialogDismissed();
+  }
+
+  private void dismissErrorDialogSafely() {
+    if (errorDialog != null) {
+      if (errorDialog.isShowing()) {
+        errorDialog.dismiss();
+      }
+      errorDialog = null;
+    }
   }
 
   public void dismissPendingDialogs() {
@@ -1096,10 +1102,7 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     }
 
     // Dismiss the error dialog
-    if (errorDialog != null) {
-      errorDialog.dismiss();
-      errorDialog = null;
-    }
+    dismissErrorDialogSafely();
 
     // Dismiss the phone account selection dialog
     if (selectPhoneAccountDialogFragment != null) {

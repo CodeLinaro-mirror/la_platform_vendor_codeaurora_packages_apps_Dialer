@@ -1025,4 +1025,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
                 "setAnswerExtras exception " + e);
         }
     }
+
+    public QtiImsExtManager getQtiImsExtManager() {
+        return mQtiImsExtManager;
+    }
 }
