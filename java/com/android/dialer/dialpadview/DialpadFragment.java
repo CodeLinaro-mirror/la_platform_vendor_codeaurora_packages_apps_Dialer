@@ -54,6 +54,8 @@ import android.telecom.PhoneAccountHandle;
 import android.telephony.PhoneNumberFormattingTextWatcher;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.ServiceState;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.text.Editable;
 import android.text.Selection;
@@ -1143,7 +1145,14 @@ public class DialpadFragment extends Fragment
           final boolean isAirplaneModeOn =
               Settings.System.getInt(getActivity().getContentResolver(),
               Settings.System.AIRPLANE_MODE_ON, 0) != 0;
-          if (isAirplaneModeOn && !getTelephonyManager().isWifiCallingAvailable()) {
+
+          int defaultVoiceSubId = SubscriptionManager.getDefaultVoiceSubscriptionId();
+          boolean isWifiCallingAvailable = isWifiCallingAvailableOnVoiceSub(defaultVoiceSubId);
+
+          LogUtil.i("DialpadFragment.onLongClick", "defaultVoiceSubId : " + defaultVoiceSubId
+              + "isWifiCallingAvailable : " + isWifiCallingAvailable);
+
+          if (isAirplaneModeOn && !isWifiCallingAvailable) {
             DialogFragment dialogFragment = ErrorDialogFragment.newInstance(
                 R.string.dialog_speed_dial_airplane_mode_message);
             dialogFragment.show(getFragmentManager(),
@@ -1156,6 +1165,35 @@ public class DialpadFragment extends Fragment
       return false;
     }
     return false;
+  }
+
+  /**
+   * Check if wifi is supported during speed dial while device is in APM
+   * In Case of INVALID_SUBSCRIPTION_ID, check for wifi registration on
+   * both subs.
+   *
+   * @param default voice sub id.
+   */
+  private boolean isWifiCallingAvailableOnVoiceSub(int defaultVoiceSubId) {
+      boolean isWifiCallingAvailable = false;
+      SubscriptionManager subscriptionManager =
+          getContext().getSystemService(SubscriptionManager.class);
+      if(defaultVoiceSubId == SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+        List<SubscriptionInfo> subscriptionInfos =
+          subscriptionManager.getActiveSubscriptionInfoList();
+        if (subscriptionInfos == null) {
+          LogUtil.d("DialpadFragment.isWifiCallingAvailableOnVoiceSub", "SubscriptionInfo is null");
+          return isWifiCallingAvailable;
+        }
+        for (SubscriptionInfo info : subscriptionInfos) {
+          TelephonyManager telephonyManagerForSub =
+              getTelephonyManager().createForSubscriptionId(info.getSubscriptionId());
+          isWifiCallingAvailable |= telephonyManagerForSub.isWifiCallingAvailable();
+        }
+        return isWifiCallingAvailable;
+      }
+      return getTelephonyManager().createForSubscriptionId(
+          defaultVoiceSubId).isWifiCallingAvailable();
   }
 
   /**
