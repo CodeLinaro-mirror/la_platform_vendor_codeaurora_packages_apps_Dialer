@@ -2210,4 +2210,9 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   public boolean wasCallAddedToCallList() {
     return wasCallAddedToCallList;
   }
+
+  public boolean hasVideoPauseCapability() {
+    return telecomCall != null && telecomCall.getDetails() != null &&
+        telecomCall.getDetails().can(Details.CAPABILITY_CAN_PAUSE_VIDEO);
+  }
 }
