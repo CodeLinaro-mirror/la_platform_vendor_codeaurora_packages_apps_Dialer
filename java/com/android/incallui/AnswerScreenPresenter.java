@@ -97,8 +97,15 @@ public class AnswerScreenPresenter
 
   @Override
   public void onAnswer(boolean answerVideoAsAudio) {
+    DialerCall incomingCall = QtiCallUtils.getIncomingCall();
 
-    DialerCall incomingCall = CallList.getInstance().getIncomingCall();
+    // Incoming call can be null for incoming video upgrade request
+    if (incomingCall != null && incomingCall.answeringDisconnectsOtherCall()) {
+      performDisconnectAllAndAnswer(incomingCall, answerVideoAsAudio);
+      addTimeoutCheck();
+      return;
+    }
+
     InCallActivity inCallActivity =
         (InCallActivity) answerScreen.getAnswerScreenFragment().getActivity();
     ListenableFuture<Void> answerPrecondition;
@@ -182,10 +189,39 @@ public class AnswerScreenPresenter
   }
 
   @Override
-  public void onAnswerAndReleaseCall(int videoState) {
+  public void onAnswerAndReleaseCall() {
     LogUtil.enterBlock("AnswerScreenPresenter.onAnswerAndReleaseCall");
-    AnswerUtils.disconnectAllAndAnswer(videoState);
+    DialerCall incomingCall = QtiCallUtils.getIncomingCall();
+    if (incomingCall == null) {
+      LogUtil.i("AnswerScreenPresenter.onAnswerAndReleaseCall", "incoming call null");
+      return;
+    }
+    if (incomingCall.answeringDisconnectsOtherCall()) {
+      performDisconnectAllAndAnswer(incomingCall, false /*answerVideoAsAudio*/);
+    } else {
+      performDisconnectActiveAndAnswer(incomingCall);
+    }
     addTimeoutCheck();
+  }
+
+  private void performDisconnectAllAndAnswer(DialerCall incomingCall, boolean answerVideoAsAudio) {
+    LogUtil.enterBlock("AnswerScreenPresenter.performDisconnectAllAndAnswer");
+    int videoState = (answerVideoAsAudio || (QtiCallUtils.isVideoCrs(incomingCall) &&
+        !QtiCallUtils.isVideoCallOriginally(incomingCall)))
+            ? VideoProfile.STATE_AUDIO_ONLY : incomingCall.getVideoState();
+    AnswerUtils.disconnectAllAndAnswer(videoState);
+  }
+
+  private void performDisconnectActiveAndAnswer(DialerCall incomingCall) {
+    LogUtil.enterBlock("AnswerScreenPresenter.performDisconnectActiveAndAnswer");
+    DialerCall activeCall = CallList.getInstance().getActiveCall();
+    if (activeCall == null) {
+      LogUtil.i("AnswerScreenPresenter.onAnswerAndReleaseCall", "activeCall == null");
+      onAnswer(false);
+    } else {
+      activeCall.setReleasedByAnsweringSecondCall(true);
+      AnswerUtils.disconnectAndAnswer(activeCall, incomingCall);
+    }
   }
 
   @Override

@@ -238,7 +238,7 @@ public class AnswerFragment extends Fragment
         R.string.call_incoming_swipe_to_answer_and_release) {
       @Override
       public void performAction(AnswerFragment fragment) {
-        fragment.performAnswerAndRelease(false);
+        fragment.performAnswerAndRelease();
       }
     };
 
@@ -271,7 +271,7 @@ public class AnswerFragment extends Fragment
     buttonAcceptClicked = true;
   }
 
-  private void performAnswerAndRelease(boolean answerVideoAsAudio) {
+  private void performAnswerAndRelease() {
     restoreAnswerAndReleaseButtonAnimation();
     DialerCall call = QtiCallUtils.getIncomingCall();
     if (call == null) {
@@ -279,11 +279,7 @@ public class AnswerFragment extends Fragment
       return;
     }
 
-    int videoState = (answerVideoAsAudio || (QtiCallUtils.isVideoCrs(call) &&
-        !QtiCallUtils.isVideoCallOriginally(call)))
-            ? VideoProfile.STATE_AUDIO_ONLY
-            : call.getVideoState();
-    answerScreenDelegate.onAnswerAndReleaseCall(videoState);
+    answerScreenDelegate.onAnswerAndReleaseCall();
     buttonAcceptClicked = true;
   }
 
@@ -1195,12 +1191,7 @@ public class AnswerFragment extends Fragment
   private void acceptCallByUser(boolean answerVideoAsAudio) {
     LogUtil.i("AnswerFragment.acceptCallByUser", answerVideoAsAudio ? " answerVideoAsAudio" : "");
     if (!buttonAcceptClicked) {
-      DialerCall call = QtiCallUtils.getIncomingCall();
-      if (call != null && call.answeringDisconnectsOtherCall()) {
-        performAnswerAndRelease(answerVideoAsAudio);
-      } else {
-        answerScreenDelegate.onAnswer(answerVideoAsAudio);
-      }
+      answerScreenDelegate.onAnswer(answerVideoAsAudio);
       buttonAcceptClicked = true;
     }
   }
