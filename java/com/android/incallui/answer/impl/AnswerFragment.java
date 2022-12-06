@@ -279,7 +279,10 @@ public class AnswerFragment extends Fragment
       return;
     }
 
-    int videoState = answerVideoAsAudio ? VideoProfile.STATE_AUDIO_ONLY : call.getVideoState();
+    int videoState = (answerVideoAsAudio || (QtiCallUtils.isVideoCrs(call) &&
+        !QtiCallUtils.isVideoCallOriginally(call)))
+            ? VideoProfile.STATE_AUDIO_ONLY
+            : call.getVideoState();
     answerScreenDelegate.onAnswerAndReleaseCall(videoState);
     buttonAcceptClicked = true;
   }
