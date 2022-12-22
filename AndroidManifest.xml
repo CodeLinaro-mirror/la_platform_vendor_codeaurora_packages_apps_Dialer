@@ -21,7 +21,7 @@
 
   <uses-sdk
     android:minSdkVersion="24"
-    android:targetSdkVersion="31"/>
+    android:targetSdkVersion="33"/>
 
   <uses-permission android:name="android.permission.CALL_PHONE"/>
   <uses-permission android:name="android.permission.READ_CONTACTS"/>
@@ -74,6 +74,8 @@
    start requests, even if they happen immediately after the user
    presses home. -->
   <uses-permission android:name="android.permission.STOP_APP_SWITCHES"/>
+
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
   <!-- Used for sending PendingIntents to dynamically registered receivers -->
   <uses-permission android:name="com.android.dialer.permission.DIALER_ORIGIN"

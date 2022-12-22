@@ -17,9 +17,11 @@
 package com.android.incallui.call;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Trace;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
@@ -43,6 +45,8 @@ import com.android.dialer.shortcuts.ShortcutUsageReporter;
 import com.android.dialer.spam.SpamComponent;
 import com.android.dialer.spam.status.SpamStatus;
 import com.android.dialer.telecom.TelecomCallUtil;
+import com.android.incallui.BottomSheetHelper;
+import com.android.incallui.QtiCallUtils;
 import com.android.incallui.call.state.DialerCallState;
 import com.android.incallui.latencyreport.LatencyReport;
 import com.android.incallui.videotech.utils.SessionModificationState;
@@ -57,6 +61,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.codeaurora.ims.QtiCallConstants;
+import org.codeaurora.ims.QtiImsExtManager;
+import org.codeaurora.ims.QtiImsException;
+import org.codeaurora.ims.utils.QtiImsExtUtils;
 
 /**
  * Maintains the list of active calls and notifies interested classes of changes to the call list as
@@ -80,6 +89,17 @@ public class CallList implements DialerCallDelegate {
   private DialerCall lastHeldCall;
   private String selectedIncomingCall;
 
+  private static final String SEND_DATA_CHANNEL_INFO_TEST = "send_data_channel_info_test";
+  /**
+    * Intent action broadcasted when data channel elements(modemCallId and phoneId) are
+    * available for MO.
+    * This broadcast for testing purposes only.
+    */
+  public static final String ACTION_DATA_CHANNEL_INFO =
+      "org.codeaurora.intent.action.DATA_CHANNEL_INFO";
+  private static final int DEFAULT_MODEM_CALL_ID = -1;
+  private Context mContext;
+  private boolean isDcInfoSent = false;
   /**
    * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is load factor before
    * resizing, 1 means we only expect a single thread to access the map so make only a single shard
@@ -152,6 +172,7 @@ public class CallList implements DialerCallDelegate {
 
     Trace.beginSection("checkSpam");
     call.addListener(new DialerCallListenerImpl(call));
+    mContext = context;
     LogUtil.d("CallList.onCallAdded", "callState=" + call.getState());
     if (SpamComponent.get(context).spamSettings().isSpamEnabled()) {
       String number = TelecomCallUtil.getNumber(telecomCall);
@@ -243,6 +264,40 @@ public class CallList implements DialerCallDelegate {
     }
 
     Trace.endSection();
+  }
+
+  private boolean shouldSendDcInfo() {
+      return mContext != null ? (Settings.Global.getInt(mContext.getContentResolver(),
+              SEND_DATA_CHANNEL_INFO_TEST, 0) == 1) : false;
+  }
+
+  private void maybeBroadcastDcInfoIntent(DialerCall call) {
+    LogUtil.d("CallList.maybeBroadcastDcInfoIntent", "start");
+    int modemCallId = QtiCallUtils.getDcModemCallId(call);
+    int phoneId = QtiCallUtils.getPhoneId(call);
+    boolean isDcEnabled = false;
+    try {
+        QtiImsExtManager extMgr = BottomSheetHelper.getInstance().getQtiImsExtManager();
+        isDcEnabled = extMgr != null ? extMgr.isDataChannelEnabled(phoneId) : false;
+    } catch (QtiImsException e) {
+        LogUtil.e("CallList.maybeBroadcastDcInfoIntent", "isDataChannelEnabled" + e);
+    }
+
+    LogUtil.d("CallList.maybeBroadcastDcInfoIntent", "modemCallId : " + modemCallId
+            + ", phoneId : " + phoneId + ", isDcEnabled : " + isDcEnabled
+            + ", shouldSendDcInfo : " + shouldSendDcInfo());
+
+    if (shouldSendDcInfo() && isDcEnabled
+            && (phoneId != QtiCallConstants.INVALID_PHONE_ID)
+            && (modemCallId != DEFAULT_MODEM_CALL_ID)) {
+        Intent intent = new Intent(ACTION_DATA_CHANNEL_INFO);
+        intent.putExtra(QtiCallConstants.EXTRA_DATA_CHANNEL_MODEM_CALL_ID,
+                modemCallId);
+        intent.putExtra(QtiImsExtUtils.QTI_IMS_PHONE_ID_EXTRA_KEY, phoneId);
+        mContext.sendBroadcast(intent, "com.qti.permission.RECEIVE_DC_INFO");
+        isDcInfoSent = true;
+        LogUtil.i("CallList.maybeBroadcastDcInfoIntent","Sent dc information");
+    }
   }
 
   private void logSecondIncomingCall(
@@ -693,6 +748,11 @@ public class CallList implements DialerCallDelegate {
         (call.getState() != DialerCallState.INCOMING ||
         call.getState() != DialerCallState.CALL_WAITING)) {
       selectedIncomingCall = null;
+    }
+    if (!isDcInfoSent && call.getState() == DialerCallState.DIALING) {
+        maybeBroadcastDcInfoIntent(call);
+    } else if(isDcInfoSent && getOutgoingCall() == null) {
+        isDcInfoSent = false;
     }
     Trace.endSection();
   }
