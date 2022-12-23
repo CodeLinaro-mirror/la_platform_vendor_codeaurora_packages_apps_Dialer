@@ -40,7 +40,6 @@ import android.support.annotation.NonNull;
 import android.view.WindowManager;
 import android.os.Bundle;
 
-import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.incalluilock.InCallUiLock;
 
@@ -51,11 +50,10 @@ import org.codeaurora.ims.QtiCallConstants;
  * This class handles redialing a call on CS domain when current call ends with reason
  * cs retry required
  */
-public class InCallCsRedialHandler implements CallList.Listener {
+public class InCallCsRedialHandler implements InCallPresenter.InCallDisconnectedListener {
 
     private static InCallCsRedialHandler sInCallCsRedialHandler;
     private Context mContext;
-    private CallList mCallList = null;
     private AlertDialog mAlert = null;
 
     /**
@@ -70,8 +68,7 @@ public class InCallCsRedialHandler implements CallList.Listener {
      */
     public void setUp(Context context) {
         mContext = context;
-        mCallList = CallList.getInstance();
-        mCallList.addListener(this);
+        InCallPresenter.getInstance().addInCallDisconnectedListener(this);
     }
 
     /**
@@ -79,86 +76,16 @@ public class InCallCsRedialHandler implements CallList.Listener {
      * unregisters it's call substate listener.
      */
     public void tearDown() {
+        InCallPresenter.getInstance().removeInCallDisconnectedListener(this);
         mContext = null;
-        if (mCallList != null) {
-            mCallList.removeListener(this);
-            mCallList = null;
-        }
     }
 
     /**
-     * This method overrides onIncomingCall method of {@interface CallList.Listener}
-     * Added for completeness. No implementation yet.
+     * This method overrides onCallDisconnected method of {@interface InCallDisconnectedListener}
      */
     @Override
-    public void onIncomingCall(DialerCall call) {
-        // no-op
-    }
-
-    /**
-     * This method overrides onCallListChange method of {@interface CallList.Listener}
-     * Added for completeness. No implementation yet.
-     */
-    @Override
-    public void onCallListChange(CallList list) {
-        // no-op
-    }
-
-    /**
-     * This method overrides onUpgradeToVideo method of {@interface CallList.Listener}
-     * Added for completeness. No implementation yet.
-     */
-    @Override
-    public void onUpgradeToVideo(DialerCall call) {
-        // no-op
-    }
-
-    /**
-     * This method overrides onSessionModificationStateChange method
-     * of {@interface CallList.Listener}
-     * Added for completeness. No implementation yet.
-     */
-    @Override
-    public void onSessionModificationStateChange(DialerCall call) {
-        // no-op
-    }
-
-    /**
-     * This method overrides onWiFiToLteHandover method of {@interface CallList.Listener}
-     * Added for completeness. No implementation yet.
-     */
-    @Override
-    public void onWiFiToLteHandover(DialerCall call) {
-        // no-op
-    }
-
-    /**
-     * This method overrides onHandoverToWifiFailed method of {@interface CallList.Listener}
-     * Added for completeness. No implementation yet.
-     */
-    @Override
-    public void onHandoverToWifiFailed(DialerCall call) {
-        // no-op
-    }
-
-   /**
-     * This method overrides onInternationalCallOnWifi method of {@interface CallList.Listener}
-     * Added for completeness. No implementation yet.
-     */
-    @Override
-    public void onInternationalCallOnWifi(@NonNull DialerCall call) {
-        // no-op
-    }
-
-    @Override
-    public void onSuplServiceMessage(String suplNotificationMessage) {}
-
-    /**
-     * This method overrides onDisconnect method of {@interface CallList.Listener}
-     */
-    @Override
-    public void onDisconnect(DialerCall call) {
-        Log.i(this, "onDisconnect");
+    public void onCallDisconnected(DialerCall call) {
+        Log.i(this, "onCallDisconnected");
         checkForCsRetry(call);
     }
 

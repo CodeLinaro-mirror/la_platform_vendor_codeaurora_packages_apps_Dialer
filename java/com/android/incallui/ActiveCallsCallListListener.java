@@ -23,12 +23,13 @@ import com.android.dialer.activecalls.ActiveCallsComponent;
 import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.state.DialerCallState;
+import com.android.incallui.InCallPresenter.InCallState;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 
 /** Updates {@link com.android.dialer.activecalls.ActiveCalls} */
 @SuppressWarnings("Guava")
-public class ActiveCallsCallListListener implements CallList.Listener {
+public class ActiveCallsCallListListener implements InCallPresenter.InCallStateListener {
 
   private final Context appContext;
 
@@ -37,16 +38,7 @@ public class ActiveCallsCallListListener implements CallList.Listener {
   }
 
   @Override
-  public void onIncomingCall(DialerCall call) {}
-
-  @Override
-  public void onUpgradeToVideo(DialerCall call) {}
-
-  @Override
-  public void onSessionModificationStateChange(DialerCall call) {}
-
-  @Override
-  public void onCallListChange(CallList callList) {
+  public void onStateChange(InCallState oldState, InCallState newState, CallList callList) {
     ImmutableList.Builder<ActiveCallInfo> activeCalls = ImmutableList.builder();
     for (DialerCall call : callList.getAllCalls()) {
       if (call.getState() != DialerCallState.DISCONNECTED && call.getAccountHandle() != null) {
@@ -59,18 +51,4 @@ public class ActiveCallsCallListListener implements CallList.Listener {
     ActiveCallsComponent.get(appContext).activeCalls().setActiveCalls(activeCalls.build());
   }
 
-  @Override
-  public void onDisconnect(DialerCall call) {}
-
-  @Override
-  public void onWiFiToLteHandover(DialerCall call) {}
-
-  @Override
-  public void onHandoverToWifiFailed(DialerCall call) {}
-
-  @Override
-  public void onInternationalCallOnWifi(@NonNull DialerCall call) {}
-
-  @Override
-  public void onSuplServiceMessage(String suplNotificationMessage) {}
 }

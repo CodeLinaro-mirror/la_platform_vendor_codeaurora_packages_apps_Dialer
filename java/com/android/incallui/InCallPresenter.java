@@ -169,6 +169,9 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
           new ConcurrentHashMap<InCallOrientationListener, Boolean>(8, 0.9f, 1));
   private final Set<InCallEventListener> inCallEventListeners =
       Collections.newSetFromMap(new ConcurrentHashMap<InCallEventListener, Boolean>(8, 0.9f, 1));
+  private final Set<InCallDisconnectedListener> inCallDisconnectedListeners =
+      Collections.newSetFromMap(
+          new ConcurrentHashMap<InCallDisconnectedListener, Boolean>(8, 0.9f, 1));
 
   private StatusBarNotifier statusBarNotifier;
   private ExternalCallNotifier externalCallNotifier;
@@ -189,67 +192,14 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   private ExternalCallList externalCallList;
   private InCallActivity inCallActivity;
   private ManageConferenceActivity manageConferenceActivity;
-  private final android.telecom.Call.Callback callCallback =
-      new android.telecom.Call.Callback() {
-        @Override
-        public void onPostDialWait(
-            android.telecom.Call telecomCall, String remainingPostDialSequence) {
-          final DialerCall call = callList.getDialerCallFromTelecomCall(telecomCall);
-          if (call == null) {
-            LogUtil.w(
-                "InCallPresenter.onPostDialWait",
-                "DialerCall not found in call list: " + telecomCall);
-            return;
-          }
-          onPostDialCharWait(call.getId(), remainingPostDialSequence);
-        }
-
-        @Override
-        public void onDetailsChanged(
-            android.telecom.Call telecomCall, android.telecom.Call.Details details) {
-          final DialerCall call = callList.getDialerCallFromTelecomCall(telecomCall);
-          if (call == null) {
-            LogUtil.w(
-                "InCallPresenter.onDetailsChanged",
-                "DialerCall not found in call list: " + telecomCall);
-            return;
-          }
-
-          if (details.hasProperty(Details.PROPERTY_IS_EXTERNAL_CALL)
-              && !externalCallList.isCallTracked(telecomCall)) {
-
-            // A regular call became an external call so swap call lists.
-            LogUtil.i("InCallPresenter.onDetailsChanged", "Call became external: " + telecomCall);
-            callList.onInternalCallMadeExternal(context, telecomCall);
-            externalCallList.onCallAdded(telecomCall);
-            return;
-          }
-
-          for (InCallDetailsListener listener : detailsListeners) {
-            listener.onDetailsChanged(call, details);
-          }
-          if (statusBarNotifier != null) {
-            statusBarNotifier.updateNotification();
-          }
-        }
-
-        @Override
-        public void onConferenceableCallsChanged(
-            android.telecom.Call telecomCall, List<android.telecom.Call> conferenceableCalls) {
-          LogUtil.i(
-              "InCallPresenter.onConferenceableCallsChanged",
-              "onConferenceableCallsChanged: " + telecomCall);
-          onDetailsChanged(telecomCall, telecomCall.getDetails());
-        }
-      };
   private InCallState inCallState = InCallState.NO_CALLS;
   private ProximitySensor proximitySensor;
   private final PseudoScreenState pseudoScreenState = new PseudoScreenState();
   private boolean serviceConnected;
   private InCallCameraManager inCallCameraManager;
   private FilteredNumberAsyncQueryHandler filteredQueryHandler;
-  private CallList.Listener spamCallListListener;
-  private CallList.Listener activeCallsListener;
+  private SpamCallListListener spamCallListListener;
+  private ActiveCallsCallListListener activeCallsListener;
   /** Whether or not we are currently bound and waiting for Telecom to send us a new call. */
   private boolean boundAndWaitingForOutgoingCall;
   /** Determines if the InCall UI is in fullscreen mode or not. */
@@ -297,7 +247,6 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
           latencyReport.onCallBlockingDone();
           // Note: External calls do not require spam checking.
           callList.onCallAdded(context, call, latencyReport);
-          call.registerCallback(callCallback);
         }
 
         @Override
@@ -312,7 +261,8 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
         @Override
         public void onExternalCallUpdated(android.telecom.Call call) {
-          // No-op
+          final DialerCall dialerCall = callList.getDialerCallFromTelecomCall(call);
+          onDetailsChanged(dialerCall, call.getDetails());
         }
       };
 
@@ -421,12 +371,14 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     this.externalCallNotifier = externalCallNotifier;
     addListener(this.statusBarNotifier);
     addIncomingCallListener(this.statusBarNotifier);
+    addInCallEventListener(this.statusBarNotifier);
     EnrichedCallComponent.get(this.context)
         .getEnrichedCallManager()
         .registerStateChangedListener(this.statusBarNotifier);
 
     this.proximitySensor = proximitySensor;
     addListener(this.proximitySensor);
+    addDetailsListener(this.proximitySensor);
 
     if (themeColorManager == null) {
       themeColorManager = new ThemeColorManager(new InCallUIMaterialColorMapUtils(this.context));
@@ -442,15 +394,14 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
     // The final thing we do in this set up is add ourselves as a listener to CallList.  This
     // will kick off an update and the whole process can start.
-    this.callList.addListener(this);
+    this.callList.setup(context);
 
     // Create spam call list listener and add it to the list of listeners
     spamCallListListener =
         new SpamCallListListener(
             context, DialerExecutorComponent.get(context).dialerExecutorFactory());
-    this.callList.addListener(spamCallListListener);
     activeCallsListener = new ActiveCallsCallListListener(context);
-    this.callList.addListener(activeCallsListener);
+    addListener(activeCallsListener);
 
     InCallVideoCallCallbackNotifier.getInstance().setUp();
     InCallCsRedialHandler.getInstance().setUp(context);
@@ -472,12 +423,12 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     addListener(motorolaInCallUiNotifier);
     InCallZoomController.getInstance().setUp(context);
 
-    addDetailsListener(CallSubstateNotifier.getInstance());
-    CallList.getInstance().addListener(CallSubstateNotifier.getInstance());
     OrientationModeHandler.getInstance().setUp();
     addDetailsListener(SessionModificationCauseNotifier.getInstance());
     CallProgressNotification.getInstance().setUp(context);
     addDetailsListener(callDetailsListener);
+    addDetailsListener(CallSubstateNotifier.getInstance());
+    addInCallDisconnectedListener(CallSubstateNotifier.getInstance());
 
     LogUtil.d("InCallPresenter.setUp", "Finished InCallPresenter.setUp");
     Trace.endSection();
@@ -718,8 +669,6 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     VideoPauseController.getInstance().tearDown();
     AudioModeProvider.getInstance().removeListener(this);
 
-    removeDetailsListener(CallSubstateNotifier.getInstance());
-    CallList.getInstance().removeListener(CallSubstateNotifier.getInstance());
     OrientationModeHandler.getInstance().tearDown();
     removeDetailsListener(SessionModificationCauseNotifier.getInstance());
     InCallZoomController.getInstance().tearDown();
@@ -867,7 +816,6 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
     // Since a call has been added we are no longer waiting for Telecom to send us a call.
     setBoundAndWaitingForOutgoingCall(false, null);
-    call.registerCallback(callCallback);
     // TODO(maxwelb): Return the future in recordPhoneLookupInfo and propagate.
     PhoneLookupHistoryRecorder.recordPhoneLookupInfo(context.getApplicationContext(), call);
     Trace.endSection();
@@ -993,7 +941,6 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       externalCallList.onCallRemoved(call);
     } else {
       callList.onCallRemoved(context, call);
-      call.unregisterCallback(callCallback);
     }
   }
 
@@ -1005,6 +952,10 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
   @Override
   public void onWiFiToLteHandover(DialerCall call) {
+    for (InCallEventListener listener : inCallEventListeners) {
+      listener.onWiFiToLteHandover(call);
+    }
+
     if (call.hasShownWiFiToLteHandoverToast()) {
       return;
     }
@@ -1096,8 +1047,6 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     }
 
     newState = startOrFinishUi(newState);
-    LogUtil.d(
-        "InCallPresenter.onCallListChange", "onCallListChange newState changed to " + newState);
 
     // Set the new state before announcing it to the world
     LogUtil.i(
@@ -1288,6 +1237,10 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       // Re-evaluate which fragment is being shown.
       inCallActivity.onPrimaryCallStateChanged();
     }
+
+    for (InCallEventListener listener : inCallEventListeners) {
+      listener.onUpgradeToVideo(call);
+    }
   }
 
   @Override
@@ -1306,6 +1259,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
   @Override
   public void onSessionModificationStateChange(DialerCall call) {
+    notifySessionModificationStateChange(call);
     int newState = call.getVideoTech().getSessionModificationState();
     LogUtil.i("InCallPresenter.onSessionModificationStateChange", "state: %d", newState);
     if (proximitySensor == null) {
@@ -1318,7 +1272,6 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       // Re-evaluate which fragment is being shown.
       inCallActivity.onPrimaryCallStateChanged();
     }
-    notifySessionModificationStateChange(call);
   }
 
   /**
@@ -1332,6 +1285,8 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     clearCrsCrbtState();
     // We need to do the run the same code as onCallListChange.
     onCallListChange(callList);
+
+    notifyInCallDisconnectedListener(call);
 
     if (isActivityStarted()) {
       inCallActivity.dismissKeyguard(false);
@@ -1355,6 +1310,78 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       }
       PostCall.onCallDisconnected(context, call.getNumber(), call.getConnectTimeMillis(),
           subId);
+    }
+  }
+
+  @Override
+  public void onPostDialWait(DialerCall call, String remainingPostDialSequence) {
+    if (call == null) {
+      LogUtil.w(
+          "InCallPresenter.onPostDialWait",
+          "DialerCall not found in call list");
+      return;
+    }
+    onPostDialCharWait(call.getId(), remainingPostDialSequence);
+  }
+
+  @Override
+  public void onDetailsChanged(DialerCall call, android.telecom.Call.Details details) {
+    if (call == null) {
+      LogUtil.w(
+          "InCallPresenter.onDetailsChanged",
+          "DialerCall not found in call list");
+      return;
+    }
+    if (details.hasProperty(Details.PROPERTY_IS_EXTERNAL_CALL)
+        && !externalCallList.isCallTracked(call.getTelecomCall())) {
+
+      // A regular call became an external call so swap call lists.
+      LogUtil.i("InCallPresenter.onDetailsChanged",
+          "Call became external: " + call.getTelecomCall());
+      callList.onInternalCallMadeExternal(context, call.getTelecomCall());
+      externalCallList.onCallAdded(call.getTelecomCall());
+    }
+    for (InCallDetailsListener listener : detailsListeners) {
+      listener.onDetailsChanged(call, details);
+    }
+
+    if (statusBarNotifier != null) {
+      statusBarNotifier.updateNotification();
+    }
+  }
+
+  @Override
+  public void onEnrichedCallSessionUpdate(DialerCall call) {
+    for (InCallEventListener listener : inCallEventListeners) {
+      listener.onEnrichedCallSessionUpdate(call);
+    }
+  }
+
+  @Override
+  public void onDialerCallChildNumberChange(DialerCall call) {
+    for (InCallEventListener listener : inCallEventListeners) {
+      listener.onDialerCallChildNumberChange(call);
+    }
+  }
+
+  @Override
+  public void onDialerCallLastForwardedNumberChange(DialerCall call) {
+    for (InCallEventListener listener : inCallEventListeners) {
+      listener.onDialerCallLastForwardedNumberChange(call);
+    }
+  }
+
+  @Override
+  public void onRemotelyHeld(DialerCall call, boolean isRemotelyHeld) {
+    for (InCallEventListener listener : inCallEventListeners) {
+      listener.onRemotelyHeld(call, isRemotelyHeld);
+    }
+  }
+
+  @Override
+  public void onMergeProgressing(DialerCall call, boolean isMerging) {
+    for (InCallEventListener listener : inCallEventListeners) {
+      listener.onMergeProgressing(call, isMerging);
     }
   }
 
@@ -1479,6 +1506,22 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   public void removeInCallEventListener(InCallEventListener listener) {
     if (listener != null) {
       inCallEventListeners.remove(listener);
+    }
+  }
+
+  public void addInCallDisconnectedListener(InCallDisconnectedListener listener) {
+    inCallDisconnectedListeners.add(listener);
+  }
+
+  public void removeInCallDisconnectedListener(InCallDisconnectedListener listener) {
+    if (listener != null) {
+      inCallDisconnectedListeners.remove(listener);
+    }
+  }
+
+  private void notifyInCallDisconnectedListener(DialerCall call) {
+    for (InCallDisconnectedListener listener : inCallDisconnectedListeners) {
+      listener.onCallDisconnected(call);
     }
   }
 
@@ -1993,6 +2036,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
       if (proximitySensor != null) {
         removeListener(proximitySensor);
+        removeDetailsListener(proximitySensor);
         proximitySensor.tearDown();
       }
       proximitySensor = null;
@@ -2000,6 +2044,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       if (statusBarNotifier != null) {
         removeListener(statusBarNotifier);
         removeIncomingCallListener(statusBarNotifier);
+        removeInCallEventListener(statusBarNotifier);
         EnrichedCallComponent.get(context)
             .getEnrichedCallManager()
             .unregisterStateChangedListener(statusBarNotifier);
@@ -2013,11 +2058,12 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
       InCallCsRedialHandler.getInstance().tearDown();
 
+      removeDetailsListener(CallSubstateNotifier.getInstance());
+      removeInCallDisconnectedListener(CallSubstateNotifier.getInstance());
       if (callList != null) {
-        callList.removeListener(this);
-        callList.removeListener(spamCallListListener);
+        callList.teardown();
+        callList = null;
       }
-      callList = null;
 
       context = null;
       inCallActivity = null;
@@ -2030,6 +2076,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       orientationListeners.clear();
       inCallEventListeners.clear();
       inCallUiListeners.clear();
+      inCallDisconnectedListeners.clear();
       if (!inCallUiLocks.isEmpty()) {
         LogUtil.e("InCallPresenter.attemptCleanup", "held in call locks: " + inCallUiLocks);
         inCallUiLocks.clear();
@@ -2303,7 +2350,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       return (this == INCOMING || this == OUTGOING || this == INCALL);
     }
   }
-
+  /* high frequent usage interfaces */
   /** Interface implemented by classes that need to know about the InCall State. */
   public interface InCallStateListener {
 
@@ -2331,17 +2378,29 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     void onDeviceOrientationChanged(@ScreenOrientation int orientation);
   }
 
+  public interface InCallDisconnectedListener {
+    void onCallDisconnected(DialerCall call);
+  }
+
+  /* Low frequent usage interfaces, indicating whether it is being called or used rately*/
   /**
    * Interface implemented by classes that need to know about events which occur within the In-Call
    * UI. Used as a means of communicating between fragments that make up the UI.
    */
   public interface InCallEventListener {
-    void onSessionModificationStateChange(DialerCall call);
-    void onFullscreenModeChanged(boolean isFullscreenMode);
-    void onHideMeUiModeChanged();
-    void onOutgoingVideoSourceChanged(int videoSource);
-    void onSipDtmfChanged(int bitMask);
-    void onShowNextSecondaryCall(DialerCall nextSecondaryCall);
+    default void onShowNextSecondaryCall(DialerCall nextSecondaryCall) {}
+    default void onSessionModificationStateChange(DialerCall call) {}
+    default void onFullscreenModeChanged(boolean isFullscreenMode) {}
+    default void onHideMeUiModeChanged() {}
+    default void onOutgoingVideoSourceChanged(int videoSource) {}
+    default void onSipDtmfChanged(int bitMask) {}
+    default void onUpgradeToVideo(DialerCall call) {}
+    default void onWiFiToLteHandover(DialerCall call) {}
+    default void onEnrichedCallSessionUpdate(DialerCall call) {}
+    default void onDialerCallChildNumberChange(DialerCall call) {}
+    default void onDialerCallLastForwardedNumberChange(DialerCall call) {}
+    default void onRemotelyHeld(DialerCall call, boolean isRemotelyHeld) {}
+    default void onMergeProgressing(DialerCall call, boolean isMerging) {}
   }
 
   public interface InCallUiListener {

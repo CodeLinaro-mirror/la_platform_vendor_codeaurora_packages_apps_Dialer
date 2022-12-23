@@ -32,10 +32,10 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.os.Bundle;
 
-import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.state.DialerCallState;
 import com.android.incallui.InCallPresenter.InCallDetailsListener;
+import com.android.incallui.InCallPresenter.InCallDisconnectedListener;
 
 import java.util.HashMap;
 
@@ -47,7 +47,7 @@ import org.codeaurora.ims.QtiCallConstants;
  * and show the appropriate toast message to user.
  *
  */
-public class CallProgressNotification implements InCallDetailsListener, CallList.Listener {
+public class CallProgressNotification implements InCallDetailsListener, InCallDisconnectedListener {
 
     private static CallProgressNotification sCallProgressNotification;
     private Context mContext;
@@ -81,6 +81,7 @@ public class CallProgressNotification implements InCallDetailsListener, CallList
         mContext = context;
         mResources = mContext.getResources();
         InCallPresenter.getInstance().addDetailsListener(this);
+        InCallPresenter.getInstance().addInCallDisconnectedListener(this);
 
         mCallRejectedReasonFromNw = mContext.getString(R.string.
                 call_progress_info_call_rejected_reason_from_nw);
@@ -92,6 +93,7 @@ public class CallProgressNotification implements InCallDetailsListener, CallList
 
     public void tearDown() {
         InCallPresenter.getInstance().removeDetailsListener(this);
+        InCallPresenter.getInstance().removeInCallDisconnectedListener(this);
         mResources = null;
         mContext = null;
     }
@@ -235,51 +237,11 @@ public class CallProgressNotification implements InCallDetailsListener, CallList
     }
 
     /**
-     * This method overrides onDisconnect method of {@interface CallList.Listener}
+     * This method overrides onDisconnect method of {@interface InCallDisconnectedListener}
      */
     @Override
-    public void onDisconnect(final DialerCall call) {
+    public void onCallDisconnected(final DialerCall call) {
         Log.d(this, "onDisconnect: call: " + call);
         mCallProgressInfoMap.remove(call.getId());
-    }
-
-    @Override
-    public void onUpgradeToVideo(DialerCall call) {
-        //NO-OP
-    }
-
-    @Override
-    public void onIncomingCall(DialerCall call) {
-        //NO-OP
-    }
-
-    @Override
-    public void onCallListChange(CallList callList) {
-        //NO-OP
-    }
-
-    @Override
-    public void onSessionModificationStateChange(DialerCall call) {
-        //NO-OP
-    }
-
-    @Override
-    public void onWiFiToLteHandover(DialerCall call) {
-        //NO-OP
-    }
-
-    @Override
-    public void onHandoverToWifiFailed(DialerCall call) {
-        //NO-OP
-    }
-
-    @Override
-    public void onInternationalCallOnWifi(DialerCall call) {
-        //NO-OP
-    }
-
-    @Override
-    public void onSuplServiceMessage(String suplNotificationMessage) {
-        //NO-OP
     }
 }

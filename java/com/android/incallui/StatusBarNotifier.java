@@ -111,6 +111,7 @@ import java.util.Objects;
 public class StatusBarNotifier
     implements InCallPresenter.InCallStateListener,
         InCallPresenter.IncomingCallListener,
+        InCallPresenter.InCallEventListener,
         EnrichedCallManager.StateChangedListener,
         ContactInfoCacheCallback {
 
@@ -144,12 +145,13 @@ public class StatusBarNotifier
   private CallAudioState savedCallAudioState;
   private int savedIncomingCallCount;
   private Uri ringtone;
-  private StatusBarCallListener statusBarCallListener;
 
   // Stores the call Id of the incoming call which is currently shown.
   private String visibleIncomingCallId;
   // Stores the index of the incoming call which is currently shown.
   private int visibleIncomingCallIndex = 0;
+
+  private DialerCall showedCall;
 
   public StatusBarNotifier(@NonNull Context context, @NonNull ContactInfoCache contactInfoCache) {
     Trace.beginSection("StatusBarNotifier.Constructor");
@@ -203,6 +205,9 @@ public class StatusBarNotifier
   @RequiresPermission(Manifest.permission.READ_PHONE_STATE)
   public void onStateChange(InCallState oldState, InCallState newState, CallList callList) {
     LogUtil.d("StatusBarNotifier.onStateChange", "%s->%s", oldState, newState);
+    if(CallList.getInstance().getIncomingCall() == null) {
+      dialerRingtoneManager.stopCallWaitingTone();
+    }
     updateNotification();
   }
 
@@ -216,6 +221,19 @@ public class StatusBarNotifier
   public void onIncomingCall(InCallState oldState, InCallState newState, DialerCall call) {
     LogUtil.enterBlock("StatusBarNotifier.onIncomingCall");
     updateNotification();
+  }
+
+  @Override
+  public void onSessionModificationStateChange(DialerCall call) {
+    LogUtil.enterBlock("StatusBarNotifier.onCallSessionModificationStateChange");
+    if (!DialerCall.areSame(call, showedCall)) {
+      LogUtil.d("StatusBarNotifier.onCallSessionModificationStateChange", "not same call");
+      return;
+    }
+    if (call != null && call.getVideoTech().getSessionModificationState()
+        == SessionModificationState.NO_REQUEST) {
+      updateNotification();
+    }
   }
 
   /**
@@ -246,9 +264,6 @@ public class StatusBarNotifier
    * @see #updateInCallNotification()
    */
   private void cancelNotification() {
-    if (statusBarCallListener != null) {
-      setStatusBarCallListener(null);
-    }
     if (currentNotification != NOTIFICATION_NONE) {
       TelecomAdapter.getInstance().stopForegroundNotification();
       currentNotification = NOTIFICATION_NONE;
@@ -264,12 +279,13 @@ public class StatusBarNotifier
   private void updateInCallNotification() {
     LogUtil.d("StatusBarNotifier.updateInCallNotification", "");
 
-    final DialerCall call = getCallToShow(CallList.getInstance());
+    showedCall = getCallToShow(CallList.getInstance());
     // don't show Notification, if call has already been rejected
-    if (call != null && !call.isRejected()) {
-      showNotification(call);
+    if (showedCall != null && !showedCall.isRejected()) {
+      showNotification(showedCall);
     } else {
       cancelNotification();
+      showedCall = null;
     }
   }
 
@@ -285,8 +301,6 @@ public class StatusBarNotifier
     LogUtil.i(
         "StatusBarNotifier.buildAndSendNotification",
         "showNotification isGeocoderLocationNeeded = " + isGeocoderLocationNeeded);
-
-    setStatusBarCallListener(new StatusBarCallListener(call));
 
     // we make a call to the contact info cache to query for supplemental data to what the
     // call provides.  This includes the contact name and photo.
@@ -941,8 +955,7 @@ public class StatusBarNotifier
   }
 
   private CharSequence getMultiSimIncomingText(DialerCall call) {
-    PhoneAccount phoneAccount =
-        context.getSystemService(TelecomManager.class).getPhoneAccount(call.getAccountHandle());
+    PhoneAccount phoneAccount = call.getPhoneAccount();
     if (phoneAccount == null) {
       return context.getString(R.string.notification_incoming_call);
     }
@@ -1242,13 +1255,6 @@ public class StatusBarNotifier
         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
   }
 
-  private void setStatusBarCallListener(StatusBarCallListener listener) {
-    if (statusBarCallListener != null) {
-      statusBarCallListener.cleanup();
-    }
-    statusBarCallListener = listener;
-  }
-
   private boolean hasMultiplePhoneAccounts(DialerCall call) {
     if (call.getCallCapableAccounts() == null) {
       return false;
@@ -1273,66 +1279,5 @@ public class StatusBarNotifier
     if (call != null) {
       buildAndSendNotification(CallList.getInstance(), call, entry);
     }
-  }
-
-  private class StatusBarCallListener implements DialerCallListener {
-
-    private DialerCall dialerCall;
-
-    StatusBarCallListener(DialerCall dialerCall) {
-      this.dialerCall = dialerCall;
-      this.dialerCall.addListener(this);
-    }
-
-    void cleanup() {
-      dialerCall.removeListener(this);
-    }
-
-    @Override
-    public void onDialerCallDisconnect() {}
-
-    @Override
-    public void onDialerCallUpdate() {
-      if (CallList.getInstance().getIncomingCall() == null) {
-        dialerRingtoneManager.stopCallWaitingTone();
-      }
-    }
-
-    @Override
-    public void onDialerCallChildNumberChange() {}
-
-    @Override
-    public void onDialerCallLastForwardedNumberChange() {}
-
-    @Override
-    public void onDialerCallUpgradeToVideo() {}
-
-    @Override
-    public void onWiFiToLteHandover() {}
-
-    @Override
-    public void onHandoverToWifiFailure() {}
-
-    @Override
-    public void onInternationalCallOnWifi() {}
-
-    @Override
-    public void onEnrichedCallSessionUpdate() {}
-
-    /**
-     * Responds to changes in the session modification state for the call by dismissing the status
-     * bar notification as required.
-     */
-    @Override
-    public void onDialerCallSessionModificationStateChange() {
-      if (dialerCall.getVideoTech().getSessionModificationState()
-          == SessionModificationState.NO_REQUEST) {
-        cleanup();
-        updateNotification();
-      }
-    }
-
-    @Override
-    public void onSuplServiceMessage(String suplNotificationMessage) {}
   }
 }

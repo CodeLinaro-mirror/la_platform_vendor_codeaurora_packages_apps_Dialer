@@ -19,6 +19,7 @@ package com.android.dialer.assisteddialing;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import com.google.auto.value.AutoValue;
+import java.util.Objects;
 
 /**
  * A container class to hold information related to the Assisted Dialing operation. All member
@@ -100,5 +101,18 @@ public abstract class TransformationInfo {
     assistedDialingExtras.putInt(
         TRANSFORMED_NUMBER_COUNTRY_CALLING_CODE_KEY, transformedNumberCountryCallingCode());
     return assistedDialingExtras;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof TransformationInfo) {
+      TransformationInfo info = (TransformationInfo) o;
+      return Objects.equals(originalNumber(), info.originalNumber())
+          && Objects.equals(transformedNumber(), info.transformedNumber())
+          && Objects.equals(userHomeCountryCode(), info.userHomeCountryCode())
+          && Objects.equals(userRoamingCountryCode(), info.userRoamingCountryCode())
+          && transformedNumberCountryCallingCode() == info.transformedNumberCountryCallingCode();
+    }
+    return false;
   }
 }

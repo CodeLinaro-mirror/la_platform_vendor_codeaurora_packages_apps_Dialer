@@ -24,7 +24,6 @@ import android.telecom.Call;
 import android.telecom.CallAudioState;
 import android.telecom.InCallService;
 import com.android.dialer.blocking.FilteredNumberAsyncQueryHandler;
-import com.android.dialer.feedback.FeedbackComponent;
 import com.android.incallui.audiomode.AudioModeProvider;
 import com.android.incallui.call.CallList;
 import com.android.incallui.call.ExternalCallList;
@@ -43,7 +42,6 @@ import org.codeaurora.ims.utils.QtiCarrierConfigHelper;
 public class InCallServiceImpl extends InCallService {
 
   private ReturnToCallController returnToCallController;
-  private CallList.Listener feedbackListener;
   // We only expect there to be one speakEasyCallManager to be instantiated at a time.
   // We did not use a singleton SpeakEasyCallManager to avoid holding on to state beyond the
   // lifecycle of this service, because the singleton is associated with the state of the
@@ -117,8 +115,6 @@ public class InCallServiceImpl extends InCallService {
     TelecomAdapter.getInstance().setInCallService(this);
     returnToCallController =
         new ReturnToCallController(this, ContactInfoCache.getInstance(context));
-    feedbackListener = FeedbackComponent.get(context).getCallFeedbackListener();
-    CallList.getInstance().addListener(feedbackListener);
 
     IBinder iBinder = super.onBind(intent);
     Trace.endSection();
@@ -146,10 +142,6 @@ public class InCallServiceImpl extends InCallService {
     if (returnToCallController != null) {
       returnToCallController.tearDown();
       returnToCallController = null;
-    }
-    if (feedbackListener != null) {
-      CallList.getInstance().removeListener(feedbackListener);
-      feedbackListener = null;
     }
     QtiCarrierConfigHelper.getInstance().teardown();
     Trace.endSection();

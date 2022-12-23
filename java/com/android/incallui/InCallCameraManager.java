@@ -42,6 +42,7 @@ public class InCallCameraManager {
   private boolean isInitialized = false;
   /** The context. */
   private Context context;
+  private CameraManager cameraManager = null;
 
   /**
    * Initializes the InCall CameraManager.
@@ -51,6 +52,12 @@ public class InCallCameraManager {
   public InCallCameraManager(Context context) {
     useFrontFacingCamera = true;
     this.context = context;
+    try {
+      cameraManager = context.getSystemService(CameraManager.class);
+    } catch (Exception e) {
+      Log.e(this, "Could not get camera service.");
+      return;
+    }
   }
 
   /**
@@ -107,13 +114,13 @@ public class InCallCameraManager {
     }
 
     Log.v(this, "initializeCameraList");
-
-    CameraManager cameraManager = null;
-    try {
-      cameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
-    } catch (Exception e) {
-      Log.e(this, "Could not get camera service.");
-      return;
+    if (cameraManager == null) {
+      try {
+        cameraManager = context.getSystemService(CameraManager.class);
+      } catch (Exception e) {
+        Log.e(this, "Could not get camera service.");
+        return;
+      }
     }
 
     if (cameraManager == null) {
