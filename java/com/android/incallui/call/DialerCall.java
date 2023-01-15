@@ -1262,35 +1262,17 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   }
 
   @TargetApi(28)
-  private boolean isPhoneAccountSimlessRttCapable() {
-    boolean isSimStateAbsent = TelephonyManager.getSimStateForSlotIndex(
-        BottomSheetHelper.getInstance().getPhoneId()) ==
-        TelephonyManager.SIM_STATE_ABSENT;
-    return QtiImsExtUtils.
-        isSimlessRttSupported(BottomSheetHelper.
-        getInstance().getPhoneId(),context) && isSimStateAbsent
-        && isUserRttSettingOn();
-  }
-
-  @TargetApi(28)
-  private boolean isUserRttSettingOn() {
-    int rttSetting = Settings.Secure.getInt(
-        context.getContentResolver(),
-        Settings.Secure.RTT_CALLING_MODE
-        + convertRttPhoneId(
-        BottomSheetHelper.getInstance().getPhoneId()) , 0);
-    return rttSetting != 0;
-  }
-
-  @TargetApi(28)
-  private static String convertRttPhoneId(int phoneId) {
-    return phoneId != 0 ? Integer.toString(phoneId) : "";
+  public boolean isPhoneAccountRttDowngradeCapable() {
+    PhoneAccount phoneAccount = getPhoneAccount();
+    if (phoneAccount == null) {
+      return false;
+    }
+    return phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_DOWNGRADE_RTT);
   }
 
   @TargetApi(28)
   public boolean canUpgradeToRttCall() {
-    if (!isPhoneAccountRttCapable() && !(isEmergencyCall() &&
-        isPhoneAccountSimlessRttCapable())) {
+    if (!isPhoneAccountRttCapable()) {
       return false;
     }
     if (isActiveRttCall()) {

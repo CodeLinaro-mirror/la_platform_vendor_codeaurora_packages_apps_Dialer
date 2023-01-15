@@ -523,22 +523,6 @@ public class CallButtonPresenter
   }
 
   /**
-   * Checks if RTT downgrade is supported or not
-   * based on the cached value of carrier config
-   * from sub
-   */
-  private boolean isRttDowngradeSupported() {
-    /* We can return the current cached value for both sim and simless case
-     * when the device has sim, cached value will have the current value
-     * for simless case, it will have the previous sub's config value, but in simless only
-     * emergency call is supported, it's assumend this API will be called for emergency
-     * RTT only.
-     */
-    return QtiImsExtUtils.isSimlessRttDowgradeSupported(BottomSheetHelper.
-            getInstance().getPhoneId(),context);
-  }
-
-  /**
    * Updates the buttons applicable for the UI.
    *
    * @param call The active call.
@@ -578,7 +562,8 @@ public class CallButtonPresenter
     final boolean isRttMergeSupported = QtiImsExtUtils.isRttMergeSupported(
                                           BottomSheetHelper.getInstance().getPhoneId(),
                                           context);
-    final boolean showDowngradeRtt = call.isActiveRttCall() && isRttDowngradeSupported();
+    final boolean showDowngradeRtt = call.isActiveRttCall()
+        && call.isPhoneAccountRttDowngradeCapable();
     final boolean useExt = QtiCallUtils.useExt(context);
     final boolean showUpgradeToVideo = !isVideo && (hasVideoCallCapabilities(call)) && !useExt;
     final boolean showDowngradeToAudio = isVideo && isDowngradeToAudioSupported(call) && !useExt;
