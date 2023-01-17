@@ -44,11 +44,13 @@ import com.android.dialer.promotion.impl.RttPromotion;
 import com.android.dialer.shortcuts.ShortcutUsageReporter;
 import com.android.dialer.spam.SpamComponent;
 import com.android.dialer.spam.status.SpamStatus;
+import com.android.dialer.feedback.FeedbackComponent;
 import com.android.dialer.telecom.TelecomCallUtil;
 import com.android.incallui.BottomSheetHelper;
-import com.android.incallui.QtiCallUtils;
 import com.android.incallui.call.state.DialerCallState;
+import com.android.incallui.InCallPresenter;
 import com.android.incallui.latencyreport.LatencyReport;
+import com.android.incallui.QtiCallUtils;
 import com.android.incallui.videotech.utils.SessionModificationState;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -77,8 +79,6 @@ public class CallList implements DialerCallDelegate {
   private static final int DISCONNECTED_CALL_SHORT_TIMEOUT_MS = 200;
   private static final int DISCONNECTED_CALL_MEDIUM_TIMEOUT_MS = 2000;
   private static final int DISCONNECTED_CALL_LONG_TIMEOUT_MS = 5000;
-
-  private static final int EVENT_DISCONNECTED_TIMEOUT = 1;
 
   private static CallList instance = new CallList();
 
@@ -111,23 +111,9 @@ public class CallList implements DialerCallDelegate {
       Collections.newSetFromMap(new ConcurrentHashMap<DialerCall, Boolean>(8, 0.9f, 1));
 
   private UiListener uiListeners;
+  private Listener feedbackListener;
   /** Handles the timeout for destroying disconnected calls. */
-  private final Handler handler =
-      new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-          switch (msg.what) {
-            case EVENT_DISCONNECTED_TIMEOUT:
-              LogUtil.d("CallList.handleMessage", "EVENT_DISCONNECTED_TIMEOUT ", msg.obj);
-              finishDisconnectedCall((DialerCall) msg.obj);
-              break;
-            default:
-              LogUtil.e("CallList.handleMessage", "Message not expected: " + msg.what);
-              break;
-          }
-        }
-      };
-
+  private final Handler handler = new Handler();
   /**
    * USED ONLY FOR TESTING Testing-only constructor. Instance should only be acquired through
    * getRunningInstance().
@@ -414,23 +400,28 @@ public class CallList implements DialerCallDelegate {
     Trace.endSection();
   }
 
+  // Currently, these 2 APIs are retained as public for backward compatibility, but listening
+  // to this listener is not recommended. as for generic events, the good way is that listens
+  // to any events from InCallPresenter directly becuase CallList will dispatch any important
+  // events to InCallPresenter which also is in a relay of any observers.
   public void addListener(@NonNull Listener listener) {
     Objects.requireNonNull(listener);
-
-    listeners.add(listener);
+    if (!listeners.contains(listener)) {
+      listeners.add(listener);
+    }
 
     // Let the listener know about the active calls immediately.
     listener.onCallListChange(this);
   }
 
-  public void setUiListener(UiListener uiListener) {
-    uiListeners = uiListener;
-  }
-
   public void removeListener(@Nullable Listener listener) {
-    if (listener != null) {
+    if (listener != null && listeners.contains(listener)) {
       listeners.remove(listener);
     }
+  }
+
+  public void setUiListener(UiListener uiListener) {
+    uiListeners = uiListener;
   }
 
   /**
@@ -704,6 +695,19 @@ public class CallList implements DialerCallDelegate {
       }
     }
     notifyGenericListeners();
+    if (feedbackListener != null) {
+      removeListener(feedbackListener);
+    }
+  }
+
+  public void setup(Context context) {
+    addListener(InCallPresenter.getInstance());
+    feedbackListener = FeedbackComponent.get(context).getCallFeedbackListener();
+    addListener(feedbackListener);
+  }
+
+  public void teardown() {
+      removeListener(InCallPresenter.getInstance());
   }
 
   /**
@@ -788,13 +792,17 @@ public class CallList implements DialerCallDelegate {
 
     if (call.getState() == DialerCallState.DISCONNECTED) {
       // Make sure disconnected calls are added only once
-      if (callById.containsKey(call.getId()) || !call.wasCallAddedToCallList()) {
+      // update existing (but do not add!!) disconnected calls
+      if ((callById.containsKey(call.getId()) || !call.wasCallAddedToCallList())
+          && !pendingDisconnectCalls.contains(call)) {
         // For disconnected calls, we want to keep them alive for a few seconds so that the
         // UI has a chance to display anything it needs when a call is disconnected.
 
         // Set up a timer to destroy the call after X seconds.
-        final Message msg = handler.obtainMessage(EVENT_DISCONNECTED_TIMEOUT, call);
-        handler.sendMessageDelayed(msg, getDelayForDisconnect(call));
+        handler.postDelayed(() -> {
+          LogUtil.d("CallList", "EVENT_DISCONNECTED_TIMEOUT " + String.valueOf(call));
+          finishDisconnectedCall(call);
+        }, getDelayForDisconnect(call));
         pendingDisconnectCalls.add(call);
 
         callById.put(call.getId(), call);
@@ -937,6 +945,20 @@ public class CallList implements DialerCallDelegate {
 
     /** Called when there is a supplementary service notification  */
     void onSuplServiceMessage(String suplNotificationMessage);
+
+    default void onDetailsChanged(DialerCall call, android.telecom.Call.Details details) {}
+
+    default void onPostDialWait(DialerCall call, String remainingPostDialSequence) {}
+
+    default void onEnrichedCallSessionUpdate(DialerCall call) {}
+
+    default void onDialerCallChildNumberChange(DialerCall call) {}
+
+    default void onDialerCallLastForwardedNumberChange(DialerCall call) {}
+
+    default void onRemotelyHeld(DialerCall call, boolean isRemotelyHeld) {}
+
+    default void onMergeProgressing(DialerCall call, boolean isMerging) {}
   }
 
   /** UiListener interface for measuring incall latency.(used by testing only) */
@@ -959,11 +981,10 @@ public class CallList implements DialerCallDelegate {
 
     @Override
     public void onDialerCallDisconnect() {
-      if (updateCallInMap(call)) {
-        LogUtil.i("DialerCallListenerImpl.onDialerCallDisconnect", String.valueOf(call));
-        // notify those listening for all disconnects
-        notifyListenersOfDisconnect(call);
-      }
+      updateCallInMap(call);
+      LogUtil.i("DialerCallListenerImpl.onDialerCallDisconnect", String.valueOf(call));
+      // notify those listening for all disconnects
+      notifyListenersOfDisconnect(call);
     }
 
     @Override
@@ -975,10 +996,18 @@ public class CallList implements DialerCallDelegate {
     }
 
     @Override
-    public void onDialerCallChildNumberChange() {}
+    public void onDialerCallChildNumberChange() {
+      for (Listener listener : listeners) {
+        listener.onDialerCallChildNumberChange(call);
+      }
+    }
 
     @Override
-    public void onDialerCallLastForwardedNumberChange() {}
+    public void onDialerCallLastForwardedNumberChange() {
+      for (Listener listener : listeners) {
+        listener.onDialerCallLastForwardedNumberChange(call);
+      }
+    }
 
     @Override
     public void onDialerCallUpgradeToRtt(int rttRequestId) {
@@ -1024,7 +1053,11 @@ public class CallList implements DialerCallDelegate {
     }
 
     @Override
-    public void onEnrichedCallSessionUpdate() {}
+    public void onEnrichedCallSessionUpdate() {
+      for (Listener listener : listeners) {
+        listener.onEnrichedCallSessionUpdate(call);
+      }
+    }
 
     @Override
     public void onDialerCallSessionModificationStateChange() {
@@ -1038,6 +1071,34 @@ public class CallList implements DialerCallDelegate {
         for (Listener listener : listeners) {
             listener.onSuplServiceMessage(suplNotificationMessage);
         }
+    }
+
+    @Override
+    public void onDetailsChanged(android.telecom.Call.Details details) {
+      for (Listener listener : listeners) {
+        listener.onDetailsChanged(call, details);
+      }
+    }
+
+    @Override
+    public void onPostDialWait(String remainingPostDialSequence) {
+      for (Listener listener : listeners) {
+        listener.onPostDialWait(call, remainingPostDialSequence);
+      }
+    }
+
+    @Override
+    public void onRemotelyHeld(boolean isRemotelyHeld) {
+      for (Listener listener : listeners) {
+        listener.onRemotelyHeld(call, isRemotelyHeld);
+      }
+    }
+
+    @Override
+    public void onMergeProgressing(boolean isMerging) {
+      for (Listener listener : listeners) {
+        listener.onMergeProgressing(call, isMerging);
+      }
     }
   }
 }

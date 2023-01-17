@@ -99,7 +99,6 @@ public class VideoCallPresenter
         SurfaceChangeListener,
         InCallPresenter.InCallEventListener,
         VideoCallScreenDelegate,
-        CallList.Listener,
         VideoEventListener,
         PictureModeHelper.Listener {
 
@@ -501,8 +500,6 @@ public class VideoCallPresenter
     InCallPresenter.getInstance().getLocalVideoSurfaceTexture().setDelegate(new LocalDelegate());
     InCallPresenter.getInstance().getRemoteVideoSurfaceTexture().setDelegate(new RemoteDelegate());
 
-    CallList.getInstance().addListener(this);
-
     // Register for surface and video events from {@link InCallVideoCallListener}s.
     InCallVideoCallCallbackNotifier.getInstance().addSurfaceChangeListener(this);
     mPictureModeHelper.setUp(this);
@@ -542,8 +539,6 @@ public class VideoCallPresenter
     InCallPresenter.getInstance().removeOrientationListener(this);
     InCallPresenter.getInstance().removeInCallEventListener(this);
     InCallPresenter.getInstance().getLocalVideoSurfaceTexture().setDelegate(null);
-
-    CallList.getInstance().removeListener(this);
 
     InCallVideoCallCallbackNotifier.getInstance().removeSurfaceChangeListener(this);
     InCallVideoCallCallbackNotifier.getInstance().removeVideoEventListener(this);
@@ -1686,12 +1681,6 @@ public class VideoCallPresenter
   }
 
   @Override
-  public void onIncomingCall(DialerCall call) {}
-
-  @Override
-  public void onUpgradeToVideo(DialerCall call) {}
-
-  @Override
   public void onSessionModificationStateChange(DialerCall call) {
     Log.v(this,"onSessionModificationStateChange");
     if (call == null) {
@@ -1715,12 +1704,6 @@ public class VideoCallPresenter
   }
 
   @Override
-  public void onCallListChange(CallList callList) {}
-
-  @Override
-  public void onDisconnect(DialerCall call) {}
-
-  @Override
   public void onWiFiToLteHandover(DialerCall call) {
     if (videoCallScreen == null) {
       LogUtil.e("VideoCallPresenter.onWiFiToLteHandover", "no UI");
@@ -1730,15 +1713,6 @@ public class VideoCallPresenter
       videoCallScreen.onHandoverFromWiFiToLte();
     }
   }
-
-  @Override
-  public void onHandoverToWifiFailed(DialerCall call) {}
-
-  @Override
-  public void onInternationalCallOnWifi(@NonNull DialerCall call) {}
-
-  @Override
-  public void onSuplServiceMessage(String suplNotificationMessage) {}
 
   private class LocalDelegate implements VideoSurfaceDelegate {
     @Override

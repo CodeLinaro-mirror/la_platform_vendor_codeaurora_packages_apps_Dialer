@@ -49,16 +49,20 @@ import com.android.dialer.spam.SpamComponent;
 import com.android.dialer.telecom.TelecomUtil;
 import com.android.dialer.theme.base.ThemeComponent;
 import com.android.dialer.util.PermissionsUtil;
-import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.DialerCall.CallHistoryStatus;
+import com.android.incallui.InCallPresenter;
+import com.android.incallui.InCallPresenter.InCallDisconnectedListener;
+import com.android.incallui.InCallPresenter.InCallState;
+import com.android.incallui.InCallPresenter.IncomingCallListener;
 import java.util.Random;
 
 /**
  * Creates notifications after a call ends if the call matched the criteria (incoming, accepted,
  * etc).
  */
-public class SpamCallListListener implements CallList.Listener {
+public class SpamCallListListener implements IncomingCallListener,
+    InCallDisconnectedListener {
   /** Common ID for all spam notifications. */
   static final int NOTIFICATION_ID = 1;
   /** Prefix used to generate a unique tag for each spam notification. */
@@ -83,6 +87,13 @@ public class SpamCallListListener implements CallList.Listener {
     this.context = context;
     this.random = rand;
     this.dialerExecutorFactory = Assert.isNotNull(factory);
+    InCallPresenter.getInstance().addIncomingCallListener(this);
+    InCallPresenter.getInstance().addInCallDisconnectedListener(this);
+  }
+
+  public void teardown() {
+    InCallPresenter.getInstance().removeIncomingCallListener(this);
+    InCallPresenter.getInstance().removeInCallDisconnectedListener(this);
   }
 
   /** Checks if the number is in the call history. */
@@ -134,7 +145,7 @@ public class SpamCallListListener implements CallList.Listener {
   }
 
   @Override
-  public void onIncomingCall(final DialerCall call) {
+  public void onIncomingCall(InCallState oldState, InCallState newState, DialerCall call) {
     String number = call.getNumber();
     if (TextUtils.isEmpty(number)) {
       return;
@@ -157,28 +168,7 @@ public class SpamCallListListener implements CallList.Listener {
   }
 
   @Override
-  public void onUpgradeToVideo(DialerCall call) {}
-
-  @Override
-  public void onSessionModificationStateChange(DialerCall call) {}
-
-  @Override
-  public void onCallListChange(CallList callList) {}
-
-  @Override
-  public void onWiFiToLteHandover(DialerCall call) {}
-
-  @Override
-  public void onHandoverToWifiFailed(DialerCall call) {}
-
-  @Override
-  public void onInternationalCallOnWifi(@NonNull DialerCall call) {}
-
-  @Override
-  public void onSuplServiceMessage(String suplNotificationMessage) {}
-
-  @Override
-  public void onDisconnect(DialerCall call) {
+  public void onCallDisconnected(DialerCall call) {
     if (!shouldShowAfterCallNotification(call)) {
       return;
     }

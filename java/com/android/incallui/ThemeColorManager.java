@@ -61,7 +61,7 @@ public class ThemeColorManager {
     } else {
       updateThemeColors(
           context,
-          getHighlightColor(context, newForegroundCall.getAccountHandle()),
+          getHighlightColor(context, newForegroundCall.getPhoneAccount()),
           newForegroundCall.isSpam());
     }
   }
@@ -102,6 +102,14 @@ public class ThemeColorManager {
       if (account != null) {
         return account.getHighlightColor();
       }
+    }
+    return PhoneAccount.NO_HIGHLIGHT_COLOR;
+  }
+
+  @ColorInt
+  private int getHighlightColor(Context context, @Nullable PhoneAccount account) {
+    if (account != null) {
+      return account.getHighlightColor();
     }
     return PhoneAccount.NO_HIGHLIGHT_COLOR;
   }

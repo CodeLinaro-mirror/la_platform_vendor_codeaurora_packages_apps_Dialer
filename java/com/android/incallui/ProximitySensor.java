@@ -25,6 +25,7 @@ import android.support.annotation.NonNull;
 import android.telecom.CallAudioState;
 import android.view.Display;
 import com.android.dialer.common.LogUtil;
+import com.android.incallui.InCallPresenter.InCallDetailsListener;
 import com.android.incallui.InCallPresenter.InCallState;
 import com.android.incallui.InCallPresenter.InCallStateListener;
 import com.android.incallui.audiomode.AudioModeProvider;
@@ -40,7 +41,8 @@ import com.android.incallui.call.DialerCall;
  * and disabled. Most of that state is fed into this class through public methods.
  */
 public class ProximitySensor
-    implements AccelerometerListener.OrientationListener, InCallStateListener, AudioModeListener {
+    implements AccelerometerListener.OrientationListener, InCallStateListener, AudioModeListener,
+    InCallDetailsListener {
 
   private static final String TAG = ProximitySensor.class.getSimpleName();
 
@@ -260,6 +262,21 @@ public class ProximitySensor
       turnOffProximitySensor(screenOnImmediately);
     }
     Trace.endSection();
+  }
+
+  @Override
+  public void onDetailsChanged(DialerCall call, android.telecom.Call.Details details) {
+    if (call != null) {
+      boolean isVideoCall = call.isVideoCall();
+      boolean isRttCall = call.isActiveRttCall();
+      if (isVideoCall != this.isVideoCall || isRttCall != this.isRttCall) {
+        this.isRttCall = isRttCall;
+        this.isVideoCall = isVideoCall;
+        LogUtil.v("ProximitySensor.onDetailsChanged", "isVideoCall = "
+            + isVideoCall + " isRttCall = " + isRttCall);
+        updateProximitySensorMode();
+      }
+    }
   }
 
   /**

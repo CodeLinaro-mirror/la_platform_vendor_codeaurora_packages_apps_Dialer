@@ -30,6 +30,7 @@ import com.android.dialer.common.LogUtil;
 import com.android.dialer.logging.DialerImpression;
 import com.android.dialer.logging.LoggingBindings;
 import com.android.dialer.util.CallUtil;
+import com.android.incallui.call.DialerCall;
 import com.android.incallui.video.protocol.VideoCallScreen;
 import com.android.incallui.video.protocol.VideoCallScreenDelegate;
 import com.android.incallui.videotech.VideoTech;
@@ -55,10 +56,10 @@ public class ImsVideoTech implements VideoTech {
   private boolean transmissionStopped = false;
   private VideoCall registeredVideoCall;
 
-  public ImsVideoTech(LoggingBindings logger, VideoTechListener listener, Call call) {
+  public ImsVideoTech(LoggingBindings logger, DialerCall call) {
     this.logger = logger;
-    this.listener = listener;
-    this.call = call;
+    this.listener = call.getVideoTechListener();
+    this.call = call.getTelecomCall();
   }
 
   @Override
@@ -135,8 +136,13 @@ public class ImsVideoTech implements VideoTech {
     if (callback == null) {
       callback = new ImsVideoCallCallback(logger, call, this, listener, context);
     }
-    call.getVideoCall().registerCallback(callback);
-    registeredVideoCall = call.getVideoCall();
+    final VideoCall videoCall = call.getVideoCall();
+    if (registeredVideoCall == null || registeredVideoCall != videoCall) {
+      videoCall.registerCallback(callback);
+      registeredVideoCall = videoCall;
+    } else {
+      LogUtil.i("ImsVideoTech.onCallStateChanged", "Already registered");
+    }
 
     if (getSessionModificationState()
             == SessionModificationState.WAITING_FOR_UPGRADE_TO_VIDEO_RESPONSE

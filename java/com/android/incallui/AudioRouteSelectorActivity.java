@@ -28,21 +28,20 @@ import com.android.incallui.audiomode.AudioModeProvider;
 import com.android.incallui.audioroute.AudioRouteSelectorDialogFragment;
 import com.android.incallui.audioroute.AudioRouteSelectorDialogFragment.AudioRouteSelectorPresenter;
 import com.android.incallui.call.CallList;
-import com.android.incallui.call.CallList.Listener;
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.TelecomAdapter;
+import com.android.incallui.InCallPresenter.InCallDisconnectedListener;
 
 /** Simple activity that just shows the audio route selector fragment */
 public class AudioRouteSelectorActivity extends FragmentActivity
-    implements AudioRouteSelectorPresenter, Listener {
+    implements AudioRouteSelectorPresenter, InCallDisconnectedListener {
 
   @Override
   protected void onCreate(@Nullable Bundle bundle) {
     super.onCreate(bundle);
     AudioRouteSelectorDialogFragment.newInstance(AudioModeProvider.getInstance().getAudioState())
         .show(getSupportFragmentManager(), AudioRouteSelectorDialogFragment.TAG);
-
-    CallList.getInstance().addListener(this);
+    InCallPresenter.getInstance().addInCallDisconnectedListener(this);
   }
 
   @Override
@@ -101,7 +100,7 @@ public class AudioRouteSelectorActivity extends FragmentActivity
 
   @Override
   protected void onDestroy() {
-    CallList.getInstance().removeListener(this);
+    InCallPresenter.getInstance().removeInCallDisconnectedListener(this);
     super.onDestroy();
   }
 
@@ -114,33 +113,9 @@ public class AudioRouteSelectorActivity extends FragmentActivity
   }
 
   @Override
-  public void onDisconnect(DialerCall call) {
+  public void onCallDisconnected(DialerCall call) {
     if (getCall() == null) {
       finish();
     }
   }
-
-  @Override
-  public void onIncomingCall(DialerCall call) {}
-
-  @Override
-  public void onUpgradeToVideo(DialerCall call) {}
-
-  @Override
-  public void onSessionModificationStateChange(DialerCall call) {}
-
-  @Override
-  public void onCallListChange(CallList callList) {}
-
-  @Override
-  public void onWiFiToLteHandover(DialerCall call) {}
-
-  @Override
-  public void onHandoverToWifiFailed(DialerCall call) {}
-
-  @Override
-  public void onInternationalCallOnWifi(@NonNull DialerCall call) {}
-
-  @Override
-  public void onSuplServiceMessage(String suplNotificationMessage) {}
 }

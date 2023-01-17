@@ -31,6 +31,7 @@ import com.google.auto.value.AutoValue;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Locale;
+import java.util.Objects;
 
 /** State of the primary call. */
 @AutoValue
@@ -214,5 +215,40 @@ public abstract class PrimaryCallState {
         Locale.US, "PrimaryCallState, state: %d, connectionLabel: %s, "
         + "swapToSecondaryButtonState: %d, sessionModificationState: %d",
         state(), connectionLabel(), swapToSecondaryButtonState(), sessionModificationState());
+  }
+
+  @Override
+  public boolean equals (Object o) {
+    if (o instanceof PrimaryCallState) {
+      PrimaryCallState callState = (PrimaryCallState) o;
+      return state() == callState.state()
+          && isVideoCall() == callState.isVideoCall()
+          && sessionModificationState() == callState.sessionModificationState()
+          && Objects.equals(disconnectCause(), callState.disconnectCause())
+          && Objects.equals(connectionLabel(), callState.connectionLabel())
+          && primaryColor() == callState.primaryColor()
+          && simSuggestionReason() == callState.simSuggestionReason()
+          && Objects.equals(connectionIcon(), callState.connectionIcon())
+          && Objects.equals(gatewayNumber(), callState.gatewayNumber())
+          && Objects.equals(callSubject(), callState.callSubject())
+          && Objects.equals(callbackNumber(), callState.callbackNumber())
+          && isWifi() == callState.isWifi()
+          && isConference() == callState.isConference()
+          && isWorkCall() == callState.isWorkCall()
+          && isHdAttempting() == callState.isHdAttempting()
+          && isHdAudioCall() == callState.isHdAudioCall()
+          && isForwardedNumber() == callState.isForwardedNumber()
+          && shouldShowContactPhoto() == callState.shouldShowContactPhoto()
+          && connectTimeMillis() == callState.connectTimeMillis()
+          && isVoiceMailNumber() == callState.isVoiceMailNumber()
+          && isRemotelyHeld() == callState.isRemotelyHeld()
+          && isBusinessNumber() == callState.isBusinessNumber()
+          && supportsCallOnHold() == callState.supportsCallOnHold()
+          && swapToSecondaryButtonState() == callState.swapToSecondaryButtonState()
+          && isAssistedDialed() == callState.isAssistedDialed()
+          && Objects.equals(customLabel(), callState.customLabel())
+          && Objects.equals(assistedDialingExtras(), callState.assistedDialingExtras());
+    }
+    return false;
   }
 }

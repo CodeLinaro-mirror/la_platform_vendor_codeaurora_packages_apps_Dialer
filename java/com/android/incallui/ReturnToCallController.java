@@ -39,11 +39,12 @@ import com.android.dialer.theme.base.ThemeComponent;
 import com.android.incallui.ContactInfoCache.ContactCacheEntry;
 import com.android.incallui.ContactInfoCache.ContactInfoCacheCallback;
 import com.android.incallui.InCallPresenter.InCallState;
+import com.android.incallui.InCallPresenter.InCallStateListener;
+import com.android.incallui.InCallPresenter.InCallDisconnectedListener;
 import com.android.incallui.InCallPresenter.InCallUiListener;
 import com.android.incallui.audiomode.AudioModeProvider;
 import com.android.incallui.audiomode.AudioModeProvider.AudioModeListener;
 import com.android.incallui.call.CallList;
-import com.android.incallui.call.CallList.Listener;
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.speakerbuttonlogic.SpeakerButtonInfo;
 import java.lang.ref.WeakReference;
@@ -60,7 +61,10 @@ import java.util.List;
  * <p>Bubble hides when one of following happens: 1. a call disconnect and there is no more
  * outgoing/ongoing call 2. show in-call UI
  */
-public class ReturnToCallController implements InCallUiListener, Listener, AudioModeListener {
+public class ReturnToCallController implements InCallUiListener,
+    AudioModeListener,
+    InCallStateListener,
+    InCallDisconnectedListener {
 
   private final Context context;
 
@@ -101,14 +105,16 @@ public class ReturnToCallController implements InCallUiListener, Listener, Audio
     AudioModeProvider.getInstance().addListener(this);
     audioState = AudioModeProvider.getInstance().getAudioState();
     InCallPresenter.getInstance().addInCallUiListener(this);
-    CallList.getInstance().addListener(this);
+    InCallPresenter.getInstance().addListener(this);
+    InCallPresenter.getInstance().addInCallDisconnectedListener(this);
   }
 
   public void tearDown() {
     hide();
     InCallPresenter.getInstance().removeInCallUiListener(this);
-    CallList.getInstance().removeListener(this);
     AudioModeProvider.getInstance().removeListener(this);
+    InCallPresenter.getInstance().removeListener(this);
+    InCallPresenter.getInstance().removeInCallDisconnectedListener(this);
   }
 
   @Override
@@ -176,17 +182,9 @@ public class ReturnToCallController implements InCallUiListener, Listener, Audio
     return returnToCallBubble;
   }
 
-  @Override
-  public void onIncomingCall(DialerCall call) {}
 
   @Override
-  public void onUpgradeToVideo(DialerCall call) {}
-
-  @Override
-  public void onSessionModificationStateChange(DialerCall call) {}
-
-  @Override
-  public void onCallListChange(CallList callList) {
+  public void onStateChange(InCallState oldState, InCallState newState, CallList callList) {
     if (!isEnabled(context)) {
       hide();
       return;
@@ -218,7 +216,7 @@ public class ReturnToCallController implements InCallUiListener, Listener, Audio
   }
 
   @Override
-  public void onDisconnect(DialerCall call) {
+  public void onCallDisconnected(DialerCall call) {
     if (!isEnabled(context)) {
       hide();
       return;
@@ -238,18 +236,6 @@ public class ReturnToCallController implements InCallUiListener, Listener, Audio
       startContactInfoSearch();
     }
   }
-
-  @Override
-  public void onWiFiToLteHandover(DialerCall call) {}
-
-  @Override
-  public void onHandoverToWifiFailed(DialerCall call) {}
-
-  @Override
-  public void onInternationalCallOnWifi(@NonNull DialerCall call) {}
-
-  @Override
-  public void onSuplServiceMessage(String suplNotificationMessage) {}
 
   @Override
   public void onAudioStateChanged(CallAudioState audioState) {

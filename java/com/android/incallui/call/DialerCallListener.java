@@ -44,4 +44,12 @@ public interface DialerCallListener {
   void onEnrichedCallSessionUpdate();
 
   void onSuplServiceMessage(String suplNotificationMessage);
+
+  default void onDetailsChanged(android.telecom.Call.Details details) {}
+
+  default void onPostDialWait(String remainingPostDialSequence) {}
+
+  default void onRemotelyHeld(boolean isRemotelyHeld) {}
+
+  default void onMergeProgressing(boolean isMerging) {}
 }
