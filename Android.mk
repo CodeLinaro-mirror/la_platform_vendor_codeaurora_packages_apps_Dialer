@@ -125,10 +125,10 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
 	qti-dialer-mime4j-dom-target \
 	qti-dialer-okhttp-target \
 	qti-dialer-okio-target \
-	qti-dialer-error-prone-target \
 	qti-dialer-guava-target \
 	qti-dialer-glide-annotation-target \
 	qti-dialer-zxing-target \
+	error_prone_annotations \
 	jsr305 \
 	libbackup \
 	libphonenumber \
@@ -232,19 +232,6 @@ LOCAL_LICENSE_CONDITIONS := notice
 LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_SDK_VERSION := current
 LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/com/google/guava/guava/23.0/guava-23.0.jar
-LOCAL_UNINSTALLABLE_MODULE := true
-
-include $(BUILD_PREBUILT)
-
-include $(CLEAR_VARS)
-
-LOCAL_MODULE_CLASS := JAVA_LIBRARIES
-LOCAL_MODULE := qti-dialer-error-prone-target
-LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
-LOCAL_LICENSE_CONDITIONS := notice
-LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
-LOCAL_SDK_VERSION := current
-LOCAL_SRC_FILES := ../../../../../../prebuilts/tools/common/m2/repository/com/google/errorprone/error_prone_annotations/2.0.18/error_prone_annotations-2.0.18.jar
 LOCAL_UNINSTALLABLE_MODULE := true
 
 include $(BUILD_PREBUILT)
@@ -561,7 +548,8 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
 	auto_service_annotations \
 	auto_common \
 	qti-dialer-javax-annotation-api \
-	qti-dialer-javax-inject
+	qti-dialer-javax-inject \
+	error_prone_annotations
 
 LOCAL_JAVA_LANGUAGE_VERSION := 1.8
 

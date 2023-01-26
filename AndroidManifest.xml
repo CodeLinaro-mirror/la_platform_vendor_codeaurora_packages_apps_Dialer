@@ -115,6 +115,7 @@
 
   <uses-permission android:name="com.qti.permission.BIND_QTI_IMS_SERVICE" />
   <uses-permission android:name="com.qualcomm.qti.permission.USE_EXT_TELEPHONY_SERVICE" />
+  <uses-permission android:name="com.qti.permission.RECEIVE_ESSENTIAL_RECORDS_LOADED"/>
 
   <application
     android:hardwareAccelerated="true"
