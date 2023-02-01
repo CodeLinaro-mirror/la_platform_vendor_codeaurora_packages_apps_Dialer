@@ -1263,7 +1263,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
 
   @TargetApi(28)
   private boolean isPhoneAccountSimlessRttCapable() {
-    boolean isSimStateAbsent = SubscriptionManager.getSimStateForSlotIndex(
+    boolean isSimStateAbsent = TelephonyManager.getSimStateForSlotIndex(
         BottomSheetHelper.getInstance().getPhoneId()) ==
         TelephonyManager.SIM_STATE_ABSENT;
     return QtiImsExtUtils.
