@@ -50,7 +50,8 @@ public class AnswerUtils {
           !(currentCall.getState() == DialerCallState.INCOMING)) {
         isCallAvailableToDisconnect = true;
         currentCall.setReleasedByAnsweringSecondCall(true);
-        currentCall.addListener(new AnswerOnDisconnected(currentCall, videoState, needLaunchUi));
+        currentCall.addListener(
+            new AnswerOnDisconnected(currentCall, null, videoState, needLaunchUi, true));
         if (currentCall.getParentId() == null) {
           //Send disconnect only for parent calls and not for child calls.
           currentCall.disconnect();
@@ -77,20 +78,40 @@ public class AnswerUtils {
     disconnectAllAndAnswer(videoState, false);
   }
 
+  public static void disconnectAndAnswer(DialerCall callToDisconnect, DialerCall callToAnswer) {
+    callToDisconnect.addListener(
+        new AnswerOnDisconnected(callToDisconnect, callToAnswer, 0, false, false));
+    callToDisconnect.disconnect();
+  }
+
   private static class AnswerOnDisconnected implements DialerCallListener {
 
     private final DialerCall disconnectingCall;
+    private final DialerCall callToAnswer;
     private final int videoState;
     private final boolean needLaunchUi;
+    private final boolean disconnectAll;
 
-    AnswerOnDisconnected(DialerCall disconnectingCall, int videoState, boolean needLaunchUi) {
+    AnswerOnDisconnected(DialerCall disconnectingCall, DialerCall callToAnswer,
+        int videoState, boolean needLaunchUi, boolean disconnectAll) {
       this.disconnectingCall = disconnectingCall;
+      this.callToAnswer = callToAnswer;
       this.videoState = videoState;
       this.needLaunchUi = needLaunchUi;
+      this.disconnectAll = disconnectAll;
     }
 
     @Override
     public void onDialerCallDisconnect() {
+      if (disconnectAll) {
+        checkAndAnswerPendingIncomingCall();
+      } else {
+        if (callToAnswer != null) callToAnswer.answer();
+      }
+      disconnectingCall.removeListener(this);
+    }
+
+    private void checkAndAnswerPendingIncomingCall() {
       // Only answer when all the calls except Incoming call is disconnected.
       if (CallList.getInstance().hasIncomingCallOnly()) {
         LogUtil.i(
@@ -104,7 +125,6 @@ public class AnswerUtils {
           }
         }
       }
-      disconnectingCall.removeListener(this);
     }
 
     @Override
