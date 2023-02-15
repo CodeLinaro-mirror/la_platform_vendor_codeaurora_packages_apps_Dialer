@@ -28,16 +28,17 @@
 
 package com.android.incallui;
 
-import org.codeaurora.ims.QtiCallConstants;
 import android.os.Bundle;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.HashMap;
-import java.util.List;
-import com.google.common.base.Preconditions;
 import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.state.DialerCallState;
 import com.android.incallui.InCallPresenter.InCallDetailsListener;
+import com.android.incallui.InCallPresenter.InCallDisconnectedListener;
+import com.google.common.base.Preconditions;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.HashMap;
+import java.util.List;
+import org.codeaurora.ims.QtiCallConstants;
 
 /**
  * This class listens to incoming events from the {@class InCallDetailsListener}.
@@ -46,7 +47,7 @@ import com.android.incallui.InCallPresenter.InCallDetailsListener;
  * change indication.
  *
  */
-public class CallSubstateNotifier implements InCallDetailsListener, CallList.Listener {
+public class CallSubstateNotifier implements InCallDetailsListener, InCallDisconnectedListener {
 
     private final List<InCallSubstateListener> mCallSubstateListeners =
             new CopyOnWriteArrayList<>();
@@ -138,49 +139,11 @@ public class CallSubstateNotifier implements InCallDetailsListener, CallList.Lis
     }
 
     /**
-     * This method overrides onDisconnect method of {@interface CallList.Listener}
+     * This method overrides onDisconnected method of {@interface InCallDisconnectedListener}
      */
     @Override
-    public void onDisconnect(final DialerCall call) {
+    public void onCallDisconnected(DialerCall call) {
         Log.d(this, "onDisconnect: call: " + call);
         mCallSubstateMap.remove(call.getId());
     }
-
-    @Override
-    public void onUpgradeToVideo(DialerCall call) {
-        //NO-OP
-    }
-
-    @Override
-    public void onIncomingCall(DialerCall call) {
-        //NO-OP
-    }
-
-    @Override
-    public void onCallListChange(CallList callList) {
-        //NO-OP
-    }
-
-    @Override
-    public void onSessionModificationStateChange(DialerCall call) {
-        //NO-OP
-    }
-
-    @Override
-    public void onWiFiToLteHandover(DialerCall call) {
-        //NO-OP
-    }
-
-    @Override
-    public void onHandoverToWifiFailed(DialerCall call) {
-        //NO-OP
-    }
-
-    @Override
-    public void onInternationalCallOnWifi(DialerCall call) {
-        //NO-OP
-    }
-
-    @Override
-    public void onSuplServiceMessage(String suplNotificationMessage) {}
 }

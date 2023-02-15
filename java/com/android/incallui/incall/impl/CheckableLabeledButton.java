@@ -50,6 +50,8 @@ public class CheckableLabeledButton extends LinearLayout implements Checkable {
   private TextView labelView;
   private Drawable background;
   private Drawable backgroundMore;
+  @ColorInt private int checkedColor; // ImageView doesn't check if it is needed to refresh
+  @StringRes private int stringResId = 0; // TextView doesn't check if it is needed to refresh
 
   public CheckableLabeledButton(Context context, AttributeSet attrs) {
     super(context, attrs);
@@ -94,11 +96,10 @@ public class CheckableLabeledButton extends LinearLayout implements Checkable {
     iconView.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
     iconView.setImageDrawable(icon);
     iconView.setImageTintMode(Mode.SRC_IN);
-    iconView.setImageTintList(
-        getResources().getColorStateList(R.color.incall_button_icon, context.getTheme()));
+    checkedColor = R.color.incall_button_icon;
+    iconView.setImageTintList(getResources().getColorStateList(checkedColor, context.getTheme()));
 
-    iconView.setBackground(
-        getResources().getDrawable(R.drawable.incall_button_background, context.getTheme()));
+    iconView.setBackground(background);
     iconView.setDuplicateParentStateEnabled(true);
     iconView.setElevation(getResources().getDimension(R.dimen.incall_button_elevation));
     iconView.setStateListAnimator(
@@ -135,6 +136,8 @@ public class CheckableLabeledButton extends LinearLayout implements Checkable {
   }
 
   public void setCheckedColor(@ColorInt int color) {
+    if (checkedColor == color) return;
+
     iconView.setImageTintList(
         new ColorStateList(
             new int[][] {new int[] {android.R.attr.state_checked}, new int[] {}},
@@ -153,7 +156,10 @@ public class CheckableLabeledButton extends LinearLayout implements Checkable {
   }
 
   public void setLabelText(@StringRes int stringRes) {
-    labelView.setText(stringRes);
+    if (stringRes != stringResId) {
+      labelView.setText(stringRes);
+      stringResId = stringRes;
+    }
   }
 
   /** Shows or hides a little down arrow to indicate that the button will pop up a menu. */

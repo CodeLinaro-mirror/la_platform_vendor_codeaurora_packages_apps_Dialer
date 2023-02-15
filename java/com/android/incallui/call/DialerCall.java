@@ -219,6 +219,8 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   private boolean isCallRemoved;
   private boolean isVideoCall = false;
   private boolean overwriteDisconnectCause = false;
+  private TelecomManager telecomManager;
+
   public static String getNumberFromHandle(Uri handle) {
     return handle == null ? "" : handle.getSchemeSpecificPart();
   }
@@ -282,7 +284,14 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
               // variable if call is a conference call.
               wasConferenceCall = true;
           }
-          update();
+          updateFromTelecomCall();
+          // Avoid dual registration of telecom call back,
+          // and remove registration from InCallPresenter.
+          // If required, As result in UI update, every observer needs to listen this callback
+          // for refreshing UI.
+          for (DialerCallListener listener : listeners) {
+              listener.onDetailsChanged(details);
+          }
         }
 
         @Override
@@ -300,7 +309,13 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
           LogUtil.v(
               "TelecomCallCallback.onPostDialWait",
               "call=" + call + " remainingPostDialSequence=" + remainingPostDialSequence);
-          update();
+          // Avoid dual registration of telecom call back,
+          // and remove registration from InCallPresenter.
+          // If required, As result in UI update, every observer needs to listen this callback
+          // for refreshing UI.
+          for (DialerCallListener listener : listeners) {
+              listener.onPostDialWait(remainingPostDialSequence);
+          }
         }
 
         @Override
@@ -387,11 +402,11 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
               break;
             case TelephonyManagerCompat.EVENT_CALL_REMOTELY_HELD:
               isRemotelyHeld = true;
-              update();
+              notifyRemotelyHeldChanged();
               break;
             case TelephonyManagerCompat.EVENT_CALL_REMOTELY_UNHELD:
               isRemotelyHeld = false;
-              update();
+              notifyRemotelyHeldChanged();
               break;
             case TelephonyManagerCompat.EVENT_NOTIFY_INTERNATIONAL_CALL_ON_WFC:
               notifyInternationalCallOnWifi();
@@ -399,10 +414,12 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
             case TelephonyManagerCompat.EVENT_MERGE_START:
               LogUtil.i("DialerCall.onConnectionEvent", "merge start");
               isMergeInProcess = true;
+              notifyMergeProgressing();
               break;
             case TelephonyManagerCompat.EVENT_MERGE_COMPLETE:
               LogUtil.i("DialerCall.onConnectionEvent", "merge complete");
               isMergeInProcess = false;
+              notifyMergeProgressing();
               break;
             case TelephonyManagerCompat.EVENT_CALL_FORWARDED:
               // Only handle this event for P+ since it's unreliable pre-P.
@@ -449,6 +466,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     id = ID_PREFIX + Integer.toString(idCounter++);
     isRejected = false;
 
+    telecomManager = context.getSystemService(TelecomManager.class);
     // Must be after assigning mTelecomCall
     videoTechManager = new VideoTechManager(this);
 
@@ -576,7 +594,19 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
       }
   }
 
-  /* package-private */ Call getTelecomCall() {
+  private void notifyRemotelyHeldChanged() {
+    for (DialerCallListener listener : listeners) {
+      listener.onRemotelyHeld(isRemotelyHeld);
+    }
+  }
+
+  private void notifyMergeProgressing() {
+    for (DialerCallListener listener : listeners) {
+      listener.onMergeProgressing(isMergeInProcess);
+    }
+  }
+
+  public Call getTelecomCall() {
     return telecomCall;
   }
 
@@ -638,12 +668,11 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
 
   private void update() {
     Trace.beginSection("DialerCall.update");
-    int oldState = getState();
     // Clear any cache here that could potentially change on update.
     videoTech = null;
     // We want to potentially register a video call callback here.
     updateFromTelecomCall();
-    if (oldState != getState() && getState() == DialerCallState.DISCONNECTED) {
+    if (getState() == DialerCallState.DISCONNECTED) {
       for (DialerCallListener listener : listeners) {
         listener.onDialerCallDisconnect();
       }
@@ -716,7 +745,6 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
       updateEmergencyCallState();
     }
 
-    TelecomManager telecomManager = context.getSystemService(TelecomManager.class);
     // If the phone account handle of the call is set, cache capability bit indicating whether
     // the phone account supports call subjects.
     PhoneAccountHandle newPhoneAccountHandle = telecomCall.getDetails().getAccountHandle();
@@ -1519,6 +1547,10 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     return logState.isIncoming;
   }
 
+  public Context getContext() {
+    return context;
+  }
+
   /**
    * Try and determine if the call used assisted dialing.
    *
@@ -1621,6 +1653,10 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
 
   public void disconnect() {
     LogUtil.i("DialerCall.disconnect", "");
+    if (getState() == DialerCallState.DISCONNECTED) {
+      LogUtil.d("DialerCall.disconnect", "Already disconnected");
+      return;
+    }
     setState(DialerCallState.DISCONNECTING);
     for (DialerCallListener listener : listeners) {
       listener.onDialerCallUpdate();
@@ -1690,16 +1726,16 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     return callProviderIcon;
   }
 
-  private PhoneAccount getPhoneAccount() {
+  public PhoneAccount getPhoneAccount() {
     PhoneAccountHandle accountHandle = getAccountHandle();
-    if (accountHandle == null) {
+    if (accountHandle == null || telecomManager == null) {
       return null;
     }
-    return context.getSystemService(TelecomManager.class).getPhoneAccount(accountHandle);
+    return telecomManager.getPhoneAccount(accountHandle);
   }
 
   public VideoTech getVideoTech() {
-    if (videoTech == null) {
+    if (videoTech == null || videoTech instanceof EmptyVideoTech) {
       videoTech = videoTechManager.getVideoTech(getAccountHandle());
 
       // Only store the first video tech type found to be available during the life of the call.
@@ -1720,7 +1756,8 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     if (callbackNumber == null) {
       if (isEmergencyCall() || showCallbackNumber) {
         callbackNumber =
-            context.getSystemService(TelecomManager.class).getLine1Number(getAccountHandle());
+            telecomManager != null ? telecomManager.getLine1Number(getAccountHandle())
+            : null;
       }
 
       if (callbackNumber == null) {
@@ -1984,6 +2021,10 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     }
   }
 
+  public VideoTechListener getVideoTechListener() {
+    return this;
+  }
+
   /**
    * Specifies whether a number is in the call history or not. {@link #CALL_HISTORY_STATUS_UNKNOWN}
    * means there is no result.
@@ -2128,7 +2169,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
       // Insert order here determines the priority of that video tech option
       videoTechs = new ArrayList<>();
 
-      videoTechs.add(new ImsVideoTech(Logger.get(call.context), call, call.telecomCall));
+      videoTechs.add(new ImsVideoTech(Logger.get(call.context), call));
 
       rcsVideoShare =
           EnrichedCallComponent.get(call.context)

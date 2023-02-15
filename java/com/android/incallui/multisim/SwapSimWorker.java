@@ -35,7 +35,10 @@ import com.android.dialer.preferredsim.suggestion.SimSuggestionComponent;
 import com.android.dialer.util.PermissionsUtil;
 import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
-import com.android.incallui.call.DialerCallListener;
+import com.android.incallui.InCallPresenter;
+import com.android.incallui.InCallPresenter.InCallDisconnectedListener;
+import com.android.incallui.InCallPresenter.InCallState;
+import com.android.incallui.InCallPresenter.InCallStateListener;
 import com.android.incallui.incalluilock.InCallUiLock;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -44,7 +47,8 @@ import java.util.concurrent.TimeUnit;
  * Hangs up the current call and redial the call using the {@code otherAccount} instead. the in call
  * ui will be prevented from closing until the process has finished.
  */
-public class SwapSimWorker implements Worker<Void, Void>, DialerCallListener, CallList.Listener {
+public class SwapSimWorker implements Worker<Void, Void>,
+    InCallStateListener, InCallDisconnectedListener {
 
   // Timeout waiting for the call to hangup or redial.
   private static final int DEFAULT_TIMEOUT_MILLIS = 5_000;
@@ -90,7 +94,8 @@ public class SwapSimWorker implements Worker<Void, Void>, DialerCallListener, Ca
     inCallUiLock = lock;
     this.timeoutMillis = timeoutMillis;
     number = call.getNumber();
-    call.addListener(this);
+    InCallPresenter.getInstance().addListener(this);
+    InCallPresenter.getInstance().addInCallDisconnectedListener(this);
     call.disconnect();
   }
 
@@ -116,7 +121,6 @@ public class SwapSimWorker implements Worker<Void, Void>, DialerCallListener, Ca
       TelecomManager telecomManager = context.getSystemService(TelecomManager.class);
       Bundle extras = new Bundle();
       extras.putParcelable(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, otherAccount);
-      callList.addListener(this);
       telecomManager.placeCall(Uri.fromParts(PhoneAccount.SCHEME_TEL, number, null), extras);
       if (latchForTest != null) {
         latchForTest.countDown();
@@ -132,22 +136,17 @@ public class SwapSimWorker implements Worker<Void, Void>, DialerCallListener, Ca
     } finally {
       ThreadUtil.postOnUiThread(
           () -> {
-            call.removeListener(this);
-            callList.removeListener(this);
+            InCallPresenter.getInstance().removeListener(this);
+            InCallPresenter.getInstance().removeInCallDisconnectedListener(this);
             inCallUiLock.release();
           });
     }
   }
 
-  @MainThread
   @Override
-  public void onDialerCallDisconnect() {
-    disconnectLatch.countDown();
-  }
-
-  @Override
-  public void onCallListChange(CallList callList) {
-    if (callList.getOutgoingCall() != null) {
+  public void onStateChange(InCallState oldState, InCallState newState, CallList callList) {
+    if (callList.getOutgoingCall() != null
+        && !DialerCall.areSame(call, callList.getOutgoingCall())) {
       dialingLatch.countDown();
     }
   }
@@ -157,54 +156,11 @@ public class SwapSimWorker implements Worker<Void, Void>, DialerCallListener, Ca
     latchForTest = latch;
   }
 
+  @MainThread
   @Override
-  public void onDialerCallUpdate() {}
-
-  @Override
-  public void onDialerCallChildNumberChange() {}
-
-  @Override
-  public void onDialerCallLastForwardedNumberChange() {}
-
-  @Override
-  public void onDialerCallUpgradeToVideo() {}
-
-  @Override
-  public void onDialerCallSessionModificationStateChange() {}
-
-  @Override
-  public void onWiFiToLteHandover() {}
-
-  @Override
-  public void onHandoverToWifiFailure() {}
-
-  @Override
-  public void onInternationalCallOnWifi() {}
-
-  @Override
-  public void onEnrichedCallSessionUpdate() {}
-
-  @Override
-  public void onIncomingCall(DialerCall call) {}
-
-  @Override
-  public void onUpgradeToVideo(DialerCall call) {}
-
-  @Override
-  public void onSessionModificationStateChange(DialerCall call) {}
-
-  @Override
-  public void onDisconnect(DialerCall call) {}
-
-  @Override
-  public void onWiFiToLteHandover(DialerCall call) {}
-
-  @Override
-  public void onHandoverToWifiFailed(DialerCall call) {}
-
-  @Override
-  public void onInternationalCallOnWifi(@NonNull DialerCall call) {}
-
-  @Override
-  public void onSuplServiceMessage(String suplNotificationMessage) {}
+  public void onCallDisconnected(DialerCall call) {
+    if (DialerCall.areSame(this.call, call)) {
+      disconnectLatch.countDown();
+    }
+  }
 }

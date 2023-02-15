@@ -20,14 +20,14 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
-import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
 
 /**
  * Activity that contains an alert dialog with OK and Cancel buttons to allow user to Accept or
  * Reject the WAIT inserted as part of the Dial string.
  */
-public class PostCharDialogActivity extends AppCompatActivity implements CallList.Listener {
+public class PostCharDialogActivity extends AppCompatActivity
+    implements InCallPresenter.InCallDisconnectedListener {
 
   public static final String EXTRA_CALL_ID = "extra_call_id";
   public static final String EXTRA_POST_DIAL_STRING = "extra_post_dial_string";
@@ -49,13 +49,13 @@ public class PostCharDialogActivity extends AppCompatActivity implements CallLis
     PostCharDialogFragment fragment = new PostCharDialogFragment(callId, postDialString);
     fragment.show(getSupportFragmentManager(), TAG_INTERNATIONAL_CALL_ON_WIFI);
 
-    CallList.getInstance().addListener(this);
+    InCallPresenter.getInstance().addInCallDisconnectedListener(this);
   }
 
   @Override
   protected void onDestroy() {
     super.onDestroy();
-    CallList.getInstance().removeListener(this);
+    InCallPresenter.getInstance().removeInCallDisconnectedListener(this);
   }
 
   @Override
@@ -68,36 +68,9 @@ public class PostCharDialogActivity extends AppCompatActivity implements CallLis
   }
 
   @Override
-  public void onDisconnect(DialerCall call) {
+  public void onCallDisconnected(DialerCall call) {
     if (callId.equals(call.getId())) {
       finish();
     }
   }
-
-  @Override
-  public void onIncomingCall(DialerCall call) {}
-
-  @Override
-  public void onUpgradeToVideo(DialerCall call) {}
-
-  @Override
-  public void onUpgradeToRtt(DialerCall call, int rttRequestId) {}
-
-  @Override
-  public void onSessionModificationStateChange(DialerCall call) {}
-
-  @Override
-  public void onCallListChange(CallList callList) {}
-
-  @Override
-  public void onWiFiToLteHandover(DialerCall call) {}
-
-  @Override
-  public void onHandoverToWifiFailed(DialerCall call) {}
-
-  @Override
-  public void onInternationalCallOnWifi(@NonNull DialerCall call) {}
-
-  @Override
-  public void onSuplServiceMessage(String suplNotificationMessage) {}
 }

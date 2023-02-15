@@ -38,7 +38,6 @@ import java.lang.annotation.RetentionPolicy;
   InCallButtonIds.BUTTON_MANAGE_VOICE_CONFERENCE,
   InCallButtonIds.BUTTON_SWITCH_TO_SECONDARY,
   InCallButtonIds.BUTTON_SWAP_SIM,
-  InCallButtonIds.BUTTON_COUNT,
   InCallButtonIds.BUTTON_UPGRADE_TO_RTT,
   InCallButtonIds.BUTTON_DOWNGRADE_TO_VOICE,
   InCallButtonIds.BUTTON_LIKE,
@@ -48,7 +47,8 @@ import java.lang.annotation.RetentionPolicy;
   InCallButtonIds.BUTTON_COMMENT,
   InCallButtonIds.BUTTON_DETAIL,
   InCallButtonIds.BUTTON_RED_ENVELOPE,
-  InCallButtonIds.BUTTON_LIKED
+  InCallButtonIds.BUTTON_LIKED,
+  InCallButtonIds.BUTTON_COUNT
 })
 public @interface InCallButtonIds {
 
@@ -67,15 +67,15 @@ public @interface InCallButtonIds {
   int BUTTON_MANAGE_VOICE_CONFERENCE = 12;
   int BUTTON_SWITCH_TO_SECONDARY = 13;
   int BUTTON_SWAP_SIM = 14;
-  int BUTTON_COUNT = 15;
-  int BUTTON_UPGRADE_TO_RTT = 16;
-  int BUTTON_DOWNGRADE_TO_VOICE = 17;
-  int BUTTON_LIKE = 18;
-  int BUTTON_SHARE = 19;
-  int BUTTON_FAVORITE = 20;
-  int BUTTON_COPY = 21;
-  int BUTTON_COMMENT = 22;
-  int BUTTON_DETAIL = 23;
-  int BUTTON_RED_ENVELOPE = 24;
-  int BUTTON_LIKED = 25;
+  int BUTTON_UPGRADE_TO_RTT = 15;
+  int BUTTON_DOWNGRADE_TO_VOICE = 16;
+  int BUTTON_LIKE = 17;
+  int BUTTON_SHARE = 18;
+  int BUTTON_FAVORITE = 19;
+  int BUTTON_COPY = 20;
+  int BUTTON_COMMENT = 21;
+  int BUTTON_DETAIL = 22;
+  int BUTTON_RED_ENVELOPE = 23;
+  int BUTTON_LIKED = 24;
+  int BUTTON_COUNT = 25;
 }

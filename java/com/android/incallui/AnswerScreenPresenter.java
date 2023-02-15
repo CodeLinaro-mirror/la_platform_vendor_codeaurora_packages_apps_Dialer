@@ -34,7 +34,6 @@ import com.android.incallui.answerproximitysensor.AnswerProximitySensor;
 import com.android.incallui.answerproximitysensor.PseudoScreenState;
 import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
-import com.android.incallui.call.DialerCallListener;
 import com.android.incallui.incalluilock.InCallUiLock;
 import com.android.incallui.InCallPresenter.InCallDetailsListener;
 import com.google.common.util.concurrent.FutureCallback;

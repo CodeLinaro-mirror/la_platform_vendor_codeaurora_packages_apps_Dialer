@@ -37,7 +37,7 @@ import com.android.dialer.logging.DialerImpression;
 import com.android.dialer.logging.DialerImpression.Type;
 import com.android.dialer.logging.Logger;
 import com.android.dialer.telecom.TelecomUtil;
-import com.android.incallui.InCallCameraManager.Listener;
+import com.android.incallui.InCallCameraManager;
 import com.android.incallui.InCallPresenter.CanAddCallListener;
 import com.android.incallui.InCallPresenter.InCallDetailsListener;
 import com.android.incallui.InCallPresenter.InCallEventListener;
@@ -68,9 +68,8 @@ public class CallButtonPresenter
         InCallDetailsListener,
         InCallEventListener,
         CanAddCallListener,
-        Listener,
-        InCallButtonUiDelegate,
-        DialerCallListener {
+        InCallCameraManager.Listener,
+        InCallButtonUiDelegate {
 
   private final Context context;
   private InCallButtonUi inCallButtonUi;
@@ -119,18 +118,11 @@ public class CallButtonPresenter
     InCallPresenter.getInstance().removeCanAddCallListener(this);
     phoneAccountChangedReceiver.unregister();
     isInCallButtonUiReady = false;
-
-    if (call != null) {
-      call.removeListener(this);
-    }
   }
 
   @Override
   public void onStateChange(InCallState oldState, InCallState newState, CallList callList) {
     Trace.beginSection("CallButtonPresenter.onStateChange");
-    if (call != null) {
-      call.removeListener(this);
-    }
     if (newState == InCallState.OUTGOING) {
       call = callList.getOutgoingCall();
     } else if (newState == InCallState.INCALL) {
@@ -160,13 +152,13 @@ public class CallButtonPresenter
         getActivity().showDialpadFragment(false /* show */, true /* animate */);
       }
       call = callList.getIncomingCall();
+    } else if (newState == InCallState.PENDING_OUTGOING && call != null && call.isVideoCall()) {
+      // special to CRBT
+      call = callList.getPendingOutgoingCall();
     } else {
       call = null;
     }
 
-    if (call != null) {
-      call.addListener(this);
-    }
     updateUi(newState, call);
     Trace.endSection();
   }
@@ -182,7 +174,7 @@ public class CallButtonPresenter
   @Override
   public void onDetailsChanged(DialerCall call, android.telecom.Call.Details details) {
     // Only update if the changes are for the currently active call
-    if (inCallButtonUi != null && call != null && call.equals(this.call)) {
+    if (inCallButtonUi != null && call != null && DialerCall.areSame(call, this.call)) {
       updateButtonsState(call);
     }
   }
@@ -599,8 +591,10 @@ public class CallButtonPresenter
         isVideo
             && call.getState() != DialerCallState.DIALING
             && call.getState() != DialerCallState.CONNECTING;
-
-    otherAccount = TelecomUtil.getOtherAccount(getContext(), call.getAccountHandle());
+    if (otherAccount == null || (otherAccount != null
+        && otherAccount.equals(call.getAccountHandle()))) {
+      otherAccount = TelecomUtil.getOtherAccount(getContext(), call.getAccountHandle());
+   }
     boolean showSwapSim =
         !call.isEmergencyCall()
             && otherAccount != null
@@ -649,10 +643,11 @@ public class CallButtonPresenter
             enableSwitchToSecondary);
 
     updateSipDtmfButtons(InCallPresenter.getInstance().getSipDtmfBitMask());
-    inCallButtonUi.updateButtonStates();
+
     if (BottomSheetHelper.getInstance().shallShowMoreButton(getActivity())) {
       BottomSheetHelper.getInstance().updateMap();
     }
+    inCallButtonUi.updateButtonStates();
   }
 
   private boolean hasVideoCallCapabilities(DialerCall call) {
@@ -691,17 +686,6 @@ public class CallButtonPresenter
   public void onOutgoingVideoSourceChanged(int videoSource) {
     if (inCallButtonUi != null && call != null) {
       updateButtonsState(call);
-    }
-  }
-
-  @Override
-  public void onSessionModificationStateChange(DialerCall call) {
-    if (inCallButtonUi != null && call != null && call.equals(this.call)) {
-      int sessionModifyState = call.getVideoTech().getSessionModificationState();
-      if (sessionModifyState == SessionModificationState.WAITING_FOR_UPGRADE_TO_VIDEO_RESPONSE ||
-          sessionModifyState == SessionModificationState.NO_REQUEST) {
-        updateButtonsState(call);
-      }
     }
   }
 
@@ -768,42 +752,12 @@ public class CallButtonPresenter
   }
 
   @Override
-  public void onDialerCallSessionModificationStateChange() {
-    if (inCallButtonUi != null && call != null) {
+  public void onSessionModificationStateChange(DialerCall call) {
+    if (inCallButtonUi != null && this.call != null && DialerCall.areSame(this.call, call)) {
       inCallButtonUi.enableButton(InCallButtonIds.BUTTON_PAUSE_VIDEO, true);
       updateButtonsState(call);
     }
   }
-
-  @Override
-  public void onDialerCallDisconnect() {}
-
-  @Override
-  public void onDialerCallUpdate() {}
-
-  @Override
-  public void onDialerCallChildNumberChange() {}
-
-  @Override
-  public void onDialerCallLastForwardedNumberChange() {}
-
-  @Override
-  public void onDialerCallUpgradeToVideo() {}
-
-  @Override
-  public void onWiFiToLteHandover() {}
-
-  @Override
-  public void onHandoverToWifiFailure() {}
-
-  @Override
-  public void onInternationalCallOnWifi() {}
-
-  @Override
-  public void onEnrichedCallSessionUpdate() {}
-
-  @Override
-  public void onSuplServiceMessage(String suplNotificationMessage) {}
 
   @Override
   public Context getContext() {

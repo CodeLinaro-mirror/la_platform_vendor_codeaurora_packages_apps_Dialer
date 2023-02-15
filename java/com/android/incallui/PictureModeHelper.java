@@ -57,6 +57,10 @@ import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
 import com.android.dialer.common.LogUtil;
 import com.android.incallui.InCallPresenter.InCallDetailsListener;
+import com.android.incallui.InCallPresenter.InCallDisconnectedListener;
+import com.android.incallui.InCallPresenter.InCallEventListener;
+import com.android.incallui.InCallPresenter.IncomingCallListener;
+import com.android.incallui.InCallPresenter.InCallState;
 import com.android.incallui.InCallPresenter.InCallStateListener;
 import com.android.incallui.video.protocol.VideoCallScreenDelegate;
 import com.android.incallui.video.impl.VideoCallFragment;
@@ -71,8 +75,12 @@ import com.google.common.base.Preconditions;
  * This class displays the picture mode alert dialog and registers listener who wish to listen to
  * user selection for the preview video and the incoming video.
  */
-public class PictureModeHelper implements InCallDetailsListener,
-        InCallStateListener, CallList.Listener {
+public class PictureModeHelper implements
+        InCallStateListener,
+        InCallDetailsListener,
+        InCallDisconnectedListener,
+        IncomingCallListener,
+        InCallEventListener {
 
     private AlertDialog mAlertDialog;
 
@@ -107,17 +115,21 @@ public class PictureModeHelper implements InCallDetailsListener,
         if (incallActivity == null) {
             return;
         }
-        InCallPresenter.getInstance().addDetailsListener(this);
         InCallPresenter.getInstance().addListener(this);
-        CallList.getInstance().addListener(this);
+        InCallPresenter.getInstance().addInCallDisconnectedListener(this);
+        InCallPresenter.getInstance().addDetailsListener(this);
+        InCallPresenter.getInstance().addIncomingCallListener(this);
+        InCallPresenter.getInstance().addInCallEventListener(this);
         addListener(videoCallPresenter);
     }
 
     public void tearDown(VideoCallPresenter videoCallPresenter) {
         mVideoCallScreenDelegate = null;
-        InCallPresenter.getInstance().removeDetailsListener(this);
         InCallPresenter.getInstance().removeListener(this);
-        CallList.getInstance().removeListener(this);
+        InCallPresenter.getInstance().removeInCallDisconnectedListener(this);
+        InCallPresenter.getInstance().removeDetailsListener(this);
+        InCallPresenter.getInstance().removeIncomingCallListener(this);
+        InCallPresenter.getInstance().removeInCallEventListener(this);
         removeListener(videoCallPresenter);
         mAlertDialog = null;
     }
@@ -313,8 +325,7 @@ public class PictureModeHelper implements InCallDetailsListener,
      * @param CallList callList - The call list.
      */
     @Override
-    public void onStateChange(InCallPresenter.InCallState oldState,
-            InCallPresenter.InCallState newState, CallList callList) {
+    public void onStateChange(InCallState oldState, InCallState newState, CallList callList) {
         Log.d(this, "onStateChange oldState" + oldState + " newState=" + newState);
         if (newState == InCallPresenter.InCallState.NO_CALLS) {
             // Set both display preview video and incoming video to true as default display mode is
@@ -325,23 +336,14 @@ public class PictureModeHelper implements InCallDetailsListener,
     }
 
     /**
-     * Overrides onIncomingCall method of {@interface CallList.Listener}
+     * Overrides onIncomingCall method of {@interface IncomingCallListener}
      * @param DialerCall call - The incoming call
      */
     @Override
-    public void onIncomingCall(DialerCall call) {
+    public void onIncomingCall(InCallState oldState, InCallState newState, DialerCall call) {
         if (mAlertDialog != null) {
             mAlertDialog.dismiss();
         }
-    }
-
-    /**
-     * Overrides onCallListChange method of {@interface CallList.Listener}
-     * Added for completeness
-     */
-    @Override
-    public void onCallListChange(CallList list) {
-        // no-op
     }
 
     /**
@@ -540,30 +542,15 @@ public class PictureModeHelper implements InCallDetailsListener,
     }
 
     /**
-     * Overrides onDisconnect method of {@interface CallList.Listener}
+     * Overrides onDisconnect method of {@interface InCallDisconnectedListener}
      * @param DialerCall call - The call to be disconnected
      */
     @Override
-    public void onDisconnect(DialerCall call) {
+    public void onCallDisconnected(DialerCall call) {
         if (mAlertDialog != null) {
             mAlertDialog.dismiss();
         }
     }
-
-    @Override
-    public void onInternationalCallOnWifi(DialerCall call) {}
-
-    @Override
-    public void onHandoverToWifiFailed(DialerCall call) {}
-
-    @Override
-    public void onWiFiToLteHandover(DialerCall call) {}
-
-    @Override
-    public void onSessionModificationStateChange(DialerCall call) {}
-
-    @Override
-    public void onSuplServiceMessage(String suplNotificationMessage) {}
 
     public void updateBlurredImageView(
       TextureView textureView,
