@@ -391,7 +391,8 @@ public class SpecialCharSequenceMgr {
           // Add IMEI
           String imei = null;
           boolean isPrimary = false;
-          Pair<Integer, Integer> radioVersion = telephonyManager.getRadioHalVersion();
+          Pair<Integer, Integer> radioVersion = telephonyManager.getHalVersion(
+              TelephonyManager.HAL_SERVICE_MODEM);
           int halVersion = makeRadioVersion(radioVersion.first, radioVersion.second);
           if (halVersion > makeRadioVersion(2, 0)) {
             imei = telephonyManager.getImei(slot);
