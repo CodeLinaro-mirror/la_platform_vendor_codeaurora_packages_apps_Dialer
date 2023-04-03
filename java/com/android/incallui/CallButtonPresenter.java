@@ -576,10 +576,8 @@ public class CallButtonPresenter
         isVideo
             && call.getState() != DialerCallState.DIALING
             && call.getState() != DialerCallState.CONNECTING;
-    if (otherAccount == null || (otherAccount != null
-        && otherAccount.equals(call.getAccountHandle()))) {
-      otherAccount = TelecomUtil.getOtherAccount(getContext(), call.getAccountHandle());
-   }
+
+    otherAccount = TelecomUtil.getOtherAccount(getContext(), call.getAccountHandle());
     boolean showSwapSim =
         !call.isEmergencyCall()
             && otherAccount != null
