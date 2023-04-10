@@ -33,17 +33,37 @@
 
 package com.android.incallui;
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
+import android.provider.Settings;
 
 import com.android.dialer.common.LogUtil;
 import com.android.incallui.call.DialerCall;
+import com.android.incallui.call.state.DialerCallState;
 import com.android.incallui.InCallPresenter.InCallDetailsListener;
+
+import org.codeaurora.ims.QtiCallConstants;
+import org.codeaurora.ims.QtiImsExtManager;
+import org.codeaurora.ims.QtiImsException;
+import org.codeaurora.ims.utils.QtiImsExtUtils;
 
 /**
  * This class listens to details change from the {@class InCallDetailsListener}.
  * When call details change, this class is notified and dump the call details data.
  */
 public class CallDetailsListener implements InCallDetailsListener {
+
+    private static final String SEND_DATA_CHANNEL_INFO_TEST = "send_data_channel_info_test";
+     /**
+      * Intent action broadcasted when data channel elements(modemCallId and phoneId) are
+      * available for MO.
+      * This broadcast for testing purposes only.
+      */
+    public static final String ACTION_DATA_CHANNEL_INFO =
+       "org.codeaurora.intent.action.DATA_CHANNEL_INFO";
+    private static final int DEFAULT_MODEM_CALL_ID = -1;
+    private boolean isDcInfoSent = false;
 
     /**
      * This method overrides onDetailsChanged method of {@class InCallDetailsListener}.
@@ -70,5 +90,55 @@ public class CallDetailsListener implements InCallDetailsListener {
         }
 
         Log.v(this, "onDetailsChanged - call extras : " + callExtras);
+
+        if (isDcInfoSent && call.getState() != DialerCallState.DIALING) {
+            isDcInfoSent = false;
+            return;
+        }
+
+        if (!isDcInfoSent && call.getState() == DialerCallState.DIALING) {
+            maybeBroadcastDcInfoIntent(call);
+        }
+    }
+
+    private boolean shouldSendDcInfo(Context context) {
+        return context != null ? (Settings.Global.getInt(context.getContentResolver(),
+                    SEND_DATA_CHANNEL_INFO_TEST, 0) == 1) : false;
+    }
+
+    private void maybeBroadcastDcInfoIntent(DialerCall call) {
+        Context cxt = call.getContext();
+        if (cxt == null || !shouldSendDcInfo(cxt)) {
+            Log.v(this, "maybeBroadcastDcInfoIntent - context null or not send DC.");
+            return;
+        }
+        int modemCallId = QtiCallUtils.getDcModemCallId(call);
+        int phoneId = QtiCallUtils.getPhoneId(call);
+        if (modemCallId == DEFAULT_MODEM_CALL_ID ||
+                phoneId == QtiCallConstants.INVALID_PHONE_ID) {
+            Log.v(this, "maybeBroadcastDcInfoIntent - phoneId/modemCallid is invalid.");
+            return;
+        }
+        boolean isDcEnabled = false;
+        try {
+            QtiImsExtManager extMgr = BottomSheetHelper.getInstance().getQtiImsExtManager();
+            isDcEnabled = extMgr != null ? extMgr.isDataChannelEnabled(phoneId) : false;
+        } catch (QtiImsException e) {
+            LogUtil.e("CallDetailsListener.maybeBroadcastDcInfoIntent", "isDataChannelEnabled" + e);
+        }
+        if (!isDcEnabled) {
+            Log.v(this, "maybeBroadcastDcInfoIntent - DC is disabled.");
+            return;
+        }
+        Log.v(this, "maybeBroadcastDcInfoIntent", "modemCallId : " + modemCallId
+                + ", phoneId : " + phoneId + ", isDcEnabled : " + isDcEnabled
+                + ", shouldSendDcInfo : " + shouldSendDcInfo(cxt));
+
+        Intent intent = new Intent(ACTION_DATA_CHANNEL_INFO);
+        intent.putExtra(QtiCallConstants.EXTRA_DATA_CHANNEL_MODEM_CALL_ID,
+                modemCallId);
+        intent.putExtra(QtiImsExtUtils.QTI_IMS_PHONE_ID_EXTRA_KEY, phoneId);
+        cxt.sendBroadcast(intent, "com.qti.permission.RECEIVE_DC_INFO");
+        isDcInfoSent = true;
     }
 }
