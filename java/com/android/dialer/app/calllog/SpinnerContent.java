@@ -80,7 +80,8 @@ public class SpinnerContent {
       for (PhoneAccountHandle acountHandle : counts) {
         String subDisplayName = PhoneAccountUtils.getAccountLabel(context, acountHandle);
         if (!TextUtils.isEmpty(subDisplayName)) {
-          values.add(new SpinnerContent(index, subDisplayName, acountHandle.getId()));
+          values.add(new SpinnerContent(index, subDisplayName + acountHandle.getId(),
+                     acountHandle.getId()));
         }
         ++index;
       }
