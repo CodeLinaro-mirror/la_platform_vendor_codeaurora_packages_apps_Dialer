@@ -115,10 +115,15 @@ public class FetchVoicemailReceiver extends BroadcastReceiver {
               return;
             }
           }
-
+          String componentName = cursor.getString(PHONE_ACCOUNT_COMPONENT_NAME);
+          if (TextUtils.isEmpty(componentName)
+              || ComponentName.unflattenFromString(componentName) == null) {
+            VvmLog.e(TAG, "Component name is null or invalid.");
+            return;
+          }
           phoneAccount =
               new PhoneAccountHandle(
-                  ComponentName.unflattenFromString(cursor.getString(PHONE_ACCOUNT_COMPONENT_NAME)),
+                  ComponentName.unflattenFromString(componentName),
                   cursor.getString(PHONE_ACCOUNT_ID));
           TelephonyManager telephonyManager =
               context
