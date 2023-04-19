@@ -41,6 +41,7 @@ import android.telecom.PhoneAccountHandle;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -371,10 +372,6 @@ public class SpecialCharSequenceMgr {
       ViewGroup holder = customView.findViewById(R.id.deviceids_holder);
 
       if (TelephonyManagerCompat.getPhoneCount(telephonyManager) > 1) {
-        QtiImeiInfo[] qtiImeiInfo = null;
-        if (isServiceConnected()) {
-          qtiImeiInfo = mExtTelephonyManager.getImeiInfo();
-        }
         String deviceId = null;
         for (int slot = 0; slot < telephonyManager.getPhoneCount(); slot++) {
           // Add MEID
@@ -394,19 +391,39 @@ public class SpecialCharSequenceMgr {
           // Add IMEI
           String imei = null;
           boolean isPrimary = false;
-          if (qtiImeiInfo != null) {
-              for (int i = 0; i < qtiImeiInfo.length; i++) {
-                  if (null != qtiImeiInfo[i] && qtiImeiInfo[i].getSlotId() == slot) {
-                      imei = qtiImeiInfo[i].getImei();
-                      if (qtiImeiInfo[i].getImeiType() == QtiImeiInfo.IMEI_TYPE_PRIMARY) {
-                          isPrimary = true;
-                          break;
-                      }
-                  }
+          Pair<Integer, Integer> radioVersion = telephonyManager.getHalVersion(
+              TelephonyManager.HAL_SERVICE_MODEM);
+          int halVersion = makeRadioVersion(radioVersion.first, radioVersion.second);
+          if (halVersion > makeRadioVersion(2, 0)) {
+            imei = telephonyManager.getImei(slot);
+            if (!TextUtils.isEmpty(imei)) {
+              String primaryImei = null;
+              try {
+                  primaryImei = telephonyManager.getPrimaryImei();
+              } catch (Exception e) {
+                  LogUtil.e("SpecialCharSequenceMgr", "PrimaryImei not available.", e);
               }
-          }
-          if (TextUtils.isEmpty(imei)) {
+              isPrimary = (primaryImei != null) && primaryImei.equals(imei.toString());
+            }
+          } else {
+            QtiImeiInfo[] qtiImeiInfo = null;
+            if (isServiceConnected()) {
+              qtiImeiInfo = mExtTelephonyManager.getImeiInfo();
+            }
+            if (qtiImeiInfo != null) {
+              for (int i = 0; i < qtiImeiInfo.length; i++) {
+                if (null != qtiImeiInfo[i] && qtiImeiInfo[i].getSlotId() == slot) {
+                  imei = qtiImeiInfo[i].getImei();
+                  if (qtiImeiInfo[i].getImeiType() == QtiImeiInfo.IMEI_TYPE_PRIMARY) {
+                    isPrimary = true;
+                    break;
+                  }
+                }
+              }
+            }
+            if (TextUtils.isEmpty(imei)) {
               imei = telephonyManager.getImei(slot);
+            }
           }
           if (isPrimary) {
               imei += " (Primary)";
@@ -454,6 +471,11 @@ public class SpecialCharSequenceMgr {
       return true;
     }
     return false;
+  }
+
+  private static int makeRadioVersion(int major, int minor) {
+    if (major < 0 || minor < 0) return 0;
+    return major * 100 + minor;
   }
 
   private static void addDeviceIdRow(

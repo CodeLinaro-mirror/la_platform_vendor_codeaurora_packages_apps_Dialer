@@ -522,7 +522,9 @@ public class CallList implements DialerCallDelegate {
   public DialerCall getActiveOrBackgroundCall() {
     DialerCall call = getActiveCall();
     if (call == null) {
-      call = getBackgroundCall();
+      //If we have multiple held calls, and no active call, the call in
+      //foreground will be the last call which went into held state.
+      call = getBackgroundCalls().size() > 1 ? getLastHeldCall() : getBackgroundCall();
     }
     return call;
   }

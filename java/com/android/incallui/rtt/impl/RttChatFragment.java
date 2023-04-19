@@ -554,6 +554,9 @@ public class RttChatFragment extends Fragment
       case InCallButtonIds.BUTTON_HOLD:
         overflowMenu.enableHoldButton(show);
         return;
+      case InCallButtonIds.BUTTON_SWITCH_TO_SECONDARY:
+        overflowMenu.enableSwitchToSecondaryButton(show);
+        return;
     }
   }
 
