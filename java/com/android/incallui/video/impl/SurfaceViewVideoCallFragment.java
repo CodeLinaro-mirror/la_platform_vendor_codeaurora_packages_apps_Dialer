@@ -267,7 +267,8 @@ public class SurfaceViewVideoCallFragment extends Fragment
         new SpeakerButtonController(speakerButton, inCallButtonUiDelegate, videoCallScreenDelegate);
     switchOnHoldCallController =
         new SwitchOnHoldCallController(
-            switchOnHoldButton, onHoldContainer, inCallScreenDelegate, videoCallScreenDelegate);
+            switchOnHoldButton, onHoldContainer, inCallScreenDelegate, videoCallScreenDelegate,
+                getContext());
 
     videoCallScreenDelegate.initVideoCallScreenDelegate(getContext(), this);
 
