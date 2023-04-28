@@ -16,6 +16,7 @@
 
 package com.android.incallui.video.impl;
 
+import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.view.View;
@@ -23,11 +24,13 @@ import android.view.View.OnClickListener;
 import com.android.dialer.common.Assert;
 import com.android.incallui.incall.protocol.InCallScreenDelegate;
 import com.android.incallui.incall.protocol.SecondaryInfo;
+import com.android.incallui.QtiCallUtils;
 import com.android.incallui.video.protocol.VideoCallScreenDelegate;
 
 /** Manages the swap button and on hold banner. */
 public class SwitchOnHoldCallController implements OnClickListener {
 
+  private final Context context;
   @NonNull private InCallScreenDelegate inCallScreenDelegate;
   @NonNull private VideoCallScreenDelegate videoCallScreenDelegate;
 
@@ -45,12 +48,14 @@ public class SwitchOnHoldCallController implements OnClickListener {
       @NonNull View switchOnHoldButton,
       @NonNull View onHoldBanner,
       @NonNull InCallScreenDelegate inCallScreenDelegate,
-      @NonNull VideoCallScreenDelegate videoCallScreenDelegate) {
+      @NonNull VideoCallScreenDelegate videoCallScreenDelegate,
+      Context context) {
     this.switchOnHoldButton = Assert.isNotNull(switchOnHoldButton);
     switchOnHoldButton.setOnClickListener(this);
     this.onHoldBanner = Assert.isNotNull(onHoldBanner);
     this.inCallScreenDelegate = Assert.isNotNull(inCallScreenDelegate);
     this.videoCallScreenDelegate = Assert.isNotNull(videoCallScreenDelegate);
+    this.context = context;
   }
 
   public void setEnabled(boolean isEnabled) {
@@ -79,6 +84,9 @@ public class SwitchOnHoldCallController implements OnClickListener {
 
   public void updateButtonState() {
     switchOnHoldButton.setEnabled(isEnabled);
+    isVisible = isVisible
+        && !QtiCallUtils.hasVideoCrbtVoLteCall(context)
+        && !QtiCallUtils.hasVideoCrbtVtCall(context);
     switchOnHoldButton.setVisibility(isVisible ? View.VISIBLE : View.GONE);
     onHoldBanner.setVisibility(isVisible ? View.VISIBLE : View.INVISIBLE);
   }
