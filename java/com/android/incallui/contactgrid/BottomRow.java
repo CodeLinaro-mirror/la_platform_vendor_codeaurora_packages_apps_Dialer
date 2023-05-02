@@ -74,7 +74,7 @@ public class BottomRow {
     boolean isTimerVisible = state.state() == DialerCallState.ACTIVE;
     boolean isForwardIconVisible = state.isForwardedNumber();
     boolean isWorkIconVisible = state.isWorkCall();
-    boolean isHdIconVisible = state.isHdAudioCall() && !isForwardIconVisible;
+    boolean isHdIconVisible = state.isHdAudioCall();
     boolean isHdAttemptingIconVisible = state.isHdAttempting();
     boolean isSpamIconVisible = false;
     boolean shouldPopulateAccessibilityEvent = true;
