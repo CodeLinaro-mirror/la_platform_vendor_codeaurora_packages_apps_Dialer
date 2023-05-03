@@ -1519,6 +1519,10 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     return logState.isIncoming;
   }
 
+  public Context getContext() {
+    return context;
+  }
+
   /**
    * Try and determine if the call used assisted dialing.
    *
