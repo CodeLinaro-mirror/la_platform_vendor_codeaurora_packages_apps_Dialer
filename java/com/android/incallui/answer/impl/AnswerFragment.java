@@ -708,6 +708,18 @@ public class AnswerFragment extends Fragment
     updateUI();
   }
 
+  @Override
+  public void updateAnswerScreenSecondaryInfo(boolean shouldAllowAnswerAndRelease) {
+    getArguments().putBoolean(ARG_ALLOW_ANSWER_AND_RELEASE, shouldAllowAnswerAndRelease);
+    if (shouldAllowAnswerAndRelease) {
+      answerAndReleaseButton.setVisibility(View.VISIBLE);
+      answerScreenDelegate.onAnswerAndReleaseButtonEnabled();
+    } else {
+      answerAndReleaseButton.setVisibility(View.INVISIBLE);
+      answerScreenDelegate.onAnswerAndReleaseButtonDisabled();
+    }
+  }
+
   private AnswerMethod getAnswerMethod() {
     return ((AnswerMethod)
         getChildFragmentManager().findFragmentById(R.id.answer_method_container));
