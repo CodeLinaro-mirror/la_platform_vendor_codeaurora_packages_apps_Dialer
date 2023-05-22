@@ -839,6 +839,17 @@ public class VideoCallFragment extends Fragment
   public void optionSelected(@Nullable String text) {
     //Handle bottomsheet clicks here.
     BottomSheetHelper.getInstance().optionSelected(text);
+
+    if (text.equals(getResources().getString(R.string.dialpad_label))) {
+      View container = getView().findViewById(R.id.videocall_dialpad_container);
+      Point previewOffsetStartShown = getPreviewOffsetStartShown();
+      container
+          .animate()
+          .translationX(previewOffsetStartShown.x)
+          .translationY(previewOffsetStartShown.y)
+          .setInterpolator(new AccelerateDecelerateInterpolator())
+          .start();
+    }
   }
 
   @Override
