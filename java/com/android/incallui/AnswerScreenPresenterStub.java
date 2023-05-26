@@ -41,7 +41,7 @@ public class AnswerScreenPresenterStub implements AnswerScreenDelegate {
   public void onSpeakEasyCall() {}
 
   @Override
-  public void onAnswerAndReleaseCall(int videoState) {}
+  public void onAnswerAndReleaseCall() {}
 
   @Override
   public void onAnswerAndReleaseButtonEnabled() {}
