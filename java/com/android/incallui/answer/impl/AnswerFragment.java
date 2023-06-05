@@ -207,6 +207,7 @@ public class AnswerFragment extends Fragment
   private VideoCallScreen answerVideoCallScreen;
   private Handler handler = new Handler(Looper.getMainLooper());
   private boolean isVideoScreenReady = false;
+  private boolean answeringDisconnectsOngoingCall = false;
 
   private enum SecondaryBehavior {
     REJECT_WITH_SMS(
@@ -238,7 +239,7 @@ public class AnswerFragment extends Fragment
         R.string.call_incoming_swipe_to_answer_and_release) {
       @Override
       public void performAction(AnswerFragment fragment) {
-        fragment.performAnswerAndRelease(false);
+        fragment.performAnswerAndRelease();
       }
     };
 
@@ -271,7 +272,7 @@ public class AnswerFragment extends Fragment
     buttonAcceptClicked = true;
   }
 
-  private void performAnswerAndRelease(boolean answerVideoAsAudio) {
+  private void performAnswerAndRelease() {
     restoreAnswerAndReleaseButtonAnimation();
     DialerCall call = QtiCallUtils.getIncomingCall();
     if (call == null) {
@@ -279,11 +280,7 @@ public class AnswerFragment extends Fragment
       return;
     }
 
-    int videoState = (answerVideoAsAudio || (QtiCallUtils.isVideoCrs(call) &&
-        !QtiCallUtils.isVideoCallOriginally(call)))
-            ? VideoProfile.STATE_AUDIO_ONLY
-            : call.getVideoState();
-    answerScreenDelegate.onAnswerAndReleaseCall(videoState);
+    answerScreenDelegate.onAnswerAndReleaseCall();
     buttonAcceptClicked = true;
   }
 
@@ -708,7 +705,8 @@ public class AnswerFragment extends Fragment
   }
 
   @Override
-  public void updateAnswerScreenUi() {
+  public void updateAnswerScreenUi(boolean answeringDisconnects) {
+    answeringDisconnectsOngoingCall = answeringDisconnects;
     updateUI();
   }
 
@@ -721,6 +719,7 @@ public class AnswerFragment extends Fragment
   public void setPrimary(PrimaryInfo primaryInfo) {
     LogUtil.i("AnswerFragment.setPrimary", primaryInfo.toString());
     this.primaryInfo = primaryInfo;
+    answeringDisconnectsOngoingCall = primaryInfo.answeringDisconnectsOngoingCall();
     updatePrimaryUI();
     updateImportanceBadgeVisibility();
   }
@@ -730,7 +729,7 @@ public class AnswerFragment extends Fragment
       return;
     }
     contactGridManager.setPrimary(primaryInfo);
-    getAnswerMethod().setShowIncomingWillDisconnect(primaryInfo.answeringDisconnectsOngoingCall());
+    getAnswerMethod().setShowIncomingWillDisconnect(answeringDisconnectsOngoingCall);
     getAnswerMethod()
         .setContactPhoto(
             primaryInfo.photoType() == ContactPhotoType.CONTACT ? primaryInfo.photo() : null);
@@ -1195,12 +1194,7 @@ public class AnswerFragment extends Fragment
   private void acceptCallByUser(boolean answerVideoAsAudio) {
     LogUtil.i("AnswerFragment.acceptCallByUser", answerVideoAsAudio ? " answerVideoAsAudio" : "");
     if (!buttonAcceptClicked) {
-      DialerCall call = QtiCallUtils.getIncomingCall();
-      if (call != null && call.answeringDisconnectsOtherCall()) {
-        performAnswerAndRelease(answerVideoAsAudio);
-      } else {
-        answerScreenDelegate.onAnswer(answerVideoAsAudio);
-      }
+      answerScreenDelegate.onAnswer(answerVideoAsAudio);
       buttonAcceptClicked = true;
     }
   }

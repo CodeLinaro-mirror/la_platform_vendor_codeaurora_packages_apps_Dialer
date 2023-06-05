@@ -44,5 +44,6 @@ public interface AnswerScreen {
 
   Fragment getAnswerScreenFragment();
 
-  void updateAnswerScreenUi();
+  void updateAnswerScreenUi(boolean answeringDisconnectsOngoingCall);
+
 }
