@@ -211,6 +211,11 @@ public class StatusBarNotifier
   @Override
   public void onIncomingCall(InCallState oldState, InCallState newState, DialerCall call) {
     LogUtil.enterBlock("StatusBarNotifier.onIncomingCall");
+    if (hasMultipleIncomingCalls()) {
+      // If a new incoming call is added move to the nextIncomingCall which will
+      // update visibleIncomingCallIndex so that we show notification for the new call
+      moveToNextIncomingCall();
+    }
     updateNotification();
   }
 
@@ -294,7 +299,7 @@ public class StatusBarNotifier
   }
 
   private boolean hasMultipleIncomingCalls() {
-      return CallList.getInstance().getIncomingCalls().size() > 1;
+    return CallList.getInstance().getIncomingCalls().size() > 1;
   }
 
   /** Sets up the main Ui for the notification */
@@ -333,16 +338,15 @@ public class StatusBarNotifier
       if (ConfigProviderComponent.get(context)
           .getConfigProvider()
           .getBoolean("quiet_incoming_call_if_ui_showing", true)) {
-        // Status bar notifier needs to differentiate between below 2 use cases:
-        // 1. Call 1 (InCallUi) + Call 2 (HUN)
-        // 2. Call 1 (HUN) + Call 2 (HUN)
-        // Between case 1 and case 2, difference is incomingcallcount increases for case 1,
-        // however for case 2, ststus bar notifier is already aware of both incoming calls,
-        // hence second check is needed to show the proper notification type
 
+        // 1. Call#1 (Active/Hold), incoming call Call#2, Call#2 only show in IncallUI,
+        //    not show in HUN
+        // 2. Call#1 (HUN) + Call#2 (HUN), always show Call#1 and Call#2 in HUN
+        // 3. Call#1 (InCallUi), Call#2 (HUN), getCallToShow to determine
+        //    which one should show in HUN.
         notificationType =
             InCallPresenter.getInstance().isShowingInCallUi() &&
-            (callList.getIncomingCalls().size() == savedIncomingCallCount)
+            !hasMultipleIncomingCalls()
                 ? NOTIFICATION_INCOMING_CALL_QUIET
                 : NOTIFICATION_INCOMING_CALL;
       } else {
@@ -941,14 +945,14 @@ public class StatusBarNotifier
       return null;
     }
     DialerCall call = callList.getIncomingCall();
-    // If there are more than one incoming call update notification for the currently visible
-    // incoming call.
-    if(hasMultipleIncomingCalls()) {
-      // If a new incoming call is added move to the nextIncomingCall which will
-      // update visibleIncomingCallIndex so that we show notification for the new call
-      // when IncallActivity is showing.
-      if(InCallPresenter.getInstance().isShowingInCallUi() &&
-          callList.getIncomingCalls().size() > savedIncomingCallCount) {
+
+    if (hasMultipleIncomingCalls()) {
+      //Call#1 (HUN) + Call#2 (HUN)
+      //If select call#1, call#1 will InCallUI, call#2 will show in HUN
+      //If select call#2, call#2 will InCallUI, call#1 will show in HUN
+      if (InCallPresenter.getInstance().isShowingInCallUi()
+              && Objects.equals(
+              callList.getIncomingCalls().get(visibleIncomingCallIndex).getId(), call.getId())) {
         moveToNextIncomingCall();
       }
       call = callList.getIncomingCalls().get(visibleIncomingCallIndex);
