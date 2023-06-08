@@ -656,6 +656,7 @@ public class InCallFragment extends Fragment
         // In case of activity relaunch, the onViewCreate isn't yet called.
         contactGridManager.onMultiWindowModeChanged(isInMultiWindowMode);
     }
+    updateButtonStates();
   }
 
   private Fragment getLocationFragment() {
