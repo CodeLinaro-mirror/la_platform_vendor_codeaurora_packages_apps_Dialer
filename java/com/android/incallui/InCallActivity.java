@@ -61,6 +61,7 @@ import android.view.animation.AnimationUtils;
 import android.widget.CheckBox;
 import android.widget.Toast;
 import com.android.contacts.common.widget.SelectPhoneAccountDialogFragment;
+import com.android.contacts.common.widget.SelectPhoneAccountDialogOptions;
 import com.android.dialer.animation.AnimUtils;
 import com.android.dialer.animation.AnimationListenerAdapter;
 import com.android.dialer.common.Assert;
@@ -445,9 +446,12 @@ public class InCallActivity extends TransactionSafeFragmentActivity
                   waitingForAccountCall.getNumber(),
                   result.getSuggestion().orNull(),
                   result.getDataId().orNull()));
+          SelectPhoneAccountDialogOptions.Builder builder = result.getDialogOptionsBuilder().get();
+          builder.setCallId(callId);
+          builder.setShowDsdsTransitionTextView(true);
           selectPhoneAccountDialogFragment =
               SelectPhoneAccountDialogFragment.newInstance(
-                  result.getDialogOptionsBuilder().get().setCallId(callId).build(),
+                  builder.build(),
                   selectPhoneAccountListener);
           selectPhoneAccountDialogFragment.show(getFragmentManager(), Tags.SELECT_ACCOUNT_FRAGMENT);
         },

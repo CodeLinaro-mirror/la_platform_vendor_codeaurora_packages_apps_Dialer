@@ -207,6 +207,7 @@ public class AnswerFragment extends Fragment
   private VideoCallScreen answerVideoCallScreen;
   private Handler handler = new Handler(Looper.getMainLooper());
   private boolean isVideoScreenReady = false;
+  private boolean answeringDisconnectsOngoingCall = false;
 
   private enum SecondaryBehavior {
     REJECT_WITH_SMS(
@@ -704,7 +705,8 @@ public class AnswerFragment extends Fragment
   }
 
   @Override
-  public void updateAnswerScreenUi() {
+  public void updateAnswerScreenUi(boolean answeringDisconnects) {
+    answeringDisconnectsOngoingCall = answeringDisconnects;
     updateUI();
   }
 
@@ -729,6 +731,7 @@ public class AnswerFragment extends Fragment
   public void setPrimary(PrimaryInfo primaryInfo) {
     LogUtil.i("AnswerFragment.setPrimary", primaryInfo.toString());
     this.primaryInfo = primaryInfo;
+    answeringDisconnectsOngoingCall = primaryInfo.answeringDisconnectsOngoingCall();
     updatePrimaryUI();
     updateImportanceBadgeVisibility();
   }
@@ -738,7 +741,7 @@ public class AnswerFragment extends Fragment
       return;
     }
     contactGridManager.setPrimary(primaryInfo);
-    getAnswerMethod().setShowIncomingWillDisconnect(primaryInfo.answeringDisconnectsOngoingCall());
+    getAnswerMethod().setShowIncomingWillDisconnect(answeringDisconnectsOngoingCall);
     getAnswerMethod()
         .setContactPhoto(
             primaryInfo.photoType() == ContactPhotoType.CONTACT ? primaryInfo.photo() : null);

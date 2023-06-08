@@ -105,7 +105,7 @@
         android:id="@+id/volume_boost"
         android:layout_width="50dp"
         android:layout_height="50dp"
-        android:layout_alignParentTop="true"
+        android:layout_marginTop="150dp"
         android:soundEffectsEnabled="false"
         android:background="@drawable/vb_normal"/>
 
