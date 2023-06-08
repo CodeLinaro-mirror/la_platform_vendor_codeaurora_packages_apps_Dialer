@@ -201,6 +201,7 @@ public class ImsVideoTech implements VideoTech {
             new VideoProfile(unpausedVideoState | VideoProfile.STATE_BIDIRECTIONAL));
     setSessionModificationState(SessionModificationState.WAITING_FOR_UPGRADE_TO_VIDEO_RESPONSE);
     logger.logImpression(DialerImpression.Type.IMS_VIDEO_UPGRADE_REQUESTED);
+    paused = false;
   }
 
 
@@ -215,6 +216,7 @@ public class ImsVideoTech implements VideoTech {
     setSessionModificationState((videoState == VideoProfile.STATE_AUDIO_ONLY)
         ? SessionModificationState.WAITING_FOR_RESPONSE
         : SessionModificationState.WAITING_FOR_UPGRADE_TO_VIDEO_RESPONSE);
+    paused = false;
   }
 
   @Override
@@ -226,6 +228,7 @@ public class ImsVideoTech implements VideoTech {
     // Telecom manages audio route for us
     listener.onUpgradedToVideo(false /* switchToSpeaker */);
     logger.logImpression(DialerImpression.Type.IMS_VIDEO_REQUEST_ACCEPTED);
+    paused = false;
   }
 
   @Override
@@ -244,6 +247,7 @@ public class ImsVideoTech implements VideoTech {
     if (VideoProfile.isVideo(requestedVideoState)) {
       listener.onUpgradedToVideo(false /* switchToSpeaker */);
     }
+    paused = false;
   }
 
   @Override
