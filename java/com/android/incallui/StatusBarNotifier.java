@@ -36,6 +36,7 @@ import static com.android.incallui.NotificationBroadcastReceiver.EXTRA_CALL_ID;
 import android.Manifest;
 import android.app.Notification;
 import android.app.PendingIntent;
+import android.app.Person;
 import android.app.admin.DevicePolicyManager;
 import android.content.Context;
 import android.content.Intent;
@@ -456,16 +457,21 @@ public class StatusBarNotifier
     // Set the content
     builder.setContentText(content);
     builder.setSmallIcon(iconResId);
-    builder.setContentTitle(contentTitle);
-    builder.setLargeIcon(largeIcon);
     builder.setColor(InCallPresenter.getInstance().getThemeColorManager().getPrimaryColor());
 
     if (isVideoUpgradeRequest) {
+      builder.setContentTitle(contentTitle);
+      builder.setLargeIcon(largeIcon);
       builder.setUsesChronometer(false);
       addDismissUpgradeRequestAction(builder);
       addAcceptUpgradeRequestAction(builder);
     } else {
-      createIncomingCallNotification(call, callState, callAudioState, builder);
+      Person person = new Person.Builder()
+          .setIcon(Icon.createWithBitmap(largeIcon))
+          .setImportant(true)
+          .setName(contentTitle)
+          .build();
+      createIncomingCallNotification(call, callState, callAudioState, builder, person);
     }
 
     addPersonReference(builder, contactInfo, call);
@@ -540,22 +546,21 @@ public class StatusBarNotifier
     updateInCallNotification();
   }
 
-  private void createIncomingCallNotification(
-      DialerCall call, int state, CallAudioState callAudioState, Notification.Builder builder) {
+  private void createIncomingCallNotification(DialerCall call, int state,
+      CallAudioState callAudioState, Notification.Builder builder, Person person) {
     setNotificationWhen(call, state, builder);
 
     // Add hang up option for any active calls (active | onhold), outgoing calls (dialing).
     if (state == DialerCallState.ACTIVE
         || state == DialerCallState.ONHOLD
         || DialerCallState.isDialing(state)) {
-      addHangupAction(builder);
+      addHangupAction(builder, person);
       addSpeakerAction(builder, callAudioState);
     } else if (state == DialerCallState.INCOMING || state == DialerCallState.CALL_WAITING) {
-      addDismissAction(builder);
       if (call.isVideoCall() && QtiCallUtils.isVideoCallOriginally(call)) {
-        addVideoCallAction(builder);
+        addDismissAndVideoCallAction(builder, person);
       } else {
-        addAnswerAction(builder);
+        addDismissAndAnswerAction(builder, person);
         addSpeakeasyAnswerAction(builder, call);
       }
       // Add next button when there are more than one incoming call but incall ui is not shown
@@ -1025,19 +1030,18 @@ public class StatusBarNotifier
     return spannable;
   }
 
-  private void addAnswerAction(Notification.Builder builder) {
+  private void addDismissAndAnswerAction(Notification.Builder builder, Person person) {
     LogUtil.d(
-        "StatusBarNotifier.addAnswerAction",
-        "will show \"answer\" action in the incoming call Notification");
+        "StatusBarNotifier.addDismissAndAnswerAction",
+        "will show \"answer\" and \"decline\" actions in the incoming call Notification");
+    PendingIntent declinePendingIntent =
+        createNotificationPendingIntent(context, ACTION_DECLINE_INCOMING_CALL);
     PendingIntent answerVoicePendingIntent =
         createNotificationPendingIntent(context, ACTION_ANSWER_VOICE_INCOMING_CALL);
-    builder.addAction(
-        new Notification.Action.Builder(
-                Icon.createWithResource(context, R.drawable.quantum_ic_call_white_24),
-                getActionText(
-                    R.string.notification_action_answer, R.color.notification_action_accept),
-                answerVoicePendingIntent)
-            .build());
+    builder.setStyle(Notification.CallStyle
+        .forIncomingCall(person, declinePendingIntent, answerVoicePendingIntent)
+        .setAnswerButtonColorHint(R.color.notification_action_accept)
+        .setDeclineButtonColorHint(R.color.notification_action_dismiss));
   }
 
   private void addNextAction(Notification.Builder builder) {
@@ -1097,33 +1101,13 @@ public class StatusBarNotifier
             .build());
   }
 
-  private void addDismissAction(Notification.Builder builder) {
-    LogUtil.d(
-        "StatusBarNotifier.addDismissAction",
-        "will show \"decline\" action in the incoming call Notification");
-    PendingIntent declinePendingIntent =
-        createNotificationPendingIntent(context, ACTION_DECLINE_INCOMING_CALL);
-    builder.addAction(
-        new Notification.Action.Builder(
-                Icon.createWithResource(context, R.drawable.quantum_ic_close_white_24),
-                getActionText(
-                    R.string.notification_action_dismiss, R.color.notification_action_dismiss),
-                declinePendingIntent)
-            .build());
-  }
-
-  private void addHangupAction(Notification.Builder builder) {
-    LogUtil.d(
-        "StatusBarNotifier.addHangupAction",
-        "will show \"hang-up\" action in the ongoing active call Notification");
-    PendingIntent hangupPendingIntent =
-        createNotificationPendingIntent(context, ACTION_HANG_UP_ONGOING_CALL);
-    builder.addAction(
-        new Notification.Action.Builder(
-                Icon.createWithResource(context, R.drawable.quantum_ic_call_end_white_24),
-                context.getText(R.string.notification_action_end_call),
-                hangupPendingIntent)
-            .build());
+  private void addHangupAction(Notification.Builder builder, Person person) {
+      LogUtil.d(
+          "StatusBarNotifier.addHangupAction",
+          "will show \"hang-up\" action in the ongoing active call Notification");
+      PendingIntent hangupPendingIntent =
+          createNotificationPendingIntent(context, ACTION_HANG_UP_ONGOING_CALL);
+      builder.setStyle(Notification.CallStyle.forOngoingCall(person, hangupPendingIntent));
   }
 
   private void addSpeakerAction(Notification.Builder builder, CallAudioState callAudioState) {
@@ -1167,20 +1151,19 @@ public class StatusBarNotifier
             .build());
   }
 
-  private void addVideoCallAction(Notification.Builder builder) {
+  private void addDismissAndVideoCallAction(Notification.Builder builder, Person person) {
     LogUtil.i(
-        "StatusBarNotifier.addVideoCallAction",
-        "will show \"video\" action in the incoming call Notification");
+        "StatusBarNotifier.addDismissAndVideoCallAction",
+        "will show \"video\" and \"decline\" actions in the incoming call Notification");
+    PendingIntent declinePendingIntent =
+        createNotificationPendingIntent(context, ACTION_DECLINE_INCOMING_CALL);
     PendingIntent answerVideoPendingIntent =
         createNotificationPendingIntent(context, ACTION_ANSWER_VIDEO_INCOMING_CALL);
-    builder.addAction(
-        new Notification.Action.Builder(
-                Icon.createWithResource(context, R.drawable.quantum_ic_videocam_vd_white_24),
-                getActionText(
-                    R.string.notification_action_answer_video,
-                    R.color.notification_action_answer_video),
-                answerVideoPendingIntent)
-            .build());
+    builder.setStyle(Notification.CallStyle
+        .forIncomingCall(person, declinePendingIntent, answerVideoPendingIntent)
+        .setIsVideo(true)
+        .setAnswerButtonColorHint(R.color.notification_action_answer_video)
+        .setDeclineButtonColorHint(R.color.notification_action_dismiss));
   }
 
   private void addAcceptUpgradeRequestAction(Notification.Builder builder) {
