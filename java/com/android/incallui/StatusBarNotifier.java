@@ -480,6 +480,14 @@ public class StatusBarNotifier
     // Fire off the notification
     Notification notification = builder.build();
 
+    // Mark the dialing call as "unknown" until the call has started because google introduced
+    // Notification.CallStyle.forIncomingCall/forOngoingCall/forScreeningCall but no interface
+    // introduced for dialing like Notification.CallStyle.forDialingCall.
+    if (DialerCallState.isDialing(callState)) {
+      notification.extras.putInt(Notification.EXTRA_CALL_TYPE,
+          Notification.CallStyle.CALL_TYPE_UNKNOWN);
+    }
+
     if (dialerRingtoneManager.shouldPlayRingtone(callState, contactInfo.contactRingtoneUri)) {
       notification.flags |= Notification.FLAG_INSISTENT;
       notification.sound = contactInfo.contactRingtoneUri;
