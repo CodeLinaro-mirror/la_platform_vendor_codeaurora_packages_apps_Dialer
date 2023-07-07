@@ -28,6 +28,7 @@ import android.support.v4.os.UserManagerCompat;
 import android.telecom.CallAudioState;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.telephony.TelephonyManager;
 import android.widget.Toast;
 import com.android.contacts.common.compat.CallCompat;
 import com.android.dialer.common.Assert;
@@ -78,10 +79,12 @@ public class CallButtonPresenter
   private PhoneAccountHandle otherAccount;
   private static final int MAX_PARTICIPANTS_LIMIT = 6;
   private final PhoneAccountChangedReceiver phoneAccountChangedReceiver;
+  private final TelephonyManager telephonyManager;
 
   public CallButtonPresenter(Context context) {
     this.context = context.getApplicationContext();
     phoneAccountChangedReceiver = new PhoneAccountChangedReceiver(this);
+    telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
   }
 
   @Override
@@ -127,17 +130,8 @@ public class CallButtonPresenter
       call = callList.getOutgoingCall();
     } else if (newState == InCallState.INCALL) {
       call = callList.getActiveOrBackgroundCall();
+      LogUtil.v("CallButtonPresenter.onStateChange", "lastPrimary call: " + call);
 
-      // If we have multiple held calls and no active call, the call in
-      // foreground will be the last call which went into held state.
-      if (call != null && call.getState() == DialerCallState.ONHOLD &&
-          callList.getBackgroundCalls().size() > 1) {
-        DialerCall lastPrimary = callList.getLastHeldCall();
-        LogUtil.v("CallButtonPresenter.onStateChange", "lastPrimary call: " + lastPrimary);
-        if (lastPrimary != null) {
-          call = lastPrimary;
-        }
-      }
       // When connected to voice mail, automatically shows the dialpad.
       // (On previous releases we showed it when in-call shows up, before waiting for
       // OUTGOING.  We may want to do that once we start showing "Voice mail" label on
@@ -576,10 +570,8 @@ public class CallButtonPresenter
         isVideo
             && call.getState() != DialerCallState.DIALING
             && call.getState() != DialerCallState.CONNECTING;
-    if (otherAccount == null || (otherAccount != null
-        && otherAccount.equals(call.getAccountHandle()))) {
-      otherAccount = TelecomUtil.getOtherAccount(getContext(), call.getAccountHandle());
-   }
+
+    otherAccount = TelecomUtil.getOtherAccount(getContext(), call.getAccountHandle());
     boolean showSwapSim =
         !call.isEmergencyCall()
             && otherAccount != null
@@ -619,7 +611,8 @@ public class CallButtonPresenter
                                                      : showMerge);
     inCallButtonUi.showButton(InCallButtonIds.BUTTON_DOWNGRADE_TO_VOICE, showDowngradeRtt);
 
-    boolean showSwitchToSecondary = InCallPresenter.getInstance().getSecondaryCall() != null
+    boolean showSwitchToSecondary = canSwitchToSecondaryCall(call,
+        InCallPresenter.getInstance().getSecondaryCall())
         && !call.hasSentVideoUpgradeRequest();
     boolean enableSwitchToSecondary = showSwitchToSecondary
         && shouldEnableSwapToSecondaryButton(call);
@@ -633,6 +626,23 @@ public class CallButtonPresenter
       BottomSheetHelper.getInstance().updateMap();
     }
     inCallButtonUi.updateButtonStates();
+  }
+
+  /** Helper function to determine whether swap button should be shown
+   *  Only in DSDA or DSDS transition mode, show the swap button if
+   *  calls are across sub.
+   */
+  private boolean canSwitchToSecondaryCall(DialerCall call, DialerCall secondaryCall) {
+    if (call == null || secondaryCall == null) {
+      return false;
+    }
+
+    if (telephonyManager.isDsdaOrDsdsTransitionMode()) {
+        return true;
+    }
+    // if UE is in DSDS but the calls are on different phone accounts
+    // don't allow swap if dsds transition mode is not supported
+    return call.hasSamePhoneAccount(secondaryCall);
   }
 
   private boolean hasVideoCallCapabilities(DialerCall call) {

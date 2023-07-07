@@ -19,6 +19,7 @@ package com.android.incallui;
 import android.support.annotation.NonNull;
 import com.android.dialer.common.Assert;
 import com.android.dialer.common.LogUtil;
+import com.android.incallui.InCallPresenter.InCallDetailsListener;
 import com.android.incallui.InCallPresenter.InCallState;
 import com.android.incallui.InCallPresenter.InCallStateListener;
 import com.android.incallui.InCallPresenter.IncomingCallListener;
@@ -31,7 +32,8 @@ import java.util.Objects;
  * This class is responsible for generating video pause/resume requests when the InCall UI is sent
  * to the background and subsequently brought back to the foreground.
  */
-class VideoPauseController implements InCallStateListener, IncomingCallListener {
+class VideoPauseController implements InCallStateListener, IncomingCallListener,
+    InCallDetailsListener {
   private static VideoPauseController videoPauseController;
   private InCallPresenter inCallPresenter;
 
@@ -98,6 +100,7 @@ class VideoPauseController implements InCallStateListener, IncomingCallListener 
     this.inCallPresenter = Assert.isNotNull(inCallPresenter);
     this.inCallPresenter.addListener(this);
     this.inCallPresenter.addIncomingCallListener(this);
+    this.inCallPresenter.addDetailsListener(this);
   }
 
   /**
@@ -108,6 +111,7 @@ class VideoPauseController implements InCallStateListener, IncomingCallListener 
     LogUtil.enterBlock("VideoPauseController.tearDown");
     inCallPresenter.removeListener(this);
     inCallPresenter.removeIncomingCallListener(this);
+    inCallPresenter.removeDetailsListener(this);
     clear();
   }
 
@@ -158,6 +162,25 @@ class VideoPauseController implements InCallStateListener, IncomingCallListener 
       return;
     }
 
+    maybeBringToForeground(call);
+
+    updatePrimaryCallContext(call);
+  }
+
+  @Override
+  public void onDetailsChanged(DialerCall call, android.telecom.Call.Details details) {
+    LogUtil.v("VideoPauseController.onDetailsChanged", "Call : " + call);
+    if (!Objects.equals(call, primaryCall)) return;
+
+    maybeBringToForeground(call);
+
+    updatePrimaryCallContext(call);
+  }
+
+  private void maybeBringToForeground(DialerCall call) {
+    if (call == null) return;
+
+    boolean canVideoPause = videoCanPause(call);
     if (wasDialing() && canVideoPause && isInBackground) {
       // Bring UI to foreground if outgoing request becomes active while UI is in
       // background.
@@ -167,9 +190,8 @@ class VideoPauseController implements InCallStateListener, IncomingCallListener 
       // background.
       bringToForeground();
     }
-
-    updatePrimaryCallContext(call);
   }
+
 
   /**
    * Handles a change to the primary call.
