@@ -551,7 +551,10 @@ public class VideoCallPresenter
     cancelAutoFullScreen();
 
     InCallPresenter.getInstance().removeListener(this);
-    InCallPresenter.getInstance().removeDetailsListener(this);
+    if (primaryCall != null && primaryCall.getVideoTech().getSessionModificationState()
+            == SessionModificationState.NO_REQUEST) {
+      InCallPresenter.getInstance().removeDetailsListener(this);
+    }
     InCallPresenter.getInstance().removeIncomingCallListener(this);
     InCallPresenter.getInstance().removeOrientationListener(this);
     InCallPresenter.getInstance().removeInCallEventListener(this);
@@ -1127,6 +1130,9 @@ public class VideoCallPresenter
     updateVideoCall(call);
 
     updateCallCache(call);
+    if (isVideoCallScreenUiReady == false) {
+      InCallPresenter.getInstance().removeDetailsListener(this);
+    }
   }
 
   private void updateVideoCall(DialerCall call) {
