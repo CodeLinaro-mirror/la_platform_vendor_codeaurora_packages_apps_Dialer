@@ -27,6 +27,7 @@ import android.support.annotation.VisibleForTesting;
 import android.support.v4.os.BuildCompat;
 import android.support.v4.os.UserManagerCompat;
 import android.telecom.PhoneAccountHandle;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import com.android.dialer.app.calllog.LegacyVoicemailNotifier;
 import com.android.dialer.common.Assert;
@@ -46,6 +47,7 @@ import com.android.voicemail.VoicemailComponent;
 public class LegacyVoicemailNotificationReceiver extends BroadcastReceiver {
 
   @VisibleForTesting static final String LEGACY_VOICEMAIL_DISMISSED = "legacy_voicemail_dismissed";
+  private static final String EXTRA_SUB_ID = "sub_id";
 
   @Override
   public void onReceive(Context context, Intent intent) {
@@ -71,6 +73,7 @@ public class LegacyVoicemailNotificationReceiver extends BroadcastReceiver {
 
     PhoneAccountHandle phoneAccountHandle =
         Assert.isNotNull(intent.getParcelableExtra(TelephonyManager.EXTRA_PHONE_ACCOUNT_HANDLE));
+    int subId = intent.getIntExtra(EXTRA_SUB_ID, SubscriptionManager.INVALID_SUBSCRIPTION_ID);
     int count = intent.getIntExtra(TelephonyManager.EXTRA_NOTIFICATION_COUNT, -1);
 
     boolean isRefresh = intent.getBooleanExtra(TelephonyManagerCompat.EXTRA_IS_REFRESH, false);
@@ -96,7 +99,7 @@ public class LegacyVoicemailNotificationReceiver extends BroadcastReceiver {
 
     if (count == 0) {
       LogUtil.i("LegacyVoicemailNotificationReceiver.onReceive", "clearing notification");
-      LegacyVoicemailNotifier.cancelNotification(context, phoneAccountHandle);
+      LegacyVoicemailNotifier.cancelNotification(context, phoneAccountHandle, subId);
       return;
     }
 
@@ -121,6 +124,7 @@ public class LegacyVoicemailNotificationReceiver extends BroadcastReceiver {
     LegacyVoicemailNotifier.showNotification(
         context,
         phoneAccountHandle,
+        subId,
         count,
         voicemailNumber,
         callVoicemailIntent,

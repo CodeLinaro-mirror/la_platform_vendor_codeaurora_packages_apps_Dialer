@@ -59,6 +59,7 @@ public final class LegacyVoicemailNotifier {
   public static void showNotification(
       @NonNull Context context,
       @NonNull PhoneAccountHandle handle,
+      int subId,
       int count,
       String voicemailNumber,
       PendingIntent callVoicemailIntent,
@@ -85,8 +86,8 @@ public final class LegacyVoicemailNotifier {
             callVoicemailIntent,
             voicemailSettingsIntent,
             isRefresh);
-    DialerNotificationManager.notify(
-        context, getNotificationTag(context, handle), NOTIFICATION_ID, notification);
+    DialerNotificationManager.notify(context, getNotificationTag(context, subId), NOTIFICATION_ID,
+        notification);
   }
 
   @NonNull
@@ -179,7 +180,7 @@ public final class LegacyVoicemailNotifier {
   }
 
   public static void cancelNotification(
-      @NonNull Context context, @NonNull PhoneAccountHandle phoneAccountHandle) {
+      @NonNull Context context, @NonNull PhoneAccountHandle phoneAccountHandle, int subId) {
     LogUtil.enterBlock("LegacyVoicemailNotifier.cancelNotification");
     Assert.checkArgument(BuildCompat.isAtLeastO());
     Assert.isNotNull(phoneAccountHandle);
@@ -193,18 +194,18 @@ public final class LegacyVoicemailNotifier {
       DialerNotificationManager.cancelAll(context, NOTIFICATION_TAG);
     } else {
       DialerNotificationManager.cancel(
-          context, getNotificationTag(context, phoneAccountHandle), NOTIFICATION_ID);
-    }
-  }
+          context, getNotificationTag(context, subId), NOTIFICATION_ID);
+   }
+ }
 
   @NonNull
   private static String getNotificationTag(
-      @NonNull Context context, @NonNull PhoneAccountHandle phoneAccountHandle) {
+      @NonNull Context context, int subId) {
     if (context.getSystemService(TelephonyManager.class).getPhoneCount() <= 1) {
       return NOTIFICATION_TAG;
     }
     return NOTIFICATION_TAG_PREFIX
-        + VoicemailChannelUtils.getHashedPhoneAccountId(phoneAccountHandle);
+        + VoicemailChannelUtils.getHashedSubId(subId);
   }
 
   private LegacyVoicemailNotifier() {}

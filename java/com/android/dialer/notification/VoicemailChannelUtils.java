@@ -70,6 +70,22 @@ public final class VoicemailChannelUtils {
     }
   }
 
+  /**
+   * Returns a String representation of the hashed value of the sub id.
+   * In case it fails to hash the id it will return an empty string.
+   */
+  public static String getHashedSubId(int subId) {
+    byte[] handleBytes = String.valueOf(subId).getBytes(UTF_8);
+    try {
+      byte[] hashedBytes = MessageDigest.getInstance("SHA-256").digest(handleBytes);
+      return byteArrayToHexString(hashedBytes);
+    } catch (NoSuchAlgorithmException e) {
+      LogUtil.e("VoicemailChannelUtils.getHashedPhoneAccountId",
+          "NoSuchAlgorithmException throw! Returning empty string!");
+      return "";
+    }
+  }
+
   @SuppressWarnings("MissingPermission") // isSingleSimDevice() returns true if no permission
   static Set<String> getAllChannelIds(@NonNull Context context) {
     Assert.checkArgument(BuildCompat.isAtLeastO());
