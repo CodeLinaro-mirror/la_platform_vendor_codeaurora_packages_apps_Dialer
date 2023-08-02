@@ -28,6 +28,8 @@
 
 package com.android.incallui;
 
+import android.content.Context;
+import android.telephony.TelephonyManager;
 import com.android.dialer.common.LogUtil;
 import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
@@ -38,23 +40,28 @@ public class AnswerUtils {
 
   private AnswerUtils() {}
 
-  public static void disconnectAllAndAnswer(int videoState, boolean needLaunchUi) {
+  public static void disconnectAllAndAnswer(int videoState, boolean needLaunchUi, Context context) {
     boolean isCallAvailableToDisconnect = false;
     CallList callList = InCallPresenter.getInstance().getCallList();
     if (callList == null || callList.getIncomingCall() == null) {
       LogUtil.i("AnswerUtils.diconnectAllAndAnswer", "no valid call found");
       return;
     }
-    for (DialerCall currentCall : callList.getAllCalls()) {
-      if (DialerCallState.isConnectingOrConnected(currentCall.getState()) &&
-          !(currentCall.getState() == DialerCallState.INCOMING)) {
-        isCallAvailableToDisconnect = true;
-        currentCall.setReleasedByAnsweringSecondCall(true);
-        currentCall.addListener(
-            new AnswerOnDisconnected(currentCall, null, videoState, needLaunchUi, true));
-        if (currentCall.getParentId() == null) {
-          //Send disconnect only for parent calls and not for child calls.
-          currentCall.disconnect();
+
+    TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+    if (!tm.isDsdaOrDsdsTransitionMode()) {
+      LogUtil.i("AnswerUtils.diconnectAllAndAnswer", "disconnecting calls for pseudo-DSDA");
+      for (DialerCall currentCall : callList.getAllCalls()) {
+        if (DialerCallState.isConnectingOrConnected(currentCall.getState()) &&
+            !(currentCall.getState() == DialerCallState.INCOMING)) {
+          isCallAvailableToDisconnect = true;
+          currentCall.setReleasedByAnsweringSecondCall(true);
+          currentCall.addListener(
+              new AnswerOnDisconnected(currentCall, null, videoState, needLaunchUi, true));
+          if (currentCall.getParentId() == null) {
+            //Send disconnect only for parent calls and not for child calls.
+            currentCall.disconnect();
+          }
         }
       }
     }
@@ -74,8 +81,8 @@ public class AnswerUtils {
     }
   }
 
-  public static void disconnectAllAndAnswer(int videoState) {
-    disconnectAllAndAnswer(videoState, false);
+  public static void disconnectAllAndAnswer(int videoState, Context context) {
+    disconnectAllAndAnswer(videoState, false, context);
   }
 
   public static void disconnectAndAnswer(DialerCall callToDisconnect, DialerCall callToAnswer) {
