@@ -224,6 +224,21 @@ public class VideoCallPresenter
      }
   };
 
+  /*UiListener instance to get MT VT preview on CallResume in Screen off mode */
+  private CallList.UiListener mUiListener = new CallList.UiListener() {
+    @Override
+    public void onCallAdded() {
+      //No-op
+    }
+
+    @Override
+    public void onInCallUiShown() {
+      LogUtil.d("VideoCallPresenter.onInCallUiShown",
+         "triggering enableCamera after onresume InCallActivity");
+      enableCamera(primaryCall, isCameraRequired());
+    }
+  };
+
   private void maybeCreateQtiImsExtConnector(Context context) {
     try {
       mQtiImsExtConnector = new QtiImsExtConnector(context,
@@ -500,6 +515,8 @@ public class VideoCallPresenter
     InCallPresenter.getInstance().getLocalVideoSurfaceTexture().setDelegate(new LocalDelegate());
     InCallPresenter.getInstance().getRemoteVideoSurfaceTexture().setDelegate(new RemoteDelegate());
 
+    CallList.getInstance().setUiListener(mUiListener);
+
     // Register for surface and video events from {@link InCallVideoCallListener}s.
     InCallVideoCallCallbackNotifier.getInstance().addSurfaceChangeListener(this);
     mPictureModeHelper.setUp(this);
@@ -513,12 +530,13 @@ public class VideoCallPresenter
         VideoProfile.isVideo(currentVideoState));
 
     Point sourceVideoDimensions = getRemoteVideoSurfaceTexture().getSourceVideoDimensions();
-    if (sourceVideoDimensions != null && primaryCall != null) {
+    if (primaryCall != null) {
       int width = primaryCall.getPeerDimensionWidth();
       int height = primaryCall.getPeerDimensionHeight();
       boolean updated = DialerCall.UNKNOWN_PEER_DIMENSIONS != width
           && DialerCall.UNKNOWN_PEER_DIMENSIONS != height;
-      if (updated && (sourceVideoDimensions.x != width || sourceVideoDimensions.y != height)) {
+      if (updated && (sourceVideoDimensions == null
+          || (sourceVideoDimensions.x != width || sourceVideoDimensions.y != height))) {
         onUpdatePeerDimensions(primaryCall, width, height);
       }
     }
@@ -534,11 +552,16 @@ public class VideoCallPresenter
     cancelAutoFullScreen();
 
     InCallPresenter.getInstance().removeListener(this);
-    InCallPresenter.getInstance().removeDetailsListener(this);
+    if (primaryCall != null && primaryCall.getVideoTech().getSessionModificationState()
+            == SessionModificationState.NO_REQUEST) {
+      InCallPresenter.getInstance().removeDetailsListener(this);
+    }
     InCallPresenter.getInstance().removeIncomingCallListener(this);
     InCallPresenter.getInstance().removeOrientationListener(this);
     InCallPresenter.getInstance().removeInCallEventListener(this);
     InCallPresenter.getInstance().getLocalVideoSurfaceTexture().setDelegate(null);
+
+    CallList.getInstance().setUiListener(null);
 
     InCallVideoCallCallbackNotifier.getInstance().removeSurfaceChangeListener(this);
     InCallVideoCallCallbackNotifier.getInstance().removeVideoEventListener(this);
@@ -1108,6 +1131,9 @@ public class VideoCallPresenter
     updateVideoCall(call);
 
     updateCallCache(call);
+    if (isVideoCallScreenUiReady == false) {
+      InCallPresenter.getInstance().removeDetailsListener(this);
+    }
   }
 
   private void updateVideoCall(DialerCall call) {

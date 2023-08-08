@@ -389,7 +389,7 @@ public class LetterTileDrawable extends Drawable {
      * types of contacts, like voicemail. We keep track of the special case until we encounter a new
      * display name.
      */
-    if (contactType == TYPE_DEFAULT
+    if (contactType == TYPE_DEFAULT && this.contactType == TYPE_DEFAULT
         && ((displayName == null && identifierForTileColor == null)
             || (displayName != null && displayName.equals(this.displayName)))) {
       return this;
