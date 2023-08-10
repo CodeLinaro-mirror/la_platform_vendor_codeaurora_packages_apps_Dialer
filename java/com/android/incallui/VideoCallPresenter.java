@@ -516,12 +516,13 @@ public class VideoCallPresenter
         VideoProfile.isVideo(currentVideoState));
 
     Point sourceVideoDimensions = getRemoteVideoSurfaceTexture().getSourceVideoDimensions();
-    if (sourceVideoDimensions != null && primaryCall != null) {
+    if (primaryCall != null) {
       int width = primaryCall.getPeerDimensionWidth();
       int height = primaryCall.getPeerDimensionHeight();
       boolean updated = DialerCall.UNKNOWN_PEER_DIMENSIONS != width
           && DialerCall.UNKNOWN_PEER_DIMENSIONS != height;
-      if (updated && (sourceVideoDimensions.x != width || sourceVideoDimensions.y != height)) {
+      if (updated && (sourceVideoDimensions == null
+          || (sourceVideoDimensions.x != width || sourceVideoDimensions.y != height))) {
         onUpdatePeerDimensions(primaryCall, width, height);
       }
     }
