@@ -372,6 +372,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     addListener(this.statusBarNotifier);
     addIncomingCallListener(this.statusBarNotifier);
     addInCallEventListener(this.statusBarNotifier);
+    addOrientationListener(this.statusBarNotifier);
     EnrichedCallComponent.get(this.context)
         .getEnrichedCallManager()
         .registerStateChangedListener(this.statusBarNotifier);
@@ -2045,6 +2046,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
         removeListener(statusBarNotifier);
         removeIncomingCallListener(statusBarNotifier);
         removeInCallEventListener(statusBarNotifier);
+        removeOrientationListener(statusBarNotifier);
         EnrichedCallComponent.get(context)
             .getEnrichedCallManager()
             .unregisterStateChangedListener(statusBarNotifier);

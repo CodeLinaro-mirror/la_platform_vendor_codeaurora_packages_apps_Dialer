@@ -209,7 +209,7 @@ public class AnswerScreenPresenter
     int videoState = (answerVideoAsAudio || (QtiCallUtils.isVideoCrs(incomingCall) &&
         !QtiCallUtils.isVideoCallOriginally(incomingCall)))
             ? VideoProfile.STATE_AUDIO_ONLY : incomingCall.getVideoState();
-    AnswerUtils.disconnectAllAndAnswer(videoState);
+    AnswerUtils.disconnectAllAndAnswer(videoState, context);
   }
 
   private void performDisconnectActiveAndAnswer(DialerCall incomingCall) {
