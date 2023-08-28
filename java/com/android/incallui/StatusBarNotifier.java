@@ -806,7 +806,8 @@ public class StatusBarNotifier
       return R.drawable.quantum_ic_phone_paused_vd_theme_24;
     } else if (call.getVideoTech().getSessionModificationState()
             == SessionModificationState.RECEIVED_UPGRADE_TO_VIDEO_REQUEST
-            || (call.isVideoCall() && QtiCallUtils.isVideoCallOriginally(call))) {
+            || (call.isVideoCall() && QtiCallUtils.isVideoCallOriginally(call)
+            && !QtiCallUtils.hasVideoCrbtVoLteCall(context, call))) {
       return R.drawable.quantum_ic_videocam_vd_white_24;
     } else if (call.hasProperty(PROPERTY_HIGH_DEF_AUDIO)
         && MotorolaUtils.shouldShowHdIconInNotification(context)) {
