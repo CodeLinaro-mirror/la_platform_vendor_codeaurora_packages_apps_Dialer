@@ -466,18 +466,15 @@ public class StatusBarNotifier
     builder.setSmallIcon(iconResId);
     builder.setColor(InCallPresenter.getInstance().getThemeColorManager().getPrimaryColor());
 
+    Person person = new Person.Builder()
+        .setIcon(Icon.createWithBitmap(largeIcon))
+        .setImportant(true)
+        .setName(contentTitle)
+        .build();
     if (isVideoUpgradeRequest) {
-      builder.setContentTitle(contentTitle);
-      builder.setLargeIcon(largeIcon);
       builder.setUsesChronometer(false);
-      addDismissUpgradeRequestAction(builder);
-      addAcceptUpgradeRequestAction(builder);
+      createVideoUpgradeRequestNotification(builder, person);
     } else {
-      Person person = new Person.Builder()
-          .setIcon(Icon.createWithBitmap(largeIcon))
-          .setImportant(true)
-          .setName(contentTitle)
-          .build();
       createIncomingCallNotification(call, callState, callAudioState, builder, person);
     }
 
@@ -583,6 +580,19 @@ public class StatusBarNotifier
         addNextAction(builder);
       }
     }
+  }
+
+  private void createVideoUpgradeRequestNotification(Notification.Builder builder, Person person) {
+    LogUtil.i(
+        "StatusBarNotifier.createVideoUpgradeRequestNotification",
+        "will show \"video\" and \"decline\" actions in the incoming call Notification");
+    PendingIntent declineVideoPendingIntent =
+        createNotificationPendingIntent(context, ACTION_DECLINE_VIDEO_UPGRADE_REQUEST);
+    PendingIntent acceptVideoPendingIntent =
+        createNotificationPendingIntent(context, ACTION_ACCEPT_VIDEO_UPGRADE_REQUEST);
+    builder.setStyle(Notification.CallStyle
+        .forIncomingCall(person, declineVideoPendingIntent, acceptVideoPendingIntent)
+        .setIsVideo(true));
   }
 
   /**
@@ -1183,36 +1193,6 @@ public class StatusBarNotifier
         .setIsVideo(true)
         .setAnswerButtonColorHint(R.color.notification_action_answer_video)
         .setDeclineButtonColorHint(R.color.notification_action_dismiss));
-  }
-
-  private void addAcceptUpgradeRequestAction(Notification.Builder builder) {
-    LogUtil.i(
-        "StatusBarNotifier.addAcceptUpgradeRequestAction",
-        "will show \"accept upgrade\" action in the incoming call Notification");
-    PendingIntent acceptVideoPendingIntent =
-        createNotificationPendingIntent(context, ACTION_ACCEPT_VIDEO_UPGRADE_REQUEST);
-    builder.addAction(
-        new Notification.Action.Builder(
-                Icon.createWithResource(context, R.drawable.quantum_ic_videocam_vd_white_24),
-                getActionText(
-                    R.string.notification_action_accept, R.color.notification_action_accept),
-                acceptVideoPendingIntent)
-            .build());
-  }
-
-  private void addDismissUpgradeRequestAction(Notification.Builder builder) {
-    LogUtil.i(
-        "StatusBarNotifier.addDismissUpgradeRequestAction",
-        "will show \"dismiss upgrade\" action in the incoming call Notification");
-    PendingIntent declineVideoPendingIntent =
-        createNotificationPendingIntent(context, ACTION_DECLINE_VIDEO_UPGRADE_REQUEST);
-    builder.addAction(
-        new Notification.Action.Builder(
-                Icon.createWithResource(context, R.drawable.quantum_ic_videocam_vd_white_24),
-                getActionText(
-                    R.string.notification_action_dismiss, R.color.notification_action_dismiss),
-                declineVideoPendingIntent)
-            .build());
   }
 
   /** Adds fullscreen intent to the builder. */
