@@ -78,9 +78,8 @@ public class CallList implements DialerCallDelegate {
   private final Map<String, DialerCall> callById = new ArrayMap<>();
   private final Map<android.telecom.Call, DialerCall> callByTelecomCall = new ArrayMap<>();
   private DialerCall secondaryCall;
-  private DialerCall lastActiveCall;
-  private DialerCall lastHeldCall;
   private String selectedIncomingCall;
+  private ArrayList<DialerCall> heldCallList = new ArrayList<>();
 
   /**
    * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is load factor before
@@ -544,8 +543,24 @@ public class CallList implements DialerCallDelegate {
   }
 
   public DialerCall getLastHeldCall() {
-    return (lastHeldCall != null && !isCallDead(lastHeldCall) &&
-        lastHeldCall.getState() != DialerCallState.DISCONNECTED) ? lastHeldCall : null;
+    for (int i = heldCallList.size() - 1; i >= 0; i--) {
+        DialerCall call = heldCallList.get(i);
+        if (call != null && !isCallDead(call) && call.getState() != DialerCallState.DISCONNECTED) {
+            return call;
+        }
+    }
+    return null; 
+  }
+
+  // Add calls that move into the held state to the end of the list. Remove calls that move out
+  // of the held state from the list.
+  private void updateLastHeldCall(DialerCall call) {
+     if (call.getState() == DialerCallState.ONHOLD && !heldCallList.contains(call)) {
+       heldCallList.add(call);
+     } else if (call.getState() != DialerCallState.ONHOLD && heldCallList.contains(call)) {
+       heldCallList.remove(call);
+     }
+    LogUtil.d("heldcallist", String.valueOf(heldCallList));
   }
 
   public void setSelectedIncomingCall(String id) {
@@ -688,15 +703,10 @@ public class CallList implements DialerCallDelegate {
       // calls doesn't contain the call which received the update.
       return;
     }
-
+    updateLastHeldCall(call);
     if (updateCallInMap(call)) {
       LogUtil.i("CallList.onUpdateCall", String.valueOf(call));
     }
-    if (call == lastActiveCall && call.getState() == DialerCallState.ONHOLD) {
-      lastHeldCall = call;
-    }
-    DialerCall activeCall = getActiveCall();
-    lastActiveCall = activeCall == null ? lastActiveCall: activeCall;
     if (Objects.equals(call.getId(), selectedIncomingCall) &&
         (call.getState() != DialerCallState.INCOMING ||
         call.getState() != DialerCallState.CALL_WAITING)) {
