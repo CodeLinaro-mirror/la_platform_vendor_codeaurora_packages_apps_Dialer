@@ -24,6 +24,10 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui;
@@ -61,6 +65,7 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
     private static final int CALL_REJECT_NO_ANSWER_FROM_USER = 19;
     private static final int CALL_REJECT_SUBSCRIBER_ABSENT = 20;
     private static final int CALL_REJECT_NON_UNIQUE_REASON_CODE = 21;
+    private static final int CALL_REJECT_INVALID_NUMBER_FORMAT = 28;
 
     // Non unique call reject reason text received from network in english.
     private String mCallRejectedReasonFromNw;
@@ -181,6 +186,8 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
     private String getCallInfoCallRejectReason(Bundle callExtras) {
         final int reasonCode = callExtras.getInt(QtiCallConstants.EXTRAS_CALL_PROGRESS_REASON_CODE,
                 QtiCallConstants.CALL_REJECTION_CODE_INVALID);
+        final boolean isCalledPartyRinging = callExtras.getBoolean(
+                QtiCallConstants.EXTRA_IS_CALLED_PARTY_RINGING);
 
         if (reasonCode == QtiCallConstants.CALL_REJECTION_CODE_INVALID) {
             Log.d(this, "getCallInfoCallRejectReason - Received invalid call info reason code" +
@@ -188,13 +195,13 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
             return null;
         }
 
-        String rejectReason = getReasonForUniqueReasonCode(reasonCode);
+        String rejectReason = getReasonForUniqueReasonCode(reasonCode, isCalledPartyRinging);
 
         return rejectReason == null ? getReasonForNonUniqueReasonCode(reasonCode, callExtras) :
                 rejectReason;
     }
 
-    private String getReasonForUniqueReasonCode(int reasonCode) {
+    private String getReasonForUniqueReasonCode(int reasonCode, boolean isCalledPartyRinging) {
         switch (reasonCode) {
             case CALL_REJECT_UNALLOCATED_NUMBER:
                 return mResources.getString(R.string.call_progress_info_unallocated_number);
@@ -203,9 +210,15 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
             case CALL_REJECT_NO_USER_RESPONSDING:
                 return mResources.getString(R.string.call_progress_info_no_user_responding);
             case CALL_REJECT_USER_BUSY:
-                return mResources.getString(R.string.call_progress_info_user_busy);
+                if (isCalledPartyRinging) {
+                    return mResources.getString(R.string.call_progress_info_user_busy_ringing);
+                } else {
+                    return mResources.getString(R.string.call_progress_info_user_busy_preringing);
+                }
             case CALL_REJECT_NO_ANSWER_FROM_USER:
                 return mResources.getString(R.string.call_progress_info_no_answer_from_user);
+            case CALL_REJECT_INVALID_NUMBER_FORMAT:
+                return mResources.getString(R.string.call_progress_info_invalid_number_format);
             default:
                 return null;
         }
