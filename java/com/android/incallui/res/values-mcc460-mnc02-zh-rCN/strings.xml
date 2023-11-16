@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+  SPDX-License-Identifier: BSD-3-Clause-Clear
+  -->
+
+<resources>
+  <!-- Call progress info notification -->
+  <string name="call_progress_info_call_waiting">对方通话中，请不要挂机</string>
+  <string name="call_progress_info_call_forwarding">呼叫已转移</string>
+  <string name="call_progress_info_remote_available">对方已振铃，请等候接通</string>
+
+  <!-- Call progress info call end notification -->
+  <string name="call_progress_info_unallocated_number">您拨打的号码是空号</string>
+  <string name="call_progress_info_subscriber_absent">您拨打的号码已关机</string>
+  <string name="call_progress_info_no_user_responding">您拨打的号码不在服务区</string>
+  <string name="call_progress_info_user_busy_preringing">对方通话中，请稍后再拨</string>
+  <string name="call_progress_info_user_busy_ringing">对方通话中，请稍后再拨</string>
+  <string name="call_progress_info_no_answer_from_user">您拨打的号码暂时无人接听</string>
+  <string name="call_progress_info_invalid_number_format">号码有误，请查证后再拨</string>
+  <string name="call_progress_info_call_rejected">对方通话中，请稍后再拨</string>
+  <string name="call_progress_info_user_call_rejected">您的号码已停机</string>
+  <string name="call_progress_info_nonuser_call_rejected">您拨打的号码已停机</string>
+</resources>

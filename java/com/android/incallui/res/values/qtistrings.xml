@@ -26,6 +26,10 @@ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Changes from Qualcomm Innovation Center are provided under the following license:
+Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+SPDX-License-Identifier: BSD-3-Clause-Clear
   -->
 
 <!-- The xml contains Qti specific resource strings neede for any value added features. -->
@@ -205,8 +209,10 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="call_progress_info_unallocated_number">Unallocated number</string>
     <string name="call_progress_info_subscriber_absent">Subscriber absent</string>
     <string name="call_progress_info_no_user_responding">no user responding</string>
-    <string name="call_progress_info_user_busy">user busy</string>
+    <string name="call_progress_info_user_busy_preringing">user busy</string>
+    <string name="call_progress_info_user_busy_ringing">user busy</string>
     <string name="call_progress_info_no_answer_from_user">no answer from user</string>
+    <string name="call_progress_info_invalid_number_format">Invalid number format</string>
     <string name="call_progress_info_call_rejected">call rejected</string>
     <string name="call_progress_info_user_call_rejected">usr - call rejected</string>
     <string name="call_progress_info_nonuser_call_rejected">nonusr - call rejected</string>
