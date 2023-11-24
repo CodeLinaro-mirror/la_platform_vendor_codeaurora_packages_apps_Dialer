@@ -535,8 +535,9 @@ public final class CallLogListItemViewHolder extends RecyclerView.ViewHolder
 
     switch (callbackAction) {
       case CallbackAction.IMS_VIDEO:
+        // Align the behavior with VoLTE call
         primaryActionButtonView.setTag(
-            IntentProvider.getReturnVideoCallIntentProvider(number, accountHandle));
+            IntentProvider.getReturnVideoCallIntentProvider(number, null));
         primaryActionButtonView.setContentDescription(
             TextUtils.expandTemplate(
                 context.getString(R.string.description_video_call_action), validNameOrNumber));
