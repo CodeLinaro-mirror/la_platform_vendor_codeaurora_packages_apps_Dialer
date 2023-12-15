@@ -21,6 +21,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
+import android.os.UserManager;
 import android.support.annotation.Nullable;
 import android.support.v4.os.BuildCompat;
 import android.telecom.PhoneAccountHandle;
@@ -197,6 +198,13 @@ public class TelephonyManagerCompat {
    * @param secretCode the secret code without the "*#*#" prefix and "#*#*" suffix
    */
   public static void handleSecretCode(Context context, String secretCode) {
+
+    // Must be primary user to use secret code.
+    UserManager userManager = (UserManager) context.getSystemService(Context.USER_SERVICE);
+    if (!userManager.isSystemUser()) {
+      return;
+    }
+
     // Must use system service on O+ to avoid using broadcasts, which are not allowed on O+.
     if (BuildCompat.isAtLeastO()) {
       if (!TelecomUtil.isDefaultDialer(context)) {
