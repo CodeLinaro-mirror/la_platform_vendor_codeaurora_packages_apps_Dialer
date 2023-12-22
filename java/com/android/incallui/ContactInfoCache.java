@@ -85,6 +85,7 @@ public class ContactInfoCache implements OnImageLoadCompleteListener {
   private final Map<String, Set<ContactInfoCacheCallback>> callBacks = new ArrayMap<>();
   private int queryId;
   private final DialerExecutor<CnapInformationWrapper> cachedNumberLookupExecutor;
+  private boolean oemCequintCallerIdContactUpdate = false;
 
   private static class CachedNumberLookupWorker implements Worker<CnapInformationWrapper, Void> {
     @Nullable
@@ -452,6 +453,10 @@ public class ContactInfoCache implements OnImageLoadCompleteListener {
         callerInfo.markAsEmergency(context);
       } else if (existingCacheEntry.isVoicemailNumber) {
         callerInfo.markAsVoiceMail(context);
+      } else if (!callerInfo.contactExists && !oemCequintCallerIdContactUpdate
+              && (callerInfo.namePresentation == TelecomManager.PRESENTATION_ALLOWED)) {
+        Log.d(TAG, "updateName based on above conditions");
+        callerInfo.updateName(existingCacheEntry.namePrimary);
       }
     }
 
@@ -524,6 +529,7 @@ public class ContactInfoCache implements OnImageLoadCompleteListener {
     if (TextUtils.isEmpty(callerInfo.name) && !TextUtils.isEmpty(cequintCallerIdContact.name())) {
       callerInfo.name = cequintCallerIdContact.name();
       hasUpdate = true;
+      oemCequintCallerIdContactUpdate = true;
     }
     if (!TextUtils.isEmpty(cequintCallerIdContact.geolocation())) {
       callerInfo.geoDescription = cequintCallerIdContact.geolocation();
