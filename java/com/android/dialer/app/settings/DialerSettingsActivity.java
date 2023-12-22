@@ -173,7 +173,7 @@ public class DialerSettingsActivity extends AppCompatPreferenceActivity {
         LogUtil.i(
             "DialerSettingsActivity.onBuildHeaders", "No available SIM");
       }
-    } else {
+    } else if (isPrimaryUser) {
       Header phoneAccountSettingsHeader = new Header();
       Intent phoneAccountSettingsIntent = new Intent(TelecomManager.ACTION_CHANGE_PHONE_ACCOUNTS);
       phoneAccountSettingsIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
