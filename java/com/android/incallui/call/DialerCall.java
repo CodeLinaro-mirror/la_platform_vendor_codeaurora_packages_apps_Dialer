@@ -1231,6 +1231,10 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     return getVideoTech().isTransmittingOrReceiving() || VideoProfile.isVideo(getVideoState());
   }
 
+  public boolean isActiveCall() {
+    return getState() == DialerCallState.ACTIVE;
+  }
+
   @TargetApi(28)
   public boolean isActiveRttCall() {
     if (BuildCompat.isAtLeastP()) {
