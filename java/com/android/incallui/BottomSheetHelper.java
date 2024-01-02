@@ -77,6 +77,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    private boolean mIsHideMe = false;
    private Context mContext;
    private DialerCall mCall;
+   private String[][] mMoreOptions;
    private PrimaryCallTracker mPrimaryCallTracker;
    private Resources mResources;
    private static BottomSheetHelper mHelper;
@@ -140,8 +141,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      createQtiImsExtConnector(context);
      mQtiImsExtConnector.connect();
      mResources = context.getResources();
-     final String[][] moreOptions = getMoreOptionsFromRes(R.array.bottom_sheet_more_options);
-     moreOptionsMap = prepareSheetOptions(moreOptions);
+     mMoreOptions = getMoreOptionsFromRes(R.array.bottom_sheet_more_options);
+     moreOptionsMap = prepareSheetOptions(mMoreOptions);
      mPrimaryCallTracker = new PrimaryCallTracker();
      InCallPresenter.getInstance().addListener(mPrimaryCallTracker);
      InCallPresenter.getInstance().addIncomingCallListener(mPrimaryCallTracker);
@@ -167,6 +168,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      mContext = null;
      mResources = null;
      moreOptionsMap = null;
+     mMoreOptions = null;
      mHasSentCancelUpgradeRequest = false;
    }
 
@@ -177,7 +179,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      }
      mCall = mPrimaryCallTracker.getPrimaryCall();
      LogUtil.i("BottomSheetHelper.updateMap","mCall = " + mCall);
-
+     moreOptionsMap = prepareSheetOptions(mMoreOptions);
      if (mCall != null && moreOptionsMap != null && mResources != null) {
        maybeUpdateManageConferenceInMap();
        maybeUpdateAddParticipantInMap();
