@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.calldetails;
@@ -132,7 +136,7 @@ public class CallDetailsEntryViewHolder extends ViewHolder {
         BuildCompat.isAtLeastP()
             && (entry.getFeatures() & Calls.FEATURES_RTT) == Calls.FEATURES_RTT;
 
-    boolean  is4GConferenceEnabledSub = false;
+    boolean  isAdhocConferenceEnabledSub = false;
     SubscriptionManager subManager = context.getSystemService(SubscriptionManager.class);
     if (subManager != null) {
       List<SubscriptionInfo> subInfoList = subManager.getActiveSubscriptionInfoList();
@@ -143,10 +147,10 @@ public class CallDetailsEntryViewHolder extends ViewHolder {
             int slotId = subInfo.getSimSlotIndex();
             int subId = subInfo.getSubscriptionId();
             if (SubscriptionManager.isValidSubscriptionId(subId)) {
-              is4GConferenceEnabledSub = QtiImsExtUtils.isCarrierConfigEnabled(
-                slotId, context, "config_enable_conference_dialer");
+              isAdhocConferenceEnabledSub = QtiImsExtUtils.isCarrierConfigEnabled(
+                slotId, context, "config_enable_conference_dialer_features");
               LogUtil.i("CallDetailsEntryViewHolder.setCallDetails",
-                "is4GConferenceEnabledSub: " + is4GConferenceEnabledSub);
+                "isAdhocConferenceEnabledSub: " + isAdhocConferenceEnabledSub);
             }
             break;
           }
@@ -170,7 +174,7 @@ public class CallDetailsEntryViewHolder extends ViewHolder {
         callTypeHelper.getCallTypeText(callType, isVideoCall, isPulledCall, isDuoCall));
     callTime.setText(CallLogDates.formatDate(context, entry.getDate()));
 
-    if (CallTypeHelper.isMissedCallType(callType) || is4GConferenceEnabledSub) {
+    if (CallTypeHelper.isMissedCallType(callType) || isAdhocConferenceEnabledSub) {
       callDuration.setVisibility(View.GONE);
     } else {
       callDuration.setVisibility(View.VISIBLE);

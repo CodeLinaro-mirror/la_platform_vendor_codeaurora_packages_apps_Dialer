@@ -24,6 +24,10 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui;
@@ -714,7 +718,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    }
 
    private void startAddMultiParticipantActivity() {
-     Intent intent = QtiCallUtils.getAddParticipantsIntent(null);
+     Intent intent =
+         QtiCallUtils.getAddParticipantsIntent(mContext, null, getPhoneId());
      List<String> childCallIdList = (mCall != null) ? mCall.getChildCallIds() : null;
      if (childCallIdList != null) {
        StringBuffer sb = new StringBuffer();
@@ -759,8 +764,9 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
          return;
      }
      try {
-       inCallActivity.startActivityForResult(QtiCallUtils.getAddParticipantsIntent(),
-               QtiCallUtils.REQUEST_ADD_PARTICIPANT);
+       inCallActivity.startActivityForResult(QtiCallUtils.getAddParticipantsIntent(
+           mContext, null, getPhoneId()),
+           QtiCallUtils.REQUEST_ADD_PARTICIPANT);
      } catch (ActivityNotFoundException e) {
        LogUtil.e("BottomSheetHelper.startAddParticipantActivity",
            "Activity not found. Exception = " + e);
