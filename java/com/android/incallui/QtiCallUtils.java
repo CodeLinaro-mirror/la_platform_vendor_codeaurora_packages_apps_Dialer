@@ -535,15 +535,8 @@ public class QtiCallUtils {
             && isVideoRxOnly(call));
     }
 
-    //Checks if CallList has CRBT VoLTE call - an outgoing receive-only video call
     public static boolean hasVideoCrbtVoLteCall(Context context) {
-        if (context == null || !QtiImsExtUtils.isVideoCrbtSupported(
-                    BottomSheetHelper.getInstance().getPhoneId(), context)) {
-            return false;
-        }
-        DialerCall call = CallList.getInstance().getFirstCall();
-        return (call != null && call.getState() == DialerCallState.DIALING
-                && isVideoRxOnly(call));
+        return hasVideoCrbtVoLteCall(context, CallList.getInstance().getFirstCall());
     }
 
     //Checks if CallList has CRBT Video Call. An outgoing bidirectional video call

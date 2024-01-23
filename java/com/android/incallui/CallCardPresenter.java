@@ -743,6 +743,7 @@ public class CallCardPresenter
               .setShouldShowLocation(shouldShowLocation())
               .setShowInCallButtonGrid(true)
               .setNumberPresentation(primary.getNumberPresentation())
+              .setIsSwapDisabled(primary.isSwapDisabled())
               .build());
     } else if (primaryContactInfo != null) {
       LogUtil.v(
@@ -795,6 +796,7 @@ public class CallCardPresenter
               .setMultimediaData(multimediaData)
               .setShowInCallButtonGrid(true)
               .setNumberPresentation(primary.getNumberPresentation())
+              .setIsSwapDisabled(primary.isSwapDisabled())
               .build());
     } else {
       // Clear the primary display info.

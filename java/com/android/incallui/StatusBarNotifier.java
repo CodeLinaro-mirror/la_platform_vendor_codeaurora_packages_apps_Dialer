@@ -456,6 +456,9 @@ public class StatusBarNotifier
           builder.setColorized(true);
           builder.setChannelId(NotificationChannelId.ONGOING_CALL);
         }
+        // CallStyle notifications must be for a foreground service or user initated job
+        // or use a fullScreenIntent.
+        configureFullScreenIntent(builder, createLaunchPendingIntent(true /* isFullScreen */));
         break;
       default:
         break;

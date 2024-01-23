@@ -220,17 +220,12 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
 
    private boolean isModifyCallOptionsVisible() {
      final int primaryCallState = mCall.getState();
-     boolean hideModifyCallOption = false;
-     if (QtiImsExtUtils.isCancelModifyCallSupported(getPhoneId(), mContext)) {
-         hideModifyCallOption = !QtiCallUtils.hasReceiveVideoCapabilities(mCall)
-             && !QtiCallUtils.hasTransmitVideoCapabilities(mCall);
-     }
      return QtiCallUtils.useExt(mContext) && (DialerCallState.ACTIVE == primaryCallState
         || DialerCallState.ONHOLD == primaryCallState)
-        && QtiCallUtils.hasVoiceOrVideoCapabilities(mCall)
+        && (QtiCallUtils.hasTransmitVideoCapabilities(mCall)
+        || QtiCallUtils.hasReceiveVideoCapabilities(mCall))
         && !mCall.hasReceivedVideoUpgradeRequest()
-        && !isCancelModifyCallOptionsVisible()
-        && !hideModifyCallOption;
+        && !isCancelModifyCallOptionsVisible();
    }
 
    private boolean isCancelModifyCallOptionsVisible() {
@@ -368,13 +363,16 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
          return !(activity.isInMultiWindowMode()
            || call.isEmergencyCall()
            || ((DialerCallState.isDialing(primaryCallState) ||
-           DialerCallState.CONNECTING == primaryCallState) &&
+           DialerCallState.CONNECTING == primaryCallState ||
+           DialerCallState.INCOMING == primaryCallState ||
+           DialerCallState.CALL_WAITING == primaryCallState) &&
            !call.isVideoCall())
            || DialerCallState.DISCONNECTING == primaryCallState
            || call.hasSentVideoUpgradeRequest()
            || !(getPhoneIdExtra(call) != QtiCallConstants.INVALID_PHONE_ID))
            || isCancelModifyCallOptionsVisible()
-           || canDisplayAcceptWithTirOptionsButtons();
+           || canDisplayAcceptWithTirOptionsButtons()
+           || canDisplayDeflectOptionsButtons();
        }
      }
      LogUtil.w("BottomSheetHelper shallShowMoreButton","returns false");
@@ -517,12 +515,16 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      inCallActivity.showConferenceFragment(true);
    }
 
-   private void maybeUpdateDeflectInMap() {
+   private boolean canDisplayDeflectOptionsButtons() {
      final boolean showDeflectCall =
          mCall.can(android.telecom.Call.Details.CAPABILITY_SUPPORT_DEFLECT) &&
          !mCall.isVideoCall() && !mCall.hasReceivedVideoUpgradeRequest();
+     return showDeflectCall;
+   }
+
+   private void maybeUpdateDeflectInMap() {
      moreOptionsMap.put(mResources.getString(R.string.qti_description_target_deflect),
-         showDeflectCall);
+         canDisplayDeflectOptionsButtons());
    }
 
    /**
