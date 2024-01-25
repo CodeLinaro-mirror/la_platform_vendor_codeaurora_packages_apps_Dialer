@@ -1837,6 +1837,14 @@ public class VideoCallPresenter
 
     @Override
     public void onSurfaceClick(VideoSurfaceTexture videoCallSurface) {
+      // Set CRBT call not support full screen mode.
+      if (QtiCallUtils.hasVideoCrbtVtCall(context)
+          || QtiCallUtils.hasVideoCrbtVoLteCall(context)) {
+        LogUtil.i(
+            "VideoCallPresenter.RemoteDelegate",
+            "ignore to enter full screen mode for CRBT call.");
+        return;
+      }
       VideoCallPresenter.this.onSurfaceClick();
     }
   }
