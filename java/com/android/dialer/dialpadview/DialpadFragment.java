@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.dialpadview;
@@ -1028,7 +1032,7 @@ public class DialpadFragment extends Fragment
             final MenuItem conferDialerOption
                 = menu.findItem(R.id.menu_add_to_4g_conference_call);
             conferDialerOption.setVisible(
-                QtiCallUtils.showAddTo4gConferenceCallOption(getActivity()));
+                QtiCallUtils.shouldShowAdhocConferenceCallOption(getActivity()));
 
             boolean enable = !isDigitsEmpty();
             for (int i = 0; i < menu.size(); i++) {
@@ -1515,8 +1519,8 @@ public class DialpadFragment extends Fragment
       hideAndClearDialpad();
       return true;
     } else if (resId == R.id.menu_add_to_4g_conference_call) {
-      getActivity().startActivity(QtiCallUtils.getConferenceDialerIntent(
-          digits.getText().toString()));
+      QtiCallUtils.choosePhoneAccountforAdhocConference(getActivity(),
+          digits.getText().toString());
       return true;
     } else {
       return false;
