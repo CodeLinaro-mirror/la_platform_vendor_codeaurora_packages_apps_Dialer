@@ -61,6 +61,9 @@ public abstract class PrimaryCallState {
   @Nullable
   public abstract String connectionLabel();
 
+  @Nullable
+  public abstract String callReason();
+
   public abstract @ColorInt int primaryColor();
 
   @Nullable
@@ -152,6 +155,8 @@ public abstract class PrimaryCallState {
 
     public abstract Builder setConnectionLabel(String connectionLabel);
 
+    public abstract Builder setCallReason(String callReason);
+
     public abstract Builder setSimSuggestionReason(SuggestionProvider.Reason reason);
 
     public abstract Builder setConnectionIcon(Drawable connectionIcon);
@@ -231,6 +236,7 @@ public abstract class PrimaryCallState {
           && sessionModificationState() == callState.sessionModificationState()
           && Objects.equals(disconnectCause(), callState.disconnectCause())
           && Objects.equals(connectionLabel(), callState.connectionLabel())
+          && Objects.equals(callReason(), callState.callReason())
           && primaryColor() == callState.primaryColor()
           && simSuggestionReason() == callState.simSuggestionReason()
           && Objects.equals(connectionIcon(), callState.connectionIcon())
