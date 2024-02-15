@@ -115,6 +115,7 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import org.codeaurora.ims.utils.QtiImsExtUtils;
+import org.codeaurora.ims.QtiCallConstants;
 
 /** Describes a single call and its state. */
 public class DialerCall implements VideoTechListener, StateChangedListener, CapabilitiesListener {
@@ -179,6 +180,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   private String lastForwardedNumber;
   private boolean isCallForwarded;
   private String callSubject;
+  @Nullable private String callReason;
   @Nullable private PhoneAccountHandle phoneAccountHandle;
   @CallHistoryStatus private int callHistoryStatus = CALL_HISTORY_STATUS_UNKNOWN;
 
@@ -864,6 +866,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
        */
       return;
     }
+    LogUtil.d("DialerCall:", String.valueOf(callExtras));
     // Check for a change in the child address and notify any listeners.
     if (callExtras.containsKey(Connection.EXTRA_CHILD_ADDRESS)) {
       String childNumber = callExtras.getString(Connection.EXTRA_CHILD_ADDRESS);
@@ -914,6 +917,11 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
       if (!Objects.equals(this.callSubject, callSubject)) {
         this.callSubject = callSubject;
       }
+    }
+
+    String callReason = callExtras.getString(QtiCallConstants.EXTRA_CALL_REASON);
+    if (!Objects.equals(this.callReason, callReason)) {
+      this.callReason = callReason;
     }
   }
 
@@ -1122,6 +1130,11 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   /** @return The call subject, or {@code null} if none specified. */
   public String getCallSubject() {
     return callSubject;
+  }
+
+  @Nullable
+  public String getCallReason() {
+    return callReason;
   }
 
   /**
