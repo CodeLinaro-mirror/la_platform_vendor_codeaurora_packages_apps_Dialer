@@ -446,13 +446,6 @@ public class CallerInfo {
   public boolean isVoiceMailNumber() {
     return isVoiceMail;
   }
- /**
-  * Mark this CallerInfo name as an CnapName.
-  */
-  public void updateName(String CnapName) {
-    Log.v(TAG, "updating caller name as remote name");
-    name = CnapName;
-  }
 
   /**
    * Mark this CallerInfo as an emergency call.

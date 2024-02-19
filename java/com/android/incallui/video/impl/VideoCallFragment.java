@@ -586,6 +586,7 @@ public class VideoCallFragment extends Fragment
               }
             });
 
+    contactGridManager.setIsMiddleRowVisible(true);
     View contactGridView = contactGridManager.getContainerView();
     // Animate contact grid to the shown state.
     contactGridView
@@ -771,6 +772,7 @@ public class VideoCallFragment extends Fragment
         .setInterpolator(fastOutLinearInInterpolator)
         .alpha(0);
 
+    contactGridManager.setIsMiddleRowVisible(false);
     View contactGridView = contactGridManager.getContainerView();
     // Animate contact grid to the hidden state.
     offset = getContactGridOffsetEndHidden(contactGridView);
