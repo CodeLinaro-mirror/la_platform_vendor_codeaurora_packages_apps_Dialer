@@ -220,6 +220,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   private boolean isVideoCall = false;
   private boolean overwriteDisconnectCause = false;
   private TelecomManager telecomManager;
+  private TelephonyManager telephonyManager;
 
   public static String getNumberFromHandle(Uri handle) {
     return handle == null ? "" : handle.getSchemeSpecificPart();
@@ -466,6 +467,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     id = ID_PREFIX + Integer.toString(idCounter++);
     isRejected = false;
 
+    telephonyManager = context.getSystemService(TelephonyManager.class);
     telecomManager = context.getSystemService(TelecomManager.class);
     // Must be after assigning mTelecomCall
     videoTechManager = new VideoTechManager(this);
@@ -762,14 +764,14 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
           if (phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
               cacheCarrierConfiguration(phoneAccountHandle);
           }
-          final int simAccounts = TelecomUtil.getSubscriptionPhoneAccounts(context).size();
-          if (phoneAccount.getLabel() != null && simAccounts > 1) {
+          final int phoneCount = TelephonyManagerCompat.getPhoneCount(telephonyManager);
+          if (phoneAccount.getLabel() != null && phoneCount > 1) {
               callProviderLabel = phoneAccount.getLabel().toString();
           } else {
               callProviderLabel = "";
           }
 
-          if (phoneAccount.getIcon() != null && simAccounts > 1) {
+          if (phoneAccount.getIcon() != null && phoneCount > 1) {
             callProviderIcon = phoneAccount.getIcon().loadDrawable(context);
           } else {
             callProviderIcon = null;
