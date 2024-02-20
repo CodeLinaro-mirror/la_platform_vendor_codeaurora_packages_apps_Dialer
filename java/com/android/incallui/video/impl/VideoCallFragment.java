@@ -384,6 +384,10 @@ public class VideoCallFragment extends Fragment
             LogUtil.i("VideoCallFragment.onLayoutChange", "previewTextureView layout changed");
             updatePreviewVideoScaling();
             updatePreviewOffView();
+            if ((bottom != oldBottom) && !isInGreenScreenMode && !isInFullscreenMode) {
+              Point previewOffsetStartShown = getPreviewOffsetStartShown();
+              moveAllPreviewRelatedViews(previewOffsetStartShown.x, previewOffsetStartShown.y);
+            }
           }
         });
 
@@ -512,6 +516,18 @@ public class VideoCallFragment extends Fragment
     videoCallScreenDelegate.onVideoCallScreenUiUnready();
   }
 
+  private void moveAllPreviewRelatedViews(int x, int y) {
+    for (View view : getAllPreviewRelatedViews()) {
+      // Animate up with the preview offset above the navigation bar or
+      // animate down with the navigation bar hidden.
+      view.animate()
+          .translationX(x)
+          .translationY(y)
+          .setInterpolator(new AccelerateDecelerateInterpolator())
+          .start();
+    }
+  }
+
   private void exitFullscreenMode() {
     LogUtil.i("VideoCallFragment.exitFullscreenMode", null);
 
@@ -606,14 +622,7 @@ public class VideoCallFragment extends Fragment
     // a fixed position.
     if (!isInGreenScreenMode) {
       Point previewOffsetStartShown = getPreviewOffsetStartShown();
-      for (View view : getAllPreviewRelatedViews()) {
-        // Animate up with the preview offset above the navigation bar.
-        view.animate()
-            .translationX(previewOffsetStartShown.x)
-            .translationY(previewOffsetStartShown.y)
-            .setInterpolator(new AccelerateDecelerateInterpolator())
-            .start();
-      }
+      moveAllPreviewRelatedViews(previewOffsetStartShown.x, previewOffsetStartShown.y);
     }
 
     updateOverlayBackground();
@@ -796,14 +805,7 @@ public class VideoCallFragment extends Fragment
     // In green screen mode we don't need this because the preview takes up the whole screen and has
     // a fixed position.
     if (!isInGreenScreenMode) {
-      for (View view : getAllPreviewRelatedViews()) {
-        // Animate down with the navigation bar hidden.
-        view.animate()
-            .translationX(0)
-            .translationY(0)
-            .setInterpolator(new AccelerateDecelerateInterpolator())
-            .start();
-      }
+      moveAllPreviewRelatedViews(0, 0);
     }
     updateOverlayBackground();
   }
