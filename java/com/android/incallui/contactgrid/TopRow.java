@@ -91,6 +91,11 @@ public class TopRow {
           label = TextUtils.concat(label, " ", spanDisplayNumber(primaryInfo.number()));
         }
       }
+      if (!TextUtils.isEmpty(state.callReason())) {
+        label = TextUtils.concat(label, " \n", state.callReason());
+        labelIsSingleLine = false;
+        LogUtil.d("TopRow: ", state.callReason());
+      }
     } else if (VideoUtils.hasSentVideoUpgradeRequest(state.sessionModificationState())
         || VideoUtils.hasReceivedVideoUpgradeRequest(state.sessionModificationState())) {
       label = getLabelForVideoRequest(context, state);
@@ -116,7 +121,6 @@ public class TopRow {
       // [Wi-Fi icon] Starbucks Wi-Fi
       label = getConnectionLabel(state);
     }
-
     return new Info(label, icon, labelIsSingleLine);
   }
 
