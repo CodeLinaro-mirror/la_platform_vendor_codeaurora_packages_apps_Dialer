@@ -442,6 +442,13 @@ public class CallCardPresenter
     }
   }
 
+  @Override
+  public void onIncomingVideoStateChanged(DialerCall call) {
+    if (primary != null && DialerCall.areSame(primary, call)) {
+      updatePrimaryCallState();
+    }
+  }
+
   private boolean shouldRefreshPrimaryInfo(boolean primaryChanged) {
     if (primary == null) {
       return false;
@@ -543,6 +550,9 @@ public class CallCardPresenter
             .setIsAssistedDialed(primary.isAssistedDialed())
             .setCustomLabel(null)
             .setAssistedDialingExtras(primary.getAssistedDialingExtras())
+            .setIsCrbtReady((primary.getState() == DialerCallState.DIALING
+                || primary.getState() == DialerCallState.CONNECTING)
+                    && primary.isIncomingVideoAvailable())
             .build();
         if (primaryCallState == null || primaryCallState != null
             && !primaryCallState.equals(callState)) {

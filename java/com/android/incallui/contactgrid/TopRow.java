@@ -194,6 +194,11 @@ public class TopRow {
   }
 
   private static CharSequence getLabelForDialing(Context context, PrimaryCallState state) {
+    if ((QtiCallUtils.hasVideoCrbtVoLteCall(context) || QtiCallUtils.hasVideoCrbtVtCall(context))
+        && state.isCrbtReady() && !state.isWifi()) {
+      return context.getString(R.string.incall_video_crbt_call_requesting);
+    }
+
     if (!TextUtils.isEmpty(state.connectionLabel()) && !state.isWifi()) {
       CharSequence label = getCallingViaLabel(context, state);
 

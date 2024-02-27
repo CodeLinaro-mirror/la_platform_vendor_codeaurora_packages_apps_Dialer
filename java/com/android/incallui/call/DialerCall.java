@@ -41,6 +41,7 @@ import android.telecom.Call.Details;
 import android.telecom.Call.RttCall;
 import android.telecom.CallAudioState;
 import android.telecom.Connection;
+import android.telecom.Connection.VideoProvider;
 import android.telecom.DisconnectCause;
 import android.telecom.GatewayInfo;
 import android.telecom.InCallService.VideoCall;
@@ -246,6 +247,14 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   private boolean isCallSubjectSupported;
 
   private boolean isPhoneAccountRttCapable;
+
+  /**
+   * Determines if the incoming video is available. If the call session resume event has been
+   * received (i.e PLAYER_START has been received from lower layers), incoming video is
+   * available. If the call session pause event has been received (i.e PLAYER_STOP has been
+   * received from lower layers), incoming video is not available.
+   */
+  private boolean isIncomingVideoAvailable;
 
   public RttTranscript getRttTranscript() {
     return rttTranscript;
@@ -1054,6 +1063,10 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     this.state = state;
   }
 
+  public boolean isIncomingVideoAvailable() {
+    return isIncomingVideoAvailable;
+  }
+
   private void updateCallTiming(int newState) {
     if (newState == DialerCallState.ACTIVE) {
       if (this.state == DialerCallState.ACTIVE) {
@@ -1659,6 +1672,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
       return;
     }
     setState(DialerCallState.DISCONNECTING);
+    isIncomingVideoAvailable = false;
     for (DialerCallListener listener : listeners) {
       listener.onDialerCallUpdate();
     }
@@ -1811,6 +1825,17 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
 
   @Override
   public void onCallSessionEvent(int event) {
+    switch (event) {
+      case VideoProvider.SESSION_EVENT_RX_PAUSE:
+      case VideoProvider.SESSION_EVENT_RX_RESUME:
+        isIncomingVideoAvailable =
+            event == VideoProvider.SESSION_EVENT_RX_RESUME;
+        LogUtil.i("DialerCall.onCallSessionEvent", "isIncomingVideoAvailable: "
+            + isIncomingVideoAvailable);
+        break;
+      default:
+        break;
+    }
     InCallVideoCallCallbackNotifier.getInstance().callSessionEvent(event);
   }
 
