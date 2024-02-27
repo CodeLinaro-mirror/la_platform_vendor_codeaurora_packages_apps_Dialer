@@ -266,7 +266,7 @@ public class ProximitySensor
 
   @Override
   public void onDetailsChanged(DialerCall call, android.telecom.Call.Details details) {
-    if (call != null) {
+    if (call != null && call.isActiveCall() ) {
       boolean isVideoCall = call.isVideoCall();
       boolean isRttCall = call.isActiveRttCall();
       if (isVideoCall != this.isVideoCall || isRttCall != this.isRttCall) {
