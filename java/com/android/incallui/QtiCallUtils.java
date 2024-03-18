@@ -25,6 +25,10 @@
 * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
 package com.android.incallui;
@@ -335,36 +339,30 @@ public class QtiCallUtils {
     }
 
    /**
-    * Show 4G Conference call menu option if a phone account has adhoc conf capability.
-    * If default outgoing phone account is set, only show the menu option if no conference
-    * call exists on that account, regardless of the adhoc capability of the other account.
+    * Show adhoc conference call menu option if any phone account has adhoc conf capability.
     * @param context of the activity.
-    * @return boolean whether should show 4G conference dialer menu option.
+    * @return boolean whether should show adhoc conference dialer menu option.
     */
-    public static boolean show4gConferenceDialerMenuOption(Context context) {
+    public static boolean shouldShowAdhocConferenceCallOption(Context context) {
         if (!PermissionsUtil.hasPhonePermissions(context) ||
-                !enforceReadPhoneState(context, "show4gConferenceDialerMenuOption")) {
-            Log.i(LOG_TAG, "show4gConferenceDialerMenuOption no phone permissions");
+                !enforceReadPhoneState(context, "shouldShowAdhocConferenceCallOption")) {
+            Log.i(LOG_TAG, "shouldShowAdhocConferenceCallOption no phone permissions");
+            return false;
+        }
+
+        if (hasConferenceCall()) {
+            Log.i(LOG_TAG, "shouldShowAdhocConferenceCallOption ongoing conference call");
             return false;
         }
 
         TelecomManager telecomManager = context.getSystemService(TelecomManager.class);
-        //When default phone account does not have adhoc conference capability, remove the menu
-        //option regardless of whether the other account has the adhoc conference
-        //capability or not.
-        PhoneAccountHandle defaultPhoneAccount = telecomManager.getDefaultOutgoingPhoneAccount(
-                PhoneAccount.SCHEME_TEL);
-        PhoneAccount defaultAccount = telecomManager.getPhoneAccount(defaultPhoneAccount);
-        if (defaultAccount != null &&
-                !defaultAccount.hasCapabilities(PhoneAccount.CAPABILITY_ADHOC_CONFERENCE_CALLING)) {
-            return false;
-        }
+
         for (PhoneAccountHandle accountHandle : telecomManager.getCallCapablePhoneAccounts()) {
             PhoneAccount account = telecomManager.getPhoneAccount(accountHandle);
             if (account != null &&
                     account.hasCapabilities(PhoneAccount.CAPABILITY_ADHOC_CONFERENCE_CALLING)) {
-                Log.d(LOG_TAG, "show4gConferenceDialerMenuOption found" +
-                        " ahoc conf call phoneacc");
+                Log.d(LOG_TAG, "shouldShowAdhocConferenceCallOption found" +
+                        " adhoc conf call phoneacc");
                 return true;
             }
         }
@@ -372,101 +370,100 @@ public class QtiCallUtils {
     }
 
    /**
-    * Show Add to 4G Conference call option in Dialpad menu if at least one SIM is
-    * specific operators SIM and has VoLTE/VT enabled.
+    * Open phone account selection menu if both accounts
+    * support adhoc conference, else pick the adhoc supported one when
+    * default outgoing account is not set.
+    * Pick the default outgoing one if it supports adhoc conference
+    * else show error toast to change default outoging account.
     * @param context of the activity.
-    * @return boolean whether should show add to 4G conference call menu option.
+    * @param string number we want to pass to conference dialer.
+    * @return void.
     */
-    public static boolean showAddTo4gConferenceCallOption(Context context) {
-        if (!PermissionsUtil.hasPhonePermissions(context) || hasConferenceCall()) {
-            return false;
-        }
-        TelephonyManager telephonyManager =
-                (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-        final int phoneCount = telephonyManager.getPhoneCount();
-        for (int i = 0; i < phoneCount; i++) {
-            final boolean isImsRegistered = isImsRegistered(context, i, telephonyManager);
-            Log.i(LOG_TAG, "phoneId = " + i + " isImsRegistered = " + isImsRegistered);
-            if (isImsRegistered && QtiImsExtUtils.isCarrierConfigEnabled(i, context,
-                    "config_enable_conference_dialer")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Open conference uri dialer or 4G conference dialer.
-     * @param context of the activity.
-     * @return void.
-     */
-    public static void openConferenceUriDialerOr4gConferenceDialer(Context context) {
+    public static void choosePhoneAccountforAdhocConference(Context context, String number) {
         if (!PermissionsUtil.hasPhonePermissions(context)) {
             return;
         }
-        boolean shallOpenOperator4gDialer = false;
-        int registeredImsPhoneCount = 0;
+        boolean isOperatorSpecific = false;
+        boolean isVtConferenceSupported = false;
+        TelecomManager telecomManager = context.getSystemService(TelecomManager.class);
         TelephonyManager telephonyManager =
-                (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-        final int phoneCount = telephonyManager.getPhoneCount();
-        for (int i = 0; i < phoneCount; i++) {
-            final boolean isImsRegistered = isImsRegistered(context, i, telephonyManager);
-            Log.i(LOG_TAG, "phoneId = " + i + " isImsRegistered = " + isImsRegistered);
-            if (isImsRegistered) {
-                registeredImsPhoneCount++;
-                if (QtiImsExtUtils.isCarrierConfigEnabled(i, context,
-                        "config_enable_conference_dialer")) {
-                    if (!shallOpenOperator4gDialer) {
-                        shallOpenOperator4gDialer = true;
-                    } else {
-                        //Both two subs have specific operators SIM.
-                        //Need to open the specific operators 4g Dialer.
-                        registeredImsPhoneCount--;
-                    }
+            (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        PhoneAccountHandle defaultPhoneAccount = telecomManager.getDefaultOutgoingPhoneAccount(
+                PhoneAccount.SCHEME_TEL);
+        PhoneAccount defaultAccount = telecomManager.getPhoneAccount(defaultPhoneAccount);
+         if (defaultAccount != null) {
+            if(defaultAccount.hasCapabilities(PhoneAccount.CAPABILITY_ADHOC_CONFERENCE_CALLING)){
+                int phoneId =
+                        SubscriptionManager.getPhoneId
+                        (telephonyManager.getSubIdForPhoneAccount(defaultAccount));
+                context.startActivity(getConferenceDialerIntent(context, number, phoneId));
+            } else {
+                Toast.makeText(context,"Default subscription doesn't support adhoc conference " +
+                        "calling please change default subscription to access conference dialer",
+                        Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            int supportedAdhocConferenceAccounts = 0;
+            int phoneId = -1;
+            for (PhoneAccountHandle accountHandle : telecomManager.getCallCapablePhoneAccounts()) {
+                PhoneAccount account = telecomManager.getPhoneAccount(accountHandle);
+                if (account != null &&
+                        account.hasCapabilities(PhoneAccount.CAPABILITY_ADHOC_CONFERENCE_CALLING)) {
+                    Log.d(LOG_TAG, "show4gConferenceDialerMenuOption found" +
+                            " ahoc conf call phoneacc");
+                    supportedAdhocConferenceAccounts++;
+                    phoneId =
+                            SubscriptionManager.getPhoneId(
+                            telephonyManager.getSubIdForPhoneAccount(account));
                 }
             }
-        }
-        Log.i(LOG_TAG, "registeredImsPhoneCount = " + registeredImsPhoneCount);
-        if((registeredImsPhoneCount < MAX_IMS_PHONE_COUNT) && shallOpenOperator4gDialer) {
-            //Launch 4G conference dialer: Specific Operator reg in IMS and only one sub reg in ims.
-            context.startActivity(getConferenceDialerIntent(null));
-        } else if (shallOpenOperator4gDialer && (registeredImsPhoneCount > 1)) {
-            //Launch user chosen 4G dialer: Specific Operator reg in IMS and another sub
-            //also reg in ims.
-            openUserSelected4GDialer(context);
-        } else {
-            //Launch conference URI dialer: Specific Operator not reg in IMS but other
-            //operator reg in ims.
-            context.startActivity(getConferenceDialerIntent());
+            if(supportedAdhocConferenceAccounts > 1){
+                showPhoneAccountMenuForConferenceDialer(context, telephonyManager, number);
+            } else {
+                context.startActivity(getConferenceDialerIntent(context, number, phoneId));
+            }
         }
     }
 
-    /**
+   /**
     * Open user selected 4G dialer.
     * @param context of the activity.
+    * @param telephony manager object for sdk function.
+    * @param string number we want to pass to conference dialer.
     * @return void.
     */
-    public static void openUserSelected4GDialer(Context context) {
-        Resources resources = context.getResources();
-        CharSequence options[] = new CharSequence[] {
-            resources.getString(R.string.conference_uri_dialer_option),
-            resources.getString(R.string.conference_4g_dialer_option)};
+    public static void showPhoneAccountMenuForConferenceDialer(Context context,
+            TelephonyManager telephonyManager, String number) {
+
+        SubscriptionManager subscriptionManager =
+                (SubscriptionManager) context.getSystemService(
+                Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+        int activeModemCount = telephonyManager.getActiveModemCount();
+        ArrayList<String> subInfoList = new ArrayList<>();
+        ArrayList<Integer> subIdList = new ArrayList<>();
+
+        for (int slotId = 0; slotId < activeModemCount; slotId++) {
+            SubscriptionInfo info = subscriptionManager.
+                    getActiveSubscriptionInfoForSimSlotIndex(slotId);
+            if (info != null) {
+                subInfoList.add(info.getDisplayName().toString());
+                subIdList.add(info.getSubscriptionId());
+            }
+        }
+
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(R.string.select_your_option);
-        builder.setItems(options, new DialogInterface.OnClickListener() {
+        builder.setItems(subInfoList.toArray(new String[0]),
+                new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 //The user clicked on options[which]
                 Log.d(LOG_TAG, "onClick : which option = " + which);
-                if (which == 1) {
-                    //Launch 4G conference dialer.
-                    context.startActivity(getConferenceDialerIntent(null));
-                } else {
-                    //Launch conference URI dialer:
-                    context.startActivity(getConferenceDialerIntent());
-                }
+                context.startActivity(getConferenceDialerIntent(context,
+                        number, SubscriptionManager.getPhoneId(subIdList.get(which))));
+
             }
-            });
+        });
         builder.setNegativeButton(R.string.select_your_4g_dialer_cancel_option,
                 new DialogInterface.OnClickListener() {
             @Override
@@ -479,21 +476,38 @@ public class QtiCallUtils {
     }
 
    /**
-    * get intent to start conference dialer
-    * with this intent, we can originate an conference call
+    * get phoneaccount for a specific phoneid
+    * @param context of the activity.
+    * @param int phoneid.
+    * @return phoneaccount for that particular phoneid.
     */
-    public static Intent getConferenceDialerIntent() {
-        Intent intent = new Intent("org.codeaurora.confuridialer.ACTION_LAUNCH_CONF_URI_DIALER");
-        return intent;
+    private static PhoneAccountHandle getPhoneAccountHandle(Context context, int phoneId){
+        TelecomManager telecomManager = context.getSystemService(TelecomManager.class);
+        TelephonyManager telephonyManager =
+            (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        PhoneAccountHandle phoneAccountHandle = null;
+        for (PhoneAccountHandle accountHandle : telecomManager.getCallCapablePhoneAccounts()) {
+                PhoneAccount account = telecomManager.getPhoneAccount(accountHandle);
+                if(phoneId ==
+                        SubscriptionManager.getPhoneId(
+                        telephonyManager.getSubIdForPhoneAccount(account))) {
+                    phoneAccountHandle = accountHandle;
+                    break;
+                }
+        }
+        return phoneAccountHandle;
     }
 
    /**
     * get intent to start conference dialer
     * with this intent, we can originate an conference call
     */
-    public static Intent getConferenceDialerIntent(String number) {
+    public static Intent getConferenceDialerIntent(Context context,
+                                                   String number, int phoneId) {
         Intent intent = new Intent("org.codeaurora.confdialer.ACTION_LAUNCH_CONF_DIALER");
         intent.putExtra("confernece_number_key", number);
+        intent.putExtra("phone_id", phoneId);
+        intent.putExtra("phone_account_handle", getPhoneAccountHandle(context, phoneId));
         return intent;
     }
 
@@ -501,20 +515,13 @@ public class QtiCallUtils {
     * used to get intent to start conference dialer
     * with this intent, we can add participants to an existing conference call
     */
-    public static Intent getAddParticipantsIntent() {
-        Intent intent = new Intent("org.codeaurora.confuridialer.ACTION_LAUNCH_CONF_URI_DIALER");
-        intent.putExtra("add_participant", true);
-        return intent;
-    }
-
-   /**
-    * used to get intent to start conference dialer
-    * with this intent, we can add participants to an existing conference call
-    */
-    public static Intent getAddParticipantsIntent(String number) {
+    public static Intent getAddParticipantsIntent(Context context,
+                                                  String number, int phoneId) {
         Intent intent = new Intent("org.codeaurora.confdialer.ACTION_LAUNCH_CONF_DIALER");
         intent.putExtra("add_participant", true);
         intent.putExtra("current_participant_list", number);
+        intent.putExtra("phone_id", phoneId);
+        intent.putExtra("phone_account_handle", getPhoneAccountHandle(context, phoneId));
         return intent;
     }
 
@@ -528,15 +535,8 @@ public class QtiCallUtils {
             && isVideoRxOnly(call));
     }
 
-    //Checks if CallList has CRBT VoLTE call - an outgoing receive-only video call
     public static boolean hasVideoCrbtVoLteCall(Context context) {
-        if (context == null || !QtiImsExtUtils.isVideoCrbtSupported(
-                    BottomSheetHelper.getInstance().getPhoneId(), context)) {
-            return false;
-        }
-        DialerCall call = CallList.getInstance().getFirstCall();
-        return (call != null && call.getState() == DialerCallState.DIALING
-                && isVideoRxOnly(call));
+        return hasVideoCrbtVoLteCall(context, CallList.getInstance().getFirstCall());
     }
 
     //Checks if CallList has CRBT Video Call. An outgoing bidirectional video call

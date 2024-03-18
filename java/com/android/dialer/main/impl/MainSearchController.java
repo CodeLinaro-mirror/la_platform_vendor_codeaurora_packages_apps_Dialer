@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.main.impl;
@@ -482,7 +486,7 @@ public class MainSearchController implements SearchBarListener {
       activity.startActivity(intent);
     } else if (menuItem.getItemId() == R.id.menu_4g_conference_call) {
       try {
-        QtiCallUtils.openConferenceUriDialerOr4gConferenceDialer(activity);
+        QtiCallUtils.choosePhoneAccountforAdhocConference(activity, null);
       } catch (ActivityNotFoundException e) {
         LogUtil.e("MainSearchController.onMenuItemClicked", "Activity not found. " + e);
       } finally {

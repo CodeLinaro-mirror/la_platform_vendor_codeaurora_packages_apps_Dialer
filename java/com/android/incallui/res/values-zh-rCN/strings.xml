@@ -114,4 +114,6 @@
   <string name="dialpad_label">显示拨号盘</string>
   <!-- Displayed in the answer call screen for incoming video CRS calls. -->
   <string name="incoming_video_crs_call">正在播放视频彩振</string>
+  <!-- Displayed in the video call screen for starting video CRBT calls. -->
+  <string name="incall_video_crbt_call_requesting">正在播放视频彩铃</string>
 </resources>

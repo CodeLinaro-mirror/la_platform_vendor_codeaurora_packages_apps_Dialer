@@ -85,7 +85,6 @@ public class ContactInfoCache implements OnImageLoadCompleteListener {
   private final Map<String, Set<ContactInfoCacheCallback>> callBacks = new ArrayMap<>();
   private int queryId;
   private final DialerExecutor<CnapInformationWrapper> cachedNumberLookupExecutor;
-  private boolean oemCequintCallerIdContactUpdate = false;
 
   private static class CachedNumberLookupWorker implements Worker<CnapInformationWrapper, Void> {
     @Nullable
@@ -208,7 +207,8 @@ public class ContactInfoCache implements OnImageLoadCompleteListener {
         // network behavior
         displayName = getPresentationString(context, presentation, info.callSubject);
         Log.d(TAG, "  ==> presentation not allowed! displayName = " + displayName);
-      } else if (!TextUtils.isEmpty(info.cnapName)) {
+      } else if (!TextUtils.isEmpty(info.cnapName) &&
+          info.namePresentation == TelecomManager.PRESENTATION_ALLOWED) {
         // No name, but we do have a valid CNAP name, so use that.
         displayName = info.cnapName;
         info.name = info.cnapName;
@@ -406,7 +406,8 @@ public class ContactInfoCache implements OnImageLoadCompleteListener {
         CallerInfoUtils.getCallerInfoForCall(
             context,
             call,
-            new DialerCallCookieWrapper(callId, call.getNumberPresentation(), call.getCnapName()),
+            new DialerCallCookieWrapper(callId, call.getNumberPresentation(), call.getCnapName(),
+            call.getCnapNamePresentation()),
             new FindInfoCallback(isIncoming, queryToken));
     Trace.endSection();
 
@@ -453,10 +454,6 @@ public class ContactInfoCache implements OnImageLoadCompleteListener {
         callerInfo.markAsEmergency(context);
       } else if (existingCacheEntry.isVoicemailNumber) {
         callerInfo.markAsVoiceMail(context);
-      } else if (!callerInfo.contactExists && !oemCequintCallerIdContactUpdate
-              && (callerInfo.namePresentation == TelecomManager.PRESENTATION_ALLOWED)) {
-        Log.d(TAG, "updateName based on above conditions");
-        callerInfo.updateName(existingCacheEntry.namePrimary);
       }
     }
 
@@ -529,7 +526,6 @@ public class ContactInfoCache implements OnImageLoadCompleteListener {
     if (TextUtils.isEmpty(callerInfo.name) && !TextUtils.isEmpty(cequintCallerIdContact.name())) {
       callerInfo.name = cequintCallerIdContact.name();
       hasUpdate = true;
-      oemCequintCallerIdContactUpdate = true;
     }
     if (!TextUtils.isEmpty(cequintCallerIdContact.geolocation())) {
       callerInfo.geoDescription = cequintCallerIdContact.geolocation();
@@ -784,11 +780,14 @@ public class ContactInfoCache implements OnImageLoadCompleteListener {
     final String callId;
     final int numberPresentation;
     final String cnapName;
+    final int namePresentation;
 
-    DialerCallCookieWrapper(String callId, int numberPresentation, String cnapName) {
+    DialerCallCookieWrapper(String callId, int numberPresentation, String cnapName,
+        int namePresentation) {
       this.callId = callId;
       this.numberPresentation = numberPresentation;
       this.cnapName = cnapName;
+      this.namePresentation = namePresentation;
     }
   }
 
@@ -813,6 +812,9 @@ public class ContactInfoCache implements OnImageLoadCompleteListener {
       maybeUpdateFromCequintCallerId(ci, cw.cnapName, isIncoming);
       long time = SystemClock.uptimeMillis() - start;
       Log.d(TAG, "Cequint Caller Id look up takes " + time + " ms.");
+      // Update the cnap information in callerinfo after contact name lookup
+      ci.cnapName = cw.cnapName;
+      ci.namePresentation = cw.namePresentation;
       updateCallerInfoInCacheOnAnyThread(cw.callId, cw.numberPresentation, ci, true, queryToken);
     }
 

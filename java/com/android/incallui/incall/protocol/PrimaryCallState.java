@@ -61,6 +61,9 @@ public abstract class PrimaryCallState {
   @Nullable
   public abstract String connectionLabel();
 
+  @Nullable
+  public abstract String callReason();
+
   public abstract @ColorInt int primaryColor();
 
   @Nullable
@@ -112,6 +115,8 @@ public abstract class PrimaryCallState {
   @Nullable
   public abstract TransformationInfo assistedDialingExtras();
 
+  public abstract boolean isCrbtReady();
+
   public static Builder builder() {
     return new AutoValue_PrimaryCallState.Builder()
         .setState(DialerCallState.IDLE)
@@ -132,7 +137,8 @@ public abstract class PrimaryCallState {
         .setSupportsCallOnHold(true)
         .setSwapToSecondaryButtonState(ButtonState.NOT_SUPPORT)
         .setIsAssistedDialed(false)
-        .setPrimaryColor(0);
+        .setPrimaryColor(0)
+        .setIsCrbtReady(false);
   }
 
   /** Builder class for primary call state info. */
@@ -148,6 +154,8 @@ public abstract class PrimaryCallState {
     public abstract Builder setDisconnectCause(DisconnectCause disconnectCause);
 
     public abstract Builder setConnectionLabel(String connectionLabel);
+
+    public abstract Builder setCallReason(String callReason);
 
     public abstract Builder setSimSuggestionReason(SuggestionProvider.Reason reason);
 
@@ -194,6 +202,8 @@ public abstract class PrimaryCallState {
 
     public abstract Builder setAssistedDialingExtras(TransformationInfo assistedDialingExtras);
 
+    public abstract Builder setIsCrbtReady(boolean isCrbtReady);
+
     abstract PrimaryCallState autoBuild();
 
     public PrimaryCallState build() {
@@ -226,6 +236,7 @@ public abstract class PrimaryCallState {
           && sessionModificationState() == callState.sessionModificationState()
           && Objects.equals(disconnectCause(), callState.disconnectCause())
           && Objects.equals(connectionLabel(), callState.connectionLabel())
+          && Objects.equals(callReason(), callState.callReason())
           && primaryColor() == callState.primaryColor()
           && simSuggestionReason() == callState.simSuggestionReason()
           && Objects.equals(connectionIcon(), callState.connectionIcon())
@@ -247,7 +258,8 @@ public abstract class PrimaryCallState {
           && swapToSecondaryButtonState() == callState.swapToSecondaryButtonState()
           && isAssistedDialed() == callState.isAssistedDialed()
           && Objects.equals(customLabel(), callState.customLabel())
-          && Objects.equals(assistedDialingExtras(), callState.assistedDialingExtras());
+          && Objects.equals(assistedDialingExtras(), callState.assistedDialingExtras())
+          && isCrbtReady() == callState.isCrbtReady();
     }
     return false;
   }

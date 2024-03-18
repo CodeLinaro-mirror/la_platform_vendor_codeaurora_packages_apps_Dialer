@@ -41,6 +41,7 @@ import android.telecom.Call.Details;
 import android.telecom.Call.RttCall;
 import android.telecom.CallAudioState;
 import android.telecom.Connection;
+import android.telecom.Connection.VideoProvider;
 import android.telecom.DisconnectCause;
 import android.telecom.GatewayInfo;
 import android.telecom.InCallService.VideoCall;
@@ -115,6 +116,7 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import org.codeaurora.ims.utils.QtiImsExtUtils;
+import org.codeaurora.ims.QtiCallConstants;
 
 /** Describes a single call and its state. */
 public class DialerCall implements VideoTechListener, StateChangedListener, CapabilitiesListener {
@@ -179,6 +181,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   private String lastForwardedNumber;
   private boolean isCallForwarded;
   private String callSubject;
+  @Nullable private String callReason;
   @Nullable private PhoneAccountHandle phoneAccountHandle;
   @CallHistoryStatus private int callHistoryStatus = CALL_HISTORY_STATUS_UNKNOWN;
 
@@ -220,6 +223,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   private boolean isVideoCall = false;
   private boolean overwriteDisconnectCause = false;
   private TelecomManager telecomManager;
+  private TelephonyManager telephonyManager;
 
   public static String getNumberFromHandle(Uri handle) {
     return handle == null ? "" : handle.getSchemeSpecificPart();
@@ -243,6 +247,14 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   private boolean isCallSubjectSupported;
 
   private boolean isPhoneAccountRttCapable;
+
+  /**
+   * Determines if the incoming video is available. If the call session resume event has been
+   * received (i.e PLAYER_START has been received from lower layers), incoming video is
+   * available. If the call session pause event has been received (i.e PLAYER_STOP has been
+   * received from lower layers), incoming video is not available.
+   */
+  private boolean isIncomingVideoAvailable;
 
   public RttTranscript getRttTranscript() {
     return rttTranscript;
@@ -466,6 +478,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     id = ID_PREFIX + Integer.toString(idCounter++);
     isRejected = false;
 
+    telephonyManager = context.getSystemService(TelephonyManager.class);
     telecomManager = context.getSystemService(TelecomManager.class);
     // Must be after assigning mTelecomCall
     videoTechManager = new VideoTechManager(this);
@@ -762,14 +775,14 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
           if (phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
               cacheCarrierConfiguration(phoneAccountHandle);
           }
-          final int simAccounts = TelecomUtil.getSubscriptionPhoneAccounts(context).size();
-          if (phoneAccount.getLabel() != null && simAccounts > 1) {
+          final int phoneCount = TelephonyManagerCompat.getPhoneCount(telephonyManager);
+          if (phoneAccount.getLabel() != null && phoneCount > 1) {
               callProviderLabel = phoneAccount.getLabel().toString();
           } else {
               callProviderLabel = "";
           }
 
-          if (phoneAccount.getIcon() != null && simAccounts > 1) {
+          if (phoneAccount.getIcon() != null && phoneCount > 1) {
             callProviderIcon = phoneAccount.getIcon().loadDrawable(context);
           } else {
             callProviderIcon = null;
@@ -864,6 +877,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
        */
       return;
     }
+    LogUtil.d("DialerCall:", String.valueOf(callExtras));
     // Check for a change in the child address and notify any listeners.
     if (callExtras.containsKey(Connection.EXTRA_CHILD_ADDRESS)) {
       String childNumber = callExtras.getString(Connection.EXTRA_CHILD_ADDRESS);
@@ -914,6 +928,11 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
       if (!Objects.equals(this.callSubject, callSubject)) {
         this.callSubject = callSubject;
       }
+    }
+
+    String callReason = callExtras.getString(QtiCallConstants.EXTRA_CALL_REASON);
+    if (!Objects.equals(this.callReason, callReason)) {
+      this.callReason = callReason;
     }
   }
 
@@ -1044,6 +1063,10 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     this.state = state;
   }
 
+  public boolean isIncomingVideoAvailable() {
+    return isIncomingVideoAvailable;
+  }
+
   private void updateCallTiming(int newState) {
     if (newState == DialerCallState.ACTIVE) {
       if (this.state == DialerCallState.ACTIVE) {
@@ -1122,6 +1145,11 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   /** @return The call subject, or {@code null} if none specified. */
   public String getCallSubject() {
     return callSubject;
+  }
+
+  @Nullable
+  public String getCallReason() {
+    return callReason;
   }
 
   /**
@@ -1644,6 +1672,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
       return;
     }
     setState(DialerCallState.DISCONNECTING);
+    isIncomingVideoAvailable = false;
     for (DialerCallListener listener : listeners) {
       listener.onDialerCallUpdate();
     }
@@ -1796,6 +1825,17 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
 
   @Override
   public void onCallSessionEvent(int event) {
+    switch (event) {
+      case VideoProvider.SESSION_EVENT_RX_PAUSE:
+      case VideoProvider.SESSION_EVENT_RX_RESUME:
+        isIncomingVideoAvailable =
+            event == VideoProvider.SESSION_EVENT_RX_RESUME;
+        LogUtil.i("DialerCall.onCallSessionEvent", "isIncomingVideoAvailable: "
+            + isIncomingVideoAvailable);
+        break;
+      default:
+        break;
+    }
     InCallVideoCallCallbackNotifier.getInstance().callSessionEvent(event);
   }
 

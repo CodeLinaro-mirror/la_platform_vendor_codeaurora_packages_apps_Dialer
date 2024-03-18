@@ -442,6 +442,13 @@ public class CallCardPresenter
     }
   }
 
+  @Override
+  public void onIncomingVideoStateChanged(DialerCall call) {
+    if (primary != null && DialerCall.areSame(primary, call)) {
+      updatePrimaryCallState();
+    }
+  }
+
   private boolean shouldRefreshPrimaryInfo(boolean primaryChanged) {
     if (primary == null) {
       return false;
@@ -514,6 +521,7 @@ public class CallCardPresenter
             .setConnectionLabel(getConnectionLabel() + (isPrimaryCallActive() ? "  " +
                 (isOutgoingEmergencyCall(primary) ?
                 primary.getNumber() : primaryLocation) : ""))
+            .setCallReason(primary.getCallReason())
             .setPrimaryColor(
                 InCallPresenter.getInstance().getThemeColorManager().getPrimaryColor())
             .setSimSuggestionReason(getSimSuggestionReason())
@@ -542,6 +550,9 @@ public class CallCardPresenter
             .setIsAssistedDialed(primary.isAssistedDialed())
             .setCustomLabel(null)
             .setAssistedDialingExtras(primary.getAssistedDialingExtras())
+            .setIsCrbtReady((primary.getState() == DialerCallState.DIALING
+                || primary.getState() == DialerCallState.CONNECTING)
+                    && primary.isIncomingVideoAvailable())
             .build();
         if (primaryCallState == null || primaryCallState != null
             && !primaryCallState.equals(callState)) {
@@ -742,6 +753,7 @@ public class CallCardPresenter
               .setShouldShowLocation(shouldShowLocation())
               .setShowInCallButtonGrid(true)
               .setNumberPresentation(primary.getNumberPresentation())
+              .setIsSwapDisabled(primary.isSwapDisabled())
               .build());
     } else if (primaryContactInfo != null) {
       LogUtil.v(
@@ -794,6 +806,7 @@ public class CallCardPresenter
               .setMultimediaData(multimediaData)
               .setShowInCallButtonGrid(true)
               .setNumberPresentation(primary.getNumberPresentation())
+              .setIsSwapDisabled(primary.isSwapDisabled())
               .build());
     } else {
       // Clear the primary display info.

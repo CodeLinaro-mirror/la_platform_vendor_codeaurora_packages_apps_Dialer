@@ -24,6 +24,10 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui;
@@ -216,17 +220,12 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
 
    private boolean isModifyCallOptionsVisible() {
      final int primaryCallState = mCall.getState();
-     boolean hideModifyCallOption = false;
-     if (QtiImsExtUtils.isCancelModifyCallSupported(getPhoneId(), mContext)) {
-         hideModifyCallOption = !QtiCallUtils.hasReceiveVideoCapabilities(mCall)
-             && !QtiCallUtils.hasTransmitVideoCapabilities(mCall);
-     }
      return QtiCallUtils.useExt(mContext) && (DialerCallState.ACTIVE == primaryCallState
         || DialerCallState.ONHOLD == primaryCallState)
-        && QtiCallUtils.hasVoiceOrVideoCapabilities(mCall)
+        && (QtiCallUtils.hasTransmitVideoCapabilities(mCall)
+        || QtiCallUtils.hasReceiveVideoCapabilities(mCall))
         && !mCall.hasReceivedVideoUpgradeRequest()
-        && !isCancelModifyCallOptionsVisible()
-        && !hideModifyCallOption;
+        && !isCancelModifyCallOptionsVisible();
    }
 
    private boolean isCancelModifyCallOptionsVisible() {
@@ -364,13 +363,16 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
          return !(activity.isInMultiWindowMode()
            || call.isEmergencyCall()
            || ((DialerCallState.isDialing(primaryCallState) ||
-           DialerCallState.CONNECTING == primaryCallState) &&
+           DialerCallState.CONNECTING == primaryCallState ||
+           DialerCallState.INCOMING == primaryCallState ||
+           DialerCallState.CALL_WAITING == primaryCallState) &&
            !call.isVideoCall())
            || DialerCallState.DISCONNECTING == primaryCallState
            || call.hasSentVideoUpgradeRequest()
            || !(getPhoneIdExtra(call) != QtiCallConstants.INVALID_PHONE_ID))
            || isCancelModifyCallOptionsVisible()
-           || canDisplayAcceptWithTirOptionsButtons();
+           || canDisplayAcceptWithTirOptionsButtons()
+           || canDisplayDeflectOptionsButtons();
        }
      }
      LogUtil.w("BottomSheetHelper shallShowMoreButton","returns false");
@@ -513,12 +515,16 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      inCallActivity.showConferenceFragment(true);
    }
 
-   private void maybeUpdateDeflectInMap() {
+   private boolean canDisplayDeflectOptionsButtons() {
      final boolean showDeflectCall =
          mCall.can(android.telecom.Call.Details.CAPABILITY_SUPPORT_DEFLECT) &&
          !mCall.isVideoCall() && !mCall.hasReceivedVideoUpgradeRequest();
+     return showDeflectCall;
+   }
+
+   private void maybeUpdateDeflectInMap() {
      moreOptionsMap.put(mResources.getString(R.string.qti_description_target_deflect),
-         showDeflectCall);
+         canDisplayDeflectOptionsButtons());
    }
 
    /**
@@ -714,7 +720,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    }
 
    private void startAddMultiParticipantActivity() {
-     Intent intent = QtiCallUtils.getAddParticipantsIntent(null);
+     Intent intent =
+         QtiCallUtils.getAddParticipantsIntent(mContext, null, getPhoneId());
      List<String> childCallIdList = (mCall != null) ? mCall.getChildCallIds() : null;
      if (childCallIdList != null) {
        StringBuffer sb = new StringBuffer();
@@ -759,8 +766,9 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
          return;
      }
      try {
-       inCallActivity.startActivityForResult(QtiCallUtils.getAddParticipantsIntent(),
-               QtiCallUtils.REQUEST_ADD_PARTICIPANT);
+       inCallActivity.startActivityForResult(QtiCallUtils.getAddParticipantsIntent(
+           mContext, null, getPhoneId()),
+           QtiCallUtils.REQUEST_ADD_PARTICIPANT);
      } catch (ActivityNotFoundException e) {
        LogUtil.e("BottomSheetHelper.startAddParticipantActivity",
            "Activity not found. Exception = " + e);
