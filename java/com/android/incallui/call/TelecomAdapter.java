@@ -16,6 +16,8 @@
 
 package com.android.incallui.call;
 
+import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_PHONE_CALL;
+
 import android.annotation.TargetApi;
 import android.app.Notification;
 import android.bluetooth.BluetoothDevice;
@@ -180,7 +182,7 @@ public class TelecomAdapter implements InCallServiceListener {
   public void startForegroundNotification(int id, Notification notification) {
     Assert.isNotNull(
         inCallService, "No inCallService available for starting foreground notification");
-    inCallService.startForeground(id, notification);
+    inCallService.startForeground(id, notification, FOREGROUND_SERVICE_TYPE_PHONE_CALL);
   }
 
   /**
