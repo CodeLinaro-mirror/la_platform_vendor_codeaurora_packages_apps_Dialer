@@ -17,7 +17,10 @@
 package com.android.incallui;
 
 import android.content.Context;
+import android.os.Binder;
 import android.os.SystemClock;
+import android.os.UserHandle;
+import android.os.UserManager;
 import android.support.annotation.FloatRange;
 import android.support.annotation.NonNull;
 import android.support.v4.os.UserManagerCompat;
@@ -268,7 +271,16 @@ public class AnswerScreenPresenter
 
   private boolean isSmsResponseAllowed(DialerCall call) {
     return UserManagerCompat.isUserUnlocked(context)
-        && call.can(android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT);
+        && call.can(android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT)
+        && isSmsResponseAllowedForUser();
+  }
+
+  private boolean isSmsResponseAllowedForUser() {
+    int callingUid = Binder.getCallingUid();
+    UserHandle callingUser = UserHandle.of(UserHandle.getUserId(callingUid));
+    UserManager userManager = context.getSystemService(UserManager.class);
+    return userManager != null
+        && !userManager.hasUserRestriction(UserManager.DISALLOW_SMS, callingUser);
   }
 
   private void addTimeoutCheck() {
