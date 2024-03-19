@@ -554,14 +554,17 @@ public class RttChatFragment extends Fragment
       case InCallButtonIds.BUTTON_HOLD:
         overflowMenu.enableHoldButton(show);
         return;
-      case InCallButtonIds.BUTTON_SWITCH_TO_SECONDARY:
-        overflowMenu.enableSwitchToSecondaryButton(show);
-        return;
     }
   }
 
   @Override
-  public void enableButton(int buttonId, boolean enable) {}
+  public void enableButton(int buttonId, boolean enable) {
+    //Switch to secondary button has separate show/enable calls
+    //from CallButtonPresenter as compared to other buttons.
+    if (buttonId == InCallButtonIds.BUTTON_SWITCH_TO_SECONDARY) {
+      overflowMenu.enableSwitchToSecondaryButton(enable);
+    }
+  }
 
   @Override
   public void setEnabled(boolean on) {}
