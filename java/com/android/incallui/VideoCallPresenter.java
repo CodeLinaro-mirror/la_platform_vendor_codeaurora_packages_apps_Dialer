@@ -1942,6 +1942,7 @@ public class VideoCallPresenter
         }
         InCallPresenter.getInstance()
             .updateSipDtmfMaskToUi(isIncomingVideoAvailableForEarlyMedia());
+        InCallPresenter.getInstance().notifyIncomingVideoStateChanged(primaryCall);
         showVideoUi(
           primaryCall.getVideoState(),
           primaryCall.getState(),
