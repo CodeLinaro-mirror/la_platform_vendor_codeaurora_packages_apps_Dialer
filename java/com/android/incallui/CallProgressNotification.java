@@ -225,13 +225,18 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
     }
 
     private String getReasonForNonUniqueReasonCode(int reasonCode, Bundle callExtras) {
+        if (reasonCode != CALL_REJECT_NON_UNIQUE_REASON_CODE) {
+            Log.d(this, "getReasonForNonUniqueReasonCode - invalid reason code from network");
+            return null;
+        }
+
         String reasonText = callExtras.getString(
                 QtiCallConstants.EXTRAS_CALL_PROGRESS_REASON_TEXT, null);
 
-        if (reasonText == null || reasonCode != CALL_REJECT_NON_UNIQUE_REASON_CODE) {
-            Log.d(this, "getReasonForNonUniqueReasonCode - Received invalid call info reason text" +
-                    " or invalid reason code from network");
-            return null;
+        if (reasonText == null ) {
+            Log.d(this, "getReasonForNonUniqueReasonCode - valid reason code but text is null" +
+                    "set reason text as 'call rejected' ");
+            return mResources.getString(R.string.call_progress_info_call_rejected);
         }
 
         //Remove trailing/leading white spaces in string
