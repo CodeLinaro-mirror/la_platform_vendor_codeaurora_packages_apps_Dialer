@@ -112,6 +112,8 @@ public abstract class PrimaryCallState {
   @Nullable
   public abstract TransformationInfo assistedDialingExtras();
 
+  public abstract boolean isCrbtReady();
+
   public static Builder builder() {
     return new AutoValue_PrimaryCallState.Builder()
         .setState(DialerCallState.IDLE)
@@ -132,7 +134,8 @@ public abstract class PrimaryCallState {
         .setSupportsCallOnHold(true)
         .setSwapToSecondaryButtonState(ButtonState.NOT_SUPPORT)
         .setIsAssistedDialed(false)
-        .setPrimaryColor(0);
+        .setPrimaryColor(0)
+        .setIsCrbtReady(false);
   }
 
   /** Builder class for primary call state info. */
@@ -194,6 +197,8 @@ public abstract class PrimaryCallState {
 
     public abstract Builder setAssistedDialingExtras(TransformationInfo assistedDialingExtras);
 
+    public abstract Builder setIsCrbtReady(boolean isCrbtReady);
+
     abstract PrimaryCallState autoBuild();
 
     public PrimaryCallState build() {
@@ -247,7 +252,8 @@ public abstract class PrimaryCallState {
           && swapToSecondaryButtonState() == callState.swapToSecondaryButtonState()
           && isAssistedDialed() == callState.isAssistedDialed()
           && Objects.equals(customLabel(), callState.customLabel())
-          && Objects.equals(assistedDialingExtras(), callState.assistedDialingExtras());
+          && Objects.equals(assistedDialingExtras(), callState.assistedDialingExtras())
+          && isCrbtReady() == callState.isCrbtReady();
     }
     return false;
   }
