@@ -19,7 +19,7 @@
 
   <uses-sdk
       android:minSdkVersion="24"
-      android:targetSdkVersion="33"/>
+      android:targetSdkVersion="34"/>
 
   <uses-permission android:name="android.permission.CONTROL_INCALL_EXPERIENCE"/>
   <!-- We use this to disable the status bar buttons of home, back and recent
@@ -30,6 +30,7 @@
   <uses-permission android:name="android.permission.CAMERA"/>
 
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
 
   <!-- Warning: setting the required boolean to true would prevent installation of Dialer on
        devices which do not support a camera. -->
@@ -86,6 +87,7 @@
         android:directBootAware="true"
         android:exported="true"
         android:name="com.android.incallui.InCallServiceImpl"
+        android:foregroundServiceType="phoneCall"
         android:permission="android.permission.BIND_INCALL_SERVICE">
       <meta-data
           android:name="android.telecom.IN_CALL_SERVICE_UI"

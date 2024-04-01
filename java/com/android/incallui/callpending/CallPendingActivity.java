@@ -118,7 +118,8 @@ public class CallPendingActivity extends FragmentActivity
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.pending_incall_screen);
-    registerReceiver(finishReceiver, new IntentFilter(ACTION_FINISH_BROADCAST));
+    registerReceiver(finishReceiver, new IntentFilter(ACTION_FINISH_BROADCAST),
+            Context.RECEIVER_NOT_EXPORTED);
   }
 
   @Override

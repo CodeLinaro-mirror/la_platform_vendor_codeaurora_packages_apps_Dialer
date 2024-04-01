@@ -71,7 +71,8 @@ public class StatusSmsFetcher extends BroadcastReceiver implements Closeable {
     this.phoneAccountHandle = phoneAccountHandle;
     IntentFilter filter = new IntentFilter(ACTION_REQUEST_SENT_INTENT);
     filter.addAction(OmtpService.ACTION_SMS_RECEIVED);
-    context.registerReceiver(this, filter, PERMISSION_DIALER_ORIGIN, /* scheduler= */ null);
+    context.registerReceiver(this, filter, PERMISSION_DIALER_ORIGIN, /* scheduler= */ null,
+            Context.RECEIVER_NOT_EXPORTED);
   }
 
   @Override
