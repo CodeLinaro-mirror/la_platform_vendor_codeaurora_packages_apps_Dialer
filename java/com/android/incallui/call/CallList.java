@@ -222,6 +222,14 @@ public class CallList implements DialerCallDelegate {
       }
       onUpdateCall(call);
       notifyGenericListeners();
+      // If a call in disconnected state is added and InCall UI is already
+      // started, notify onDisconnect so that call end dialog can be shown.
+      // If activity is not started, it will be taken care in InCallPresenter.updateActivity()
+      if (call.getState() == DialerCallState.DISCONNECTED &&
+          InCallPresenter.getInstance().isActivityStarted()) {
+        LogUtil.i("CallList.onCallAdded", "Disconnected call added after UI started");
+        notifyListenersOfDisconnect(call);
+      }
     }
 
     if (call.getState() != DialerCallState.INCOMING) {
