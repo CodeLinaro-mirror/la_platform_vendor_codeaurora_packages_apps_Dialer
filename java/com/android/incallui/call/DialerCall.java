@@ -296,6 +296,11 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
               // variable if call is a conference call.
               wasConferenceCall = true;
           }
+          // Check for network identified emergency call.
+           if (!isEmergencyCall && hasProperty(
+               Call.Details.PROPERTY_NETWORK_IDENTIFIED_EMERGENCY_CALL)) {
+            isEmergencyCall = true;
+          }
           updateFromTelecomCall();
           // Avoid dual registration of telecom call back,
           // and remove registration from InCallPresenter.
@@ -750,8 +755,8 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
 
     updateFromCallExtras(telecomCall.getDetails().getExtras());
 
-    // If the handle of the call has changed, update state for the call determining if it is an
-    // emergency call.
+    // If the handle of the call has changed, update state for the call
+    // determining if it is an emergency call.
     Uri newHandle = telecomCall.getDetails().getHandle();
     if (!Objects.equals(handle, newHandle)) {
       handle = newHandle;
