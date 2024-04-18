@@ -357,6 +357,8 @@ public class ContactInfoCache implements OnImageLoadCompleteListener {
     Set<ContactInfoCacheCallback> callBacks = this.callBacks.get(callId);
 
     // We need to force a new query if phone number has changed.
+    // We also need to force a query if the call was redialed
+    // as an emergency call and the cache wasn't updated.
     boolean forceQuery = needForceQuery(call, cacheEntry);
     Trace.endSection();
     Log.d(TAG, "findInfo: callId = " + callId + "; forceQuery = " + forceQuery);
@@ -732,6 +734,10 @@ public class ContactInfoCache implements OnImageLoadCompleteListener {
       return contactLookupResult == ContactLookupResult.Type.LOCAL_CONTACT;
     }
 
+    public boolean getIsEmergencyNumber() {
+      return isEmergencyNumber;
+    }
+
     @Override
     public String toString() {
       return "ContactCacheEntry{"
@@ -947,6 +953,10 @@ public class ContactInfoCache implements OnImageLoadCompleteListener {
 
     if (!TextUtils.equals(oldPhoneNumber, newPhoneNumber)) {
       Log.d(TAG, "phone number has changed: " + oldPhoneNumber + " -> " + newPhoneNumber);
+      return true;
+    }
+
+    if (call.isEmergencyCall() && !cacheEntry.isEmergencyNumber) {
       return true;
     }
 

@@ -505,6 +505,14 @@ public class CallCardPresenter
 
       String label = getLabelWithLocation();
       String primaryLocation = getPrimaryInfoLocation(primaryContactInfo);
+      // If the primary call is an outgoing emergency call but the cache wasn't
+      // updated, update ContactInfoCache so emergency UI is correctly displayed
+      // even if we get the emergency number list late.
+      if (primary.isEmergencyCall() && !primaryContactInfo.getIsEmergencyNumber()) {
+          LogUtil.d("CallCardPresenter.updatePrimaryCallState",
+                    "Starting query to update contact info.");
+          maybeStartSearch(this.primary, true);
+      }
 
       // Check for video state change and update the visibility of the contact photo.  The contact
       // photo is hidden when the incoming video surface is shown.
