@@ -398,8 +398,8 @@ public class QtiCallUtils {
                         (telephonyManager.getSubIdForPhoneAccount(defaultAccount));
                 context.startActivity(getConferenceDialerIntent(context, number, phoneId));
             } else {
-                Toast.makeText(context,"Default subscription doesn't support adhoc conference " +
-                        "calling please change default subscription to access conference dialer",
+                Toast.makeText(context, context.getString(
+                        R.string.adhoc_conference_call_not_supported),
                         Toast.LENGTH_SHORT).show();
             }
         } else {
