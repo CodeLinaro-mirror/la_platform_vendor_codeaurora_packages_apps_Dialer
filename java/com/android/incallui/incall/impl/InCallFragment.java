@@ -59,10 +59,12 @@ import com.android.incallui.ExtBottomSheetFragment.ExtBottomSheetActionCallback;
 import com.android.incallui.audiomode.AudioModeProvider;
 import com.android.incallui.audioroute.AudioRouteSelectorDialogFragment;
 import com.android.incallui.audioroute.AudioRouteSelectorDialogFragment.AudioRouteSelectorPresenter;
+import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.state.DialerCallState;
 import com.android.incallui.contactgrid.ContactGridManager;
 import com.android.incallui.hold.OnHoldFragment;
 import com.android.incallui.InCallPresenter;
+import com.android.incallui.PrimaryCallTracker;
 import com.android.incallui.incall.impl.ButtonController.SpeakerButtonController;
 import com.android.incallui.incall.impl.ButtonController.UpgradeToRttButtonController;
 import com.android.incallui.incall.impl.InCallButtonGridFragment.OnButtonGridCreatedListener;
@@ -89,7 +91,8 @@ public class InCallFragment extends Fragment
         OnClickListener,
         ExtBottomSheetActionCallback,
         AudioRouteSelectorPresenter,
-        OnButtonGridCreatedListener {
+        OnButtonGridCreatedListener,
+        PrimaryCallTracker.PrimaryCallChangeListener {
 
   private List<ButtonController> buttonControllers = new ArrayList<>();
   private View endCallButton;
@@ -106,6 +109,7 @@ public class InCallFragment extends Fragment
   private int voiceNetworkType;
   private int phoneType;
   private boolean stateRestored;
+  private PrimaryCallTracker primaryCallTracker;
 
   // volume boost
   private AudioManager audioManager;
@@ -201,6 +205,10 @@ public class InCallFragment extends Fragment
 
     moreOptionsMenuButton = view.findViewById(R.id.incall_more_button);
     moreOptionsMenuButton.setOnClickListener(this);
+    primaryCallTracker = new PrimaryCallTracker();
+    InCallPresenter.getInstance().addListener(primaryCallTracker);
+    InCallPresenter.getInstance().addIncomingCallListener(primaryCallTracker);
+    primaryCallTracker.addListener(this);
 
     // volume boost listener
     volumeBoostButton = (ImageButton) view.findViewById(R.id.volume_boost);
@@ -289,6 +297,12 @@ public class InCallFragment extends Fragment
   public void onDestroyView() {
     super.onDestroyView();
     inCallScreenDelegate.onInCallScreenUnready();
+    if (primaryCallTracker != null) {
+      InCallPresenter.getInstance().removeListener(primaryCallTracker);
+      InCallPresenter.getInstance().removeIncomingCallListener(primaryCallTracker);
+      primaryCallTracker.removeListener(this);
+      primaryCallTracker = null;
+    }
   }
 
   @Override
@@ -657,6 +671,16 @@ public class InCallFragment extends Fragment
         contactGridManager.onMultiWindowModeChanged(isInMultiWindowMode);
     }
     updateButtonStates();
+  }
+
+  @Override
+  public void onPrimaryCallChanged(DialerCall call) {
+    LogUtil.d("InCallFragment.onPrimaryCallChanged", "");
+    BottomSheetHelper bottomSheetHelper = BottomSheetHelper.getInstance();
+    boolean isDialpadVisible = InCallPresenter.getInstance().isDialpadVisible();
+    bottomSheetHelper.updateMoreButtonVisibility(
+        isDialpadVisible ? false : bottomSheetHelper.shallShowMoreButton(getActivity()),
+        moreOptionsMenuButton);
   }
 
   private Fragment getLocationFragment() {
