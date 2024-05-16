@@ -181,6 +181,9 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <!-- Displayed in the answer call screen for incoming video tx calls over Wi-F. -->
     <string name="incoming_wifi_video_tx_call">Wi-Fi video transmit call from</string>
 
+    <!-- Displayed in the video call screen for starting video CRBT calls. -->
+    <string name="incall_video_crbt_call_requesting">Video CRBT calling to</string>
+
     <string name="call_state_dialing">Dialing</string>
     <string name="call_state_holding">Holding</string>
     <string name="call_state_active">Active</string>

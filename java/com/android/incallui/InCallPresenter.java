@@ -567,6 +567,18 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     }
   }
 
+  /**
+   * this function to notify incoming video state change depending on
+   * PLAYER_START or PLAYER_STOP received from lower layers.
+   */
+  public void notifyIncomingVideoStateChanged(DialerCall primaryCall) {
+    LogUtil.i("InCallPresenter.notifyIncomingVideoStateChanged", "isIncomingVideoAvailable : "
+        + primaryCall.isIncomingVideoAvailable());
+    for (InCallEventListener listener : inCallEventListeners) {
+        listener.onIncomingVideoStateChanged(primaryCall);
+    }
+  }
+
   public int getSipDtmfBitMask() {
     return mCacheSipDtmfBitMask;
   }
@@ -2403,6 +2415,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     default void onDialerCallLastForwardedNumberChange(DialerCall call) {}
     default void onRemotelyHeld(DialerCall call, boolean isRemotelyHeld) {}
     default void onMergeProgressing(DialerCall call, boolean isMerging) {}
+    default void onIncomingVideoStateChanged(DialerCall call) {}
   }
 
   public interface InCallUiListener {
