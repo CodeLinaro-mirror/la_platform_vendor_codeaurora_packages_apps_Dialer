@@ -129,7 +129,7 @@
     android:name="com.android.dialer.binary.aosp.AospDialerApplication"
     android:supportsRtl="true"
     android:usesCleartextTraffic="false"
-    android:extractNativeLibs="false"
+    android:extractNativeLibs="true"
     tools:replace="android:appComponentFactory"
     android:appComponentFactory="androidx.core.app.CoreComponentFactory">
 
