@@ -293,8 +293,8 @@ public class StatusBarNotifier
     LogUtil.d("StatusBarNotifier.updateInCallNotification", "");
 
     showedCall = getCallToShow(CallList.getInstance());
-    // don't show Notification, if call has already been rejected
-    if (showedCall != null && !showedCall.isRejected()) {
+    // don't show Notification, if call has already been rejected or accepted
+    if (showedCall != null && !showedCall.isRejected() && !showedCall.isActiveCall()) {
       showNotification(showedCall);
     } else {
       cancelNotification();
