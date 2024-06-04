@@ -227,4 +227,8 @@ call rejected</string>
 usr - call rejected</string>
     <string name="call_progress_info_nonuser_call_rejected_reason_from_nw" translatable="false">
 nonusr - call rejected</string>
+
+    <!-- Adhoc conference -->
+    <string name="adhoc_conference_call_not_supported">Default subscription doesn\'t support adhoc
+conference calling please change default subscription to access conference dialer</string>
 </resources>

@@ -398,8 +398,8 @@ public class QtiCallUtils {
                         (telephonyManager.getSubIdForPhoneAccount(defaultAccount));
                 context.startActivity(getConferenceDialerIntent(context, number, phoneId));
             } else {
-                Toast.makeText(context,"Default subscription doesn't support adhoc conference " +
-                        "calling please change default subscription to access conference dialer",
+                Toast.makeText(context, context.getString(
+                        R.string.adhoc_conference_call_not_supported),
                         Toast.LENGTH_SHORT).show();
             }
         } else {
@@ -446,8 +446,23 @@ public class QtiCallUtils {
             SubscriptionInfo info = subscriptionManager.
                     getActiveSubscriptionInfoForSimSlotIndex(slotId);
             if (info != null) {
-                subInfoList.add(info.getDisplayName().toString());
-                subIdList.add(info.getSubscriptionId());
+                String phoneNumber = "";
+                int subId = info.getSubscriptionId();
+                try {
+                    phoneNumber = subscriptionManager.getPhoneNumber(subId);
+                } catch (IllegalStateException
+                        | SecurityException
+                        | UnsupportedOperationException e) {
+                    Log.w(LOG_TAG, "get number error." + e);
+                }
+                // If we could get the phone number, shows operator name + phone number.
+                // Otherwise, shows operator name + slotId
+                if (phoneNumber != null && !phoneNumber.isEmpty()) {
+                    subInfoList.add(info.getDisplayName().toString() + "\n" + phoneNumber);
+                } else {
+                    subInfoList.add(info.getDisplayName().toString() + " " + slotId);
+                }
+                subIdList.add(subId);
             }
         }
 
