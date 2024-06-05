@@ -577,7 +577,7 @@ public class VideoCallFragment extends Fragment
         .translationX(0)
         .translationY(0)
         .setInterpolator(linearOutSlowInInterpolator)
-        .alpha(1)
+        .alpha(switchOnHoldButton.isEnabled() ? 1 : .5f)
         .withStartAction(
             new Runnable() {
               @Override
