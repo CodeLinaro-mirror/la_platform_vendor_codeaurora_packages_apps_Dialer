@@ -110,7 +110,9 @@ public class CallerInfoAsyncQuery {
           @Override
           public void onDataLoaded(int token, Object cookie, CallerInfo ci) {
             Log.d(LOG_TAG, "contactsProviderQueryCompleteListener onDataLoaded");
-            listener.onDataLoaded(token, cookie, ci);
+            if (listener != null && ci != null) {
+                listener.onDataLoaded(token, cookie, ci);
+            }
           }
         };
     startDefaultDirectoryQuery(token, context, info, contactsProviderQueryCompleteListener, cookie);
@@ -302,7 +304,7 @@ public class CallerInfoAsyncQuery {
       boolean shouldCallListener = false;
       synchronized (this) {
         count = count - 1;
-        if (!isListenerCalled && (ci.contactExists || count == 0)) {
+        if (!isListenerCalled && ((ci != null && ci.contactExists) || count == 0)) {
           isListenerCalled = true;
           shouldCallListener = true;
         }
@@ -311,15 +313,17 @@ public class CallerInfoAsyncQuery {
       // Don't call callback in synchronized block because mListener.onQueryComplete may
       // take long time to complete
       if (shouldCallListener && listener != null) {
-        addCallerInfoIntoCache(ci, directoryId);
-        listener.onQueryComplete(token, cookie, ci);
+        if (ci != null) {
+          addCallerInfoIntoCache(ci, directoryId);
+          listener.onQueryComplete(token, cookie, ci);
+        }
       }
     }
 
     private void addCallerInfoIntoCache(CallerInfo ci, long directoryId) {
       CachedNumberLookupService cachedNumberLookupService =
           PhoneNumberCache.get(context).getCachedNumberLookupService();
-      if (ci.contactExists && cachedNumberLookupService != null) {
+      if ((ci != null && ci.contactExists) && cachedNumberLookupService != null) {
         // 1. Cache caller info
         CachedContactInfo cachedContactInfo =
             CallerInfoUtils.buildCachedContactInfo(cachedNumberLookupService, ci);
@@ -328,7 +332,7 @@ public class CallerInfoAsyncQuery {
         cachedNumberLookupService.addContact(context, cachedContactInfo);
 
         // 2. Cache photo
-        if (ci.contactDisplayPhotoUri != null && ci.normalizedNumber != null) {
+        if (ci != null && ci.contactDisplayPhotoUri != null && ci.normalizedNumber != null) {
           try (InputStream in =
               context.getContentResolver().openInputStream(ci.contactDisplayPhotoUri)) {
             if (in != null) {
