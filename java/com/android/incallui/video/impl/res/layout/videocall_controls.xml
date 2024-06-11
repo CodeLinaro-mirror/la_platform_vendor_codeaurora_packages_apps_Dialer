@@ -12,6 +12,10 @@
      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
      See the License for the specific language governing permissions and
      limitations under the License.
+
+     Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+     Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+     SPDX-License-Identifier: BSD-3-Clause-Clear
 -->
 <RelativeLayout
   xmlns:android="http://schemas.android.com/apk/res/android"
@@ -246,6 +250,19 @@
       android:layout_marginEnd="24dp"
       tools:visibility="visible"
       />
+    <com.android.incallui.video.impl.CheckableImageButton
+      android:id="@+id/satellite_button"
+      style="@style/Incall.Button.VideoCall"
+      android:layout_width="@dimen/videocall_button_size"
+      android:layout_height="@dimen/videocall_button_size"
+      android:layout_marginBottom="@dimen/videocall_button_spacing"
+      android:src="@drawable/ic_android_satellite_24px"
+      android:checked="false"
+      android:contentDescription="@string/incall_label_satellite"
+      android:visibility="gone"
+      android:layout_marginEnd="24dp"
+      tools:visibility="visible"
+      />
     <ImageButton
       android:id="@+id/videocall_more_button"
       style="@style/Incall.Button.VideoCall"
@@ -255,6 +272,37 @@
       android:src="@drawable/quantum_ic_more_vert_white_24"
       android:contentDescription="@string/incall_content_description_more"
       />
+  </LinearLayout>
+
+  <LinearLayout
+      android:id="@+id/incall_satellite_prompt"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:gravity="center_horizontal"
+      android:layout_marginTop="12dp"
+      android:layout_marginBottom="12dp"
+      android:layout_below="@+id/incall_contact_grid"
+      android:orientation="vertical">
+
+    <TextView
+      android:id="@+id/satellite_text"
+      android:layout_width="200dp"
+      android:textStyle="bold"
+      android:layout_height="wrap_content"
+      android:layout_centerHorizontal="true"
+      android:visibility="gone"
+      android:layout_marginBottom="12dp" />
+
+    <Button
+      android:id="@+id/launch_satellite_app"
+      style="@style/Incall.Button.Satellite"
+      android:background="@drawable/rounded_corner"
+      android:layout_width="200dp"
+      android:layout_height="wrap_content"
+      android:layout_centerHorizontal="true"
+      android:textColor="#FFFFFF"
+      android:visibility="gone"
+      android:contentDescription="@string/incall_launch_satellite_app"/>
   </LinearLayout>
 
   <ImageButton
