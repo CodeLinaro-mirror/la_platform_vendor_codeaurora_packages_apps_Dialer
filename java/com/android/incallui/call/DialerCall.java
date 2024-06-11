@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.call;
@@ -19,6 +23,7 @@ package com.android.incallui.call;
 import android.Manifest.permission;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.hardware.camera2.CameraCharacteristics;
@@ -82,6 +87,7 @@ import com.android.dialer.logging.Logger;
 import com.android.dialer.preferredsim.PreferredAccountRecorder;
 import com.android.dialer.rtt.RttTranscript;
 import com.android.dialer.rtt.RttTranscriptUtil;
+import com.android.dialer.satellite.SatelliteInfo;
 import com.android.dialer.spam.status.SpamStatus;
 import com.android.dialer.telecom.TelecomCallUtil;
 import com.android.dialer.telecom.TelecomUtil;
@@ -456,6 +462,10 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
             case EVENT_PHONE_ACCOUNT_CHANGED:
                 maybeUpdatePhoneAccountRttCapability();
                 break;
+            case TelephonyManager.EVENT_DISPLAY_EMERGENCY_MESSAGE:
+                LogUtil.i("DialerCall - onConnectionEvent", "event display emergency message");
+                notifySatelliteHandoverEvent(extras);
+                break;
             default:
               break;
           }
@@ -468,6 +478,8 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
 
   // to track whether the call was added to call list atleast once
   private boolean wasCallAddedToCallList = false;
+
+  private SatelliteInfo mSatelliteInfo;
 
   public DialerCall(
       Context context,
@@ -577,6 +589,24 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     LogUtil.i("DialerCall.notifyWiFiToLteHandover", "");
     for (DialerCallListener listener : listeners) {
       listener.onWiFiToLteHandover();
+    }
+  }
+
+  private void notifySatelliteHandoverEvent(Bundle extras) {
+    PendingIntent satelliteIntent =
+            extras.getParcelable(
+            TelephonyManager.EXTRA_EMERGENCY_CALL_TO_SATELLITE_LAUNCH_INTENT,
+            PendingIntent.class);
+    if (satelliteIntent == null) {
+      LogUtil.i("DialerCall.notifySatelliteHandoverEvent", "pending intent is null");
+      return;
+    }
+
+    mSatelliteInfo = new SatelliteInfo(satelliteIntent,
+        extras.getInt(
+        TelephonyManager.EXTRA_EMERGENCY_CALL_TO_SATELLITE_HANDOVER_TYPE));
+    for (DialerCallListener listener : listeners) {
+      listener.onSatelliteHandoverEvent();
     }
   }
 
@@ -2289,5 +2319,9 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   public boolean hasVideoPauseCapability() {
     return telecomCall != null && telecomCall.getDetails() != null &&
         telecomCall.getDetails().can(Details.CAPABILITY_CAN_PAUSE_VIDEO);
+  }
+
+  public SatelliteInfo getSatelliteInfo() {
+    return mSatelliteInfo;
   }
 }

@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.incall.impl;
@@ -596,6 +600,25 @@ interface ButtonController {
       drawable.stop(); // animation is one shot, stop it so it can be started again.
       drawable.start();
       delegate.swapSimClicked();
+    }
+  }
+
+  class SatellitePromptButtonController extends SimpleCheckableButtonController {
+
+    public SatellitePromptButtonController(InCallButtonUiDelegate delegate) {
+      super(
+          delegate,
+          InCallButtonIds.BUTTON_SHOW_SATELLITE_PROMPT,
+          R.string.incall_content_description_satellite,
+          R.string.incall_content_description_satellite,
+          R.string.incall_label_satellite,
+          R.drawable.ic_android_satellite_24px);
+      Assert.isNotNull(delegate);
+    }
+
+    @Override
+    public void doCheckedChanged(boolean isChecked) {
+      delegate.satelliteAvailabilityButtonClicked(isChecked);
     }
   }
 }

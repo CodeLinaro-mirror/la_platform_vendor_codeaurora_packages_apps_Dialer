@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.incall.impl;
@@ -34,6 +38,7 @@ import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.telecom.CallAudioState;
 import android.telephony.TelephonyManager;
+import android.telephony.satellite.SatelliteManager;
 import android.transition.TransitionManager;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -42,9 +47,11 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.accessibility.AccessibilityEvent;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 import com.android.dialer.common.Assert;
 import com.android.dialer.common.FragmentUtils;
@@ -52,6 +59,7 @@ import com.android.dialer.common.LogUtil;
 import com.android.dialer.logging.DialerImpression;
 import com.android.dialer.logging.Logger;
 import com.android.dialer.multimedia.MultimediaData;
+import com.android.dialer.satellite.SatelliteInfo;
 import com.android.dialer.strictmode.StrictModeUtils;
 import com.android.dialer.widget.LockableViewPager;
 import com.android.incallui.BottomSheetHelper;
@@ -96,6 +104,8 @@ public class InCallFragment extends Fragment
 
   private List<ButtonController> buttonControllers = new ArrayList<>();
   private View endCallButton;
+  private Button launchSatelliteAppButton;
+  private TextView satellitePromptText;
   private InCallPaginator paginator;
   private LockableViewPager pager;
   private InCallPagerAdapter adapter;
@@ -143,7 +153,8 @@ public class InCallFragment extends Fragment
         || id == InCallButtonIds.BUTTON_MANAGE_VOICE_CONFERENCE
         || id == InCallButtonIds.BUTTON_SWAP_SIM
         || id == InCallButtonIds.BUTTON_UPGRADE_TO_RTT
-        || id == InCallButtonIds.BUTTON_SWITCH_TO_SECONDARY;
+        || id == InCallButtonIds.BUTTON_SWITCH_TO_SECONDARY
+        || id == InCallButtonIds.BUTTON_SHOW_SATELLITE_PROMPT;
   }
 
   @Override
@@ -202,6 +213,13 @@ public class InCallFragment extends Fragment
 
     endCallButton = view.findViewById(R.id.incall_end_call);
     endCallButton.setOnClickListener(this);
+
+    launchSatelliteAppButton = (Button) view.findViewById(R.id.launch_satellite_app);
+    launchSatelliteAppButton.setOnClickListener(this);
+    launchSatelliteAppButton.setVisibility(View.GONE);
+
+    satellitePromptText = (TextView) view.findViewById(R.id.satellite_text);
+    satellitePromptText.setVisibility(View.GONE);
 
     moreOptionsMenuButton = view.findViewById(R.id.incall_more_button);
     moreOptionsMenuButton.setOnClickListener(this);
@@ -282,7 +300,8 @@ public class InCallFragment extends Fragment
         new ButtonController.ManageConferenceButtonController(inCallScreenDelegate));
     buttonControllers.add(
         new ButtonController.SwitchToSecondaryButtonController(inCallScreenDelegate));
-
+    buttonControllers.add(
+        new ButtonController.SatellitePromptButtonController(inCallButtonUiDelegate));
     inCallScreenDelegate.onInCallScreenDelegateInit(this);
     inCallScreenDelegate.onInCallScreenReady();
   }
@@ -322,6 +341,9 @@ public class InCallFragment extends Fragment
       LogUtil.i("InCallFragment.onClick","more options button clicked");
       BottomSheetHelper.getInstance()
               .showBottomSheet(getChildFragmentManager());
+    } else if (view == launchSatelliteAppButton) {
+      LogUtil.i("InCallFragment.onClick", "launch satellite app button clicked");
+      inCallButtonUiDelegate.onLaunchSatelliteAppButtonClicked();
     } else {
       LogUtil.e("InCallFragment.onClick", "unknown view: " + view);
       Assert.fail();
@@ -427,6 +449,15 @@ public class InCallFragment extends Fragment
     if (endCallButton != null) {
       endCallButton.setEnabled(enabled);
     }
+  }
+
+  @Override
+  public void showSatelliteButton() {
+    getButtonController(InCallButtonIds.BUTTON_SHOW_SATELLITE_PROMPT)
+        .setAllowed(true);
+    getButtonController(InCallButtonIds.BUTTON_SHOW_SATELLITE_PROMPT)
+        .setEnabled(true);
+    updateButtonStates();
   }
 
   @Override
@@ -597,6 +628,35 @@ public class InCallFragment extends Fragment
   public void showAudioRouteSelector() {
     AudioRouteSelectorDialogFragment.newInstance(inCallButtonUiDelegate.getCurrentAudioState())
         .show(getChildFragmentManager(), null);
+  }
+
+  @Override
+  public void enableSatellitePrompt(boolean checked, SatelliteInfo info) {
+    getButtonController(InCallButtonIds.BUTTON_SHOW_SATELLITE_PROMPT).setChecked(checked);
+    LogUtil.i("enableSatellitePrompt", "isChecked: " + checked);
+    if (!checked) {
+      launchSatelliteAppButton.setEnabled(false);
+      launchSatelliteAppButton.setVisibility(View.GONE);
+      satellitePromptText.setVisibility(View.GONE);
+      return;
+    }
+    if (info == null) {
+      LogUtil.e("enableSatellitePrompt", "unexpected call or satellite info is null");
+      return;
+    }
+    String text = getContext().getString(R.string.satellite_sos_title);
+    String buttonText = getContext().getString(R.string.launch_satellite_application);
+    if (info.getHandoverType() ==
+        SatelliteManager.EMERGENCY_CALL_TO_SATELLITE_HANDOVER_TYPE_T911) {
+      text = getContext().getString(R.string.satellite_messaging_title);
+      buttonText = getContext().getString(R.string.launch_messaging_application);
+    }
+    text += "\n \n" + getContext().getString(R.string.satellite_generic_message);
+    launchSatelliteAppButton.setVisibility(View.VISIBLE);
+    launchSatelliteAppButton.setEnabled(true);
+    launchSatelliteAppButton.setText(buttonText);
+    satellitePromptText.setVisibility(View.VISIBLE);
+    satellitePromptText.setText(text);
   }
 
   @Override

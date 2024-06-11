@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.incall.impl;
@@ -130,6 +134,7 @@ class ButtonChooserFactory {
     mapping.put(InCallButtonIds.BUTTON_MERGE, MappingInfo.builder(3).setSlotOrder(5).build());
     mapping.put(InCallButtonIds.BUTTON_ADD_CALL, MappingInfo.builder(3).build());
     mapping.put(InCallButtonIds.BUTTON_SWAP_SIM, MappingInfo.builder(4).build());
+    mapping.put(InCallButtonIds.BUTTON_SHOW_SATELLITE_PROMPT, MappingInfo.builder(5).build());
     return mapping;
   }
 }
