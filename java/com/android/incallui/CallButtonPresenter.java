@@ -43,6 +43,7 @@ import com.android.dialer.logging.DialerImpression.Type;
 import com.android.dialer.logging.Logger;
 import com.android.dialer.satellite.SatelliteInfo;
 import com.android.dialer.telecom.TelecomUtil;
+import com.android.dialer.util.DialerUtils;
 import com.android.dialer.util.IntentUtil;
 import com.android.incallui.InCallCameraManager;
 import com.android.incallui.InCallPresenter.CanAddCallListener;
@@ -684,7 +685,13 @@ public class CallButtonPresenter
     }
     // if UE is in DSDS but the calls are on different phone accounts
     // don't allow swap if dsds transition mode is not supported
-    return call.hasSamePhoneAccount(secondaryCall);
+    // If there is an HFP call, Dialer treats this like a different
+    // phone account and this leads to the swap button being disabled.
+    // So by checking if either call is an HFP call, we can enable swap
+    // between any combination of HFP call and normal cellular call.
+    return call.hasSamePhoneAccount(secondaryCall)
+            || DialerUtils.isHfpPhoneAccount(context, secondaryCall.getAccountHandle())
+            || DialerUtils.isHfpPhoneAccount(context, call.getAccountHandle());
   }
 
   private boolean hasVideoCallCapabilities(DialerCall call) {
