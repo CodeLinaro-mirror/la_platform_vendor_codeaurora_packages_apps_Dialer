@@ -573,7 +573,8 @@ public class CallButtonPresenter
         !showSwap
             && !call.hasSentVideoUpgradeRequest()
             && call.can(android.telecom.Call.Details.CAPABILITY_SUPPORT_HOLD)
-            && call.can(android.telecom.Call.Details.CAPABILITY_HOLD);
+            && call.can(android.telecom.Call.Details.CAPABILITY_HOLD)
+            && !shouldRemoveHoldButtonForHfpCall(call);
     final boolean isCallOnHold = call.getState() == DialerCallState.ONHOLD;
 
     final boolean showAddCall =
@@ -709,6 +710,22 @@ public class CallButtonPresenter
   private boolean isDowngradeToAudioSupported(DialerCall call) {
     // TODO(a bug): If there is an RCS video share session, return true here
     return !call.can(CallCompat.Details.CAPABILITY_CANNOT_DOWNGRADE_VIDEO_TO_AUDIO);
+  }
+
+  /**
+   * Determine if the hold button should be removed from the dialer UI by first
+   * checking that we have 2 calls and then checking if either of them are HFP calls.
+   *
+   * @param call The primary call
+   * @return True if either the primary or secondary call is an HFP call
+   */
+  private boolean shouldRemoveHoldButtonForHfpCall(DialerCall call) {
+    DialerCall secondary = InCallPresenter.getInstance().getSecondaryCall();
+    if (call == null || secondary == null) {
+        return false;
+    }
+    return DialerUtils.isHfpPhoneAccount(context, call.getAccountHandle())
+        || DialerUtils.isHfpPhoneAccount(context, secondary.getAccountHandle());
   }
 
   /**
