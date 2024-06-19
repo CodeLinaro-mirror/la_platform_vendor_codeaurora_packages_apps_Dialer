@@ -54,12 +54,14 @@ import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.view.View.OnApplyWindowInsetsListener;
 import android.view.View.OnClickListener;
 import android.view.View.OnLayoutChangeListener;
 import android.view.View.OnSystemUiVisibilityChangeListener;
 import android.view.ViewGroup;
 import android.view.ViewGroup.MarginLayoutParams;
 import android.view.ViewOutlineProvider;
+import android.view.WindowInsets;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
@@ -117,7 +119,8 @@ public class VideoCallFragment extends Fragment
         OnCheckedChangeListener,
         ExtBottomSheetActionCallback,
         AudioRouteSelectorPresenter,
-        OnSystemUiVisibilityChangeListener {
+        OnSystemUiVisibilityChangeListener,
+        OnApplyWindowInsetsListener {
 
   @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
   static final String ARG_CALL_ID = "call_id";
@@ -400,10 +403,6 @@ public class VideoCallFragment extends Fragment
             LogUtil.i("VideoCallFragment.onLayoutChange", "previewTextureView layout changed");
             updatePreviewVideoScaling();
             updatePreviewOffView();
-            if ((bottom != oldBottom) && !isInGreenScreenMode && !isInFullscreenMode) {
-              Point previewOffsetStartShown = getPreviewOffsetStartShown();
-              moveAllPreviewRelatedViews(previewOffsetStartShown.x, previewOffsetStartShown.y);
-            }
           }
         });
 
@@ -459,6 +458,7 @@ public class VideoCallFragment extends Fragment
     inCallButtonUiDelegate.onInCallButtonUiReady(this);
 
     view.setOnSystemUiVisibilityChangeListener(this);
+    view.setOnApplyWindowInsetsListener(this);
 
     if (videoCallScreenDelegate.isFullscreen()) {
         controls.setVisibility(View.INVISIBLE);
@@ -701,11 +701,12 @@ public class VideoCallFragment extends Fragment
     if (isLandscape()) {
       int systemWindowInsetEnd =
           getView().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL
-              ? getView().getRootWindowInsets().getSystemWindowInsetLeft()
-              : -getView().getRootWindowInsets().getSystemWindowInsetRight();
+              ? getView().getRootWindowInsets().getInsets(WindowInsets.Type.systemBars()).left
+              : -getView().getRootWindowInsets().getInsets(WindowInsets.Type.systemBars()).right;
       return new Point(systemWindowInsetEnd, 0);
     } else {
-      return new Point(0, -getView().getRootWindowInsets().getSystemWindowInsetBottom());
+      return new Point(0, -getView().getRootWindowInsets().getInsets(
+          WindowInsets.Type.systemBars()).bottom);
     }
   }
 
@@ -1805,6 +1806,15 @@ public class VideoCallFragment extends Fragment
     launchSatelliteAppButton.setText(buttonText);
     satellitePromptText.setVisibility(View.VISIBLE);
     satellitePromptText.setText(text);
+  }
+
+  @Override
+  public @NonNull WindowInsets onApplyWindowInsets(@NonNull View v, @NonNull WindowInsets insets) {
+    if (!isInGreenScreenMode && !isInFullscreenMode) {
+      Point previewOffsetStartShown = getPreviewOffsetStartShown();
+      moveAllPreviewRelatedViews(previewOffsetStartShown.x, previewOffsetStartShown.y);
+    }
+    return v.onApplyWindowInsets(insets);
   }
 
   private void checkCameraPermission() {
