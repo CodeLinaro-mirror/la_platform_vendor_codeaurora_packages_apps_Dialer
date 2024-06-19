@@ -994,6 +994,9 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     if (inCallActivity != null && DialerCall.areSame(call, mPrimary)) {
       inCallActivity.showSatelliteButton();
     }
+    for (InCallEventListener listener : inCallEventListeners) {
+        listener.onSatelliteHandoverEvent(call);
+    }
   }
 
   @Override
@@ -2424,6 +2427,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     default void onRemotelyHeld(DialerCall call, boolean isRemotelyHeld) {}
     default void onMergeProgressing(DialerCall call, boolean isMerging) {}
     default void onIncomingVideoStateChanged(DialerCall call) {}
+    default void onSatelliteHandoverEvent(DialerCall call) {}
   }
 
   public interface InCallUiListener {

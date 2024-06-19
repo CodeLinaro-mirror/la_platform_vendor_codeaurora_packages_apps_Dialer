@@ -491,6 +491,12 @@ public class CallButtonPresenter
   }
 
   @Override
+  public void onSatelliteHandoverEvent(DialerCall call) {
+    LogUtil.v("CallButtonPresenter.onSatelliteHandoverEvent", "");
+    updateButtonsState(call);
+  }
+
+  @Override
   public void satelliteAvailabilityButtonClicked(boolean checked) {
     inCallButtonUi.enableSatellitePrompt(checked, call.getSatelliteInfo());
   }
