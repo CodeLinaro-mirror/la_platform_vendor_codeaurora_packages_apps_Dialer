@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.preferredsim.impl;
@@ -57,6 +61,7 @@ import com.android.dialer.preferredsim.PreferredSimFallbackContract.PreferredSim
 import com.android.dialer.preferredsim.suggestion.SimSuggestionComponent;
 import com.android.dialer.preferredsim.suggestion.SuggestionProvider;
 import com.android.dialer.preferredsim.suggestion.SuggestionProvider.Suggestion;
+import com.android.dialer.util.DialerUtils;
 import com.android.dialer.util.PermissionsUtil;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -398,6 +403,7 @@ public class PreferredAccountWorkerImpl implements PreferredAccountWorker {
    * Support different dual SIM modes (Dual sim dual active/Dual sim dual standby)
    * DSDA - more than one SIM can have live/active calls at a time.
    * DSDS - only one SIM can have live/active calls at a time
+   * For SS/DSDS, the above holds true but allow HFP phone accounts to be selected
    */
   private boolean isSelectable(PhoneAccountHandle phoneAccountHandle) {
     // This is assuming that self-managed phone account(s) will not be selectable
@@ -409,12 +415,31 @@ public class PreferredAccountWorkerImpl implements PreferredAccountWorker {
     if (activeCalls.isEmpty()) {
       return true;
     }
+    // allow HFP account to be selected regardless if there is an on-going call
+    if (isHfpAccount(phoneAccountHandle)) {
+      return true;
+    }
+
+    // For DSDS/SS, there can be a combination of HFP phone account and SIM
+    // phone account(s). The restriction of only one SIM can have live/active calls
+    // at a time does not apply to the HFP phone account.
+    // If there are any on-going calls on a SIM phone account, restrict phone account
+    // selection to that SIM phone account and HFP phone account (if available).
+    // If there are only calls on the HFP phone account, then all SIM account(s) are
+    // selectable
     for (ActiveCallInfo activeCall : activeCalls) {
       if (Objects.equals(phoneAccountHandle, activeCall.phoneAccountHandle().orNull())) {
         return true;
       }
+      if (!isHfpAccount(activeCall.phoneAccountHandle().orNull())) {
+        return false;
+      }
     }
-    return false;
+    return true;
+  }
+
+  private boolean isHfpAccount(PhoneAccountHandle handle) {
+    return DialerUtils.isHfpPhoneAccount(appContext, handle);
   }
 
   private Optional<String> getActiveCallLabel() {
