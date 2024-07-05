@@ -12,10 +12,16 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.util;
 
+import android.app.ActivityOptions;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.net.Uri;
 import android.provider.ContactsContract;
@@ -75,5 +81,17 @@ public class IntentUtil {
     if (phoneNumberType != NO_PHONE_TYPE) {
       intent.putExtra(ContactsContract.Intents.Insert.PHONE_TYPE, phoneNumberType);
     }
+  }
+
+  public static boolean maybeLaunchSatellitePendingIntent(PendingIntent intent) {
+    try {
+        ActivityOptions options = ActivityOptions.makeBasic().
+            setPendingIntentBackgroundActivityStartMode(
+            ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+        intent.send(options.toBundle());
+    } catch (PendingIntent.CanceledException ex) {
+        return false;
+    }
+    return true;
   }
 }

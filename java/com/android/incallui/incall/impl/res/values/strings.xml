@@ -13,6 +13,11 @@
   ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License
+  ~
+  ~
+  ~ Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+  ~ Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+  ~ SPDX-License-Identifier: BSD-3-Clause-Clear
   -->
 <resources>
 
@@ -76,4 +81,10 @@
   <!-- Button shown during RTT call to downgrade to voice call -->
   <string name="incall_label_downgrade">Voice</string>
 
+  <!-- Satellite Strings -->
+  <string name="incall_label_satellite">Satellite</string>
+  <string name="incall_launch_satellite_app">Launch Satellite app</string>
+  <string name="satellite_messaging_title"><b>Use Satellite messaging?</b></string>
+  <string name="satellite_sos_title"><b>Use Satellite SOS to contact emergency services?</b></string>
+  <string name="satellite_generic_message">You can message with emergency services without a mobile or Wi-Fi network</string>
 </resources>

@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.video.impl;
@@ -44,6 +48,7 @@ import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.animation.FastOutLinearInInterpolator;
 import android.support.v4.view.animation.LinearOutSlowInInterpolator;
 import android.telecom.CallAudioState;
+import android.telephony.satellite.SatelliteManager;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.Surface;
@@ -58,6 +63,7 @@ import android.view.ViewOutlineProvider;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -65,6 +71,7 @@ import android.widget.TextView;
 import com.android.dialer.common.Assert;
 import com.android.dialer.common.FragmentUtils;
 import com.android.dialer.common.LogUtil;
+import com.android.dialer.satellite.SatelliteInfo;
 import com.android.dialer.util.PermissionsUtil;
 import com.android.incallui.BottomSheetHelper;
 import com.android.incallui.ExtBottomSheetFragment.ExtBottomSheetActionCallback;
@@ -164,6 +171,9 @@ public class VideoCallFragment extends Fragment
   private CheckableImageButton detailButton;
   private CheckableImageButton moneyButton;
   private ImageButton likedButton;
+  private CheckableImageButton satelliteButton;
+  private Button launchSatelliteAppButton;
+  private TextView satellitePromptText;
 
   private View switchOnHoldButton;
   private View onHoldContainer;
@@ -334,6 +344,12 @@ public class VideoCallFragment extends Fragment
     moneyButton = (CheckableImageButton)view.findViewById(R.id.crs_crbt_money_button);
     moneyButton.setOnCheckedChangeListener(this);
     likedButton = (ImageButton) view.findViewById(R.id.crs_crbt_liked_button);
+    satelliteButton = (CheckableImageButton)view.findViewById(R.id.satellite_button);
+    satelliteButton.setOnCheckedChangeListener(this);
+    launchSatelliteAppButton = (Button) view.findViewById(R.id.launch_satellite_app);
+    launchSatelliteAppButton.setOnClickListener(this);
+
+    satellitePromptText = (TextView) view.findViewById(R.id.satellite_text);
     moreOptionsMenuButton = view.findViewById(R.id.videocall_more_button);
     moreOptionsMenuButton.setOnClickListener(this);
     previewTextureView = (TextureView) view.findViewById(R.id.videocall_video_preview);
@@ -577,7 +593,7 @@ public class VideoCallFragment extends Fragment
         .translationX(0)
         .translationY(0)
         .setInterpolator(linearOutSlowInInterpolator)
-        .alpha(1)
+        .alpha(switchOnHoldButton.isEnabled() ? 1 : .5f)
         .withStartAction(
             new Runnable() {
               @Override
@@ -837,6 +853,9 @@ public class VideoCallFragment extends Fragment
       LogUtil.i("VideoCallFragment.onClick", "merge call button clicked");
       inCallButtonUiDelegate.mergeClicked();
       videoCallScreenDelegate.resetAutoFullscreenTimer();
+    } else if (v == launchSatelliteAppButton) {
+      LogUtil.i("VideoCallFragment.onClick", "launch satellite app button clicked");
+      inCallButtonUiDelegate.onLaunchSatelliteAppButtonClicked();
     }
   }
 
@@ -900,6 +919,10 @@ public class VideoCallFragment extends Fragment
     } else if (button == moneyButton && !moneyButton.isChecked()) {
       moneyButton.setChecked(isChecked);
       inCallButtonUiDelegate.sendSipDtmfClicked(InCallButtonIds.BUTTON_RED_ENVELOPE);
+    } else if (button == satelliteButton) {
+      satelliteButton.setChecked(isChecked);
+      inCallButtonUiDelegate.satelliteAvailabilityButtonClicked(isChecked);
+      videoCallScreenDelegate.resetAutoFullscreenTimer();
     }
   }
 
@@ -1200,6 +1223,12 @@ public class VideoCallFragment extends Fragment
       moneyButton.setVisibility((show && isCrbtReady) ? View.VISIBLE : View.GONE);
     } else if (buttonId == InCallButtonIds.BUTTON_LIKED) {
         likedButton.setVisibility((show && isCrbtReady) ? View.VISIBLE : View.GONE);
+    } else if (buttonId == InCallButtonIds.BUTTON_SHOW_SATELLITE_PROMPT) {
+        satelliteButton.setVisibility(show ? View.VISIBLE : View.GONE);
+        satelliteButton.setEnabled(show);
+        if (show && satelliteButton.isChecked()) {
+            inCallButtonUiDelegate.satelliteAvailabilityButtonClicked(true);
+        }
     }
   }
 
@@ -1747,6 +1776,35 @@ public class VideoCallFragment extends Fragment
   public void onSystemUiVisibilityChange(int visibility) {
     boolean navBarVisible = (visibility & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0;
     videoCallScreenDelegate.onSystemUiVisibilityChange(navBarVisible);
+  }
+
+  @Override
+  public void enableSatellitePrompt(boolean checked, SatelliteInfo info) {
+    LogUtil.i("VideoCallFragment.enableSatellitePrompt", "isChecked : " + checked);
+    satelliteButton.setChecked(checked);
+    if (!checked) {
+      launchSatelliteAppButton.setEnabled(false);
+      launchSatelliteAppButton.setVisibility(View.GONE);
+      satellitePromptText.setVisibility(View.GONE);
+      return;
+    }
+    if (info == null) {
+      LogUtil.e("enableSatellitePrompt", "unexpected call or satellite info is null");
+      return;
+    }
+    String text = getContext().getString(R.string.satellite_sos_title);
+    String buttonText = getContext().getString(R.string.launch_satellite_application);
+    if (info.getHandoverType() ==
+        SatelliteManager.EMERGENCY_CALL_TO_SATELLITE_HANDOVER_TYPE_T911) {
+      text = getContext().getString(R.string.satellite_messaging_title);
+      buttonText = getContext().getString(R.string.launch_messaging_application);
+    }
+    text += "\n \n" + getContext().getString(R.string.satellite_generic_message);
+    launchSatelliteAppButton.setVisibility(View.VISIBLE);
+    launchSatelliteAppButton.setEnabled(true);
+    launchSatelliteAppButton.setText(buttonText);
+    satellitePromptText.setVisibility(View.VISIBLE);
+    satellitePromptText.setText(text);
   }
 
   private void checkCameraPermission() {

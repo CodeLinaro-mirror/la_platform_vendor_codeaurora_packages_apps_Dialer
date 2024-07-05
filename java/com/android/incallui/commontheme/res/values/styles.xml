@@ -13,6 +13,10 @@
   ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License
+  ~
+  ~ Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+  ~  Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+  ~ SPDX-License-Identifier: BSD-3-Clause-Clear
   -->
 
 <resources>
@@ -48,6 +52,15 @@
     <item name="android:layout_width">@dimen/incall_end_call_button_size</item>
     <item name="android:padding">8dp</item>
     <item name="android:src">@drawable/incall_end_call_icon</item>
+    <item name="android:stateListAnimator">@animator/disabled_alpha</item>
+  </style>
+
+  <style name="Incall.Button.Satellite" parent="android:Widget.Material.Button">
+    <item name="android:background">@drawable/incall_end_call_background</item>
+    <item name="android:elevation">8dp</item>
+    <item name="android:layout_height">@dimen/incall_end_call_button_size</item>
+    <item name="android:layout_width">@dimen/incall_end_call_button_size</item>
+    <item name="android:padding">8dp</item>
     <item name="android:stateListAnimator">@animator/disabled_alpha</item>
   </style>
 

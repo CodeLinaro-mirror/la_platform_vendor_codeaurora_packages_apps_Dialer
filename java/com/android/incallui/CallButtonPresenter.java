@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui;
@@ -37,7 +41,9 @@ import com.android.dialer.common.concurrent.DialerExecutorComponent;
 import com.android.dialer.logging.DialerImpression;
 import com.android.dialer.logging.DialerImpression.Type;
 import com.android.dialer.logging.Logger;
+import com.android.dialer.satellite.SatelliteInfo;
 import com.android.dialer.telecom.TelecomUtil;
+import com.android.dialer.util.IntentUtil;
 import com.android.incallui.InCallCameraManager;
 import com.android.incallui.InCallPresenter.CanAddCallListener;
 import com.android.incallui.InCallPresenter.InCallDetailsListener;
@@ -484,6 +490,37 @@ public class CallButtonPresenter
     }
   }
 
+  @Override
+  public void onSatelliteHandoverEvent(DialerCall call) {
+    LogUtil.v("CallButtonPresenter.onSatelliteHandoverEvent", "");
+    updateButtonsState(call);
+  }
+
+  @Override
+  public void satelliteAvailabilityButtonClicked(boolean checked) {
+    inCallButtonUi.enableSatellitePrompt(checked, call.getSatelliteInfo());
+  }
+
+  @Override
+  public void onLaunchSatelliteAppButtonClicked() {
+    if (call == null) {
+      return;
+    }
+    final SatelliteInfo info = call.getSatelliteInfo();
+    if (info == null) {
+      return;
+    }
+    if (!IntentUtil.maybeLaunchSatellitePendingIntent(
+        info.getIntent())) {
+      LogUtil.i("CallButtonPresenter", "unable to send pending intent");
+      return;
+    }
+    LogUtil.i("CallButtonPresenter",
+        "disconnecting call on launch satellite app button clicked", call);
+    info.updateShowDisconnectDialog(false);
+    call.disconnect();
+  }
+
   private void updateUi(InCallState state, DialerCall call) {
     LogUtil.v("CallButtonPresenter", "updating call UI for call: %s", call);
 
@@ -621,6 +658,11 @@ public class CallButtonPresenter
             enableSwitchToSecondary);
 
     updateSipDtmfButtons(InCallPresenter.getInstance().getSipDtmfBitMask());
+
+    inCallButtonUi.showButton(InCallButtonIds.BUTTON_SHOW_SATELLITE_PROMPT,
+            call.getSatelliteInfo() != null);
+    inCallButtonUi.enableButton(InCallButtonIds.BUTTON_SHOW_SATELLITE_PROMPT,
+            call.getSatelliteInfo() != null);
 
     if (BottomSheetHelper.getInstance().shallShowMoreButton(getActivity())) {
       BottomSheetHelper.getInstance().updateMap();

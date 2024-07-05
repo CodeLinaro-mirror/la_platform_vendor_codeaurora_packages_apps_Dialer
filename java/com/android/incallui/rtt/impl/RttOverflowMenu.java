@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.rtt.impl;
@@ -36,6 +40,7 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
   private final RttCheckableButton downgradeButton;
   private final RttCheckableButton mergeCallButton;
   private final RttCheckableButton holdButton;
+  private final RttCheckableButton satelliteButton;
   private final InCallButtonUiDelegate inCallButtonUiDelegate;
   private final InCallScreenDelegate inCallScreenDelegate;
   private boolean isSwitchToSecondaryButtonEnabled;
@@ -89,6 +94,8 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
             this.inCallButtonUiDelegate.mergeClicked();
           }
         });
+    satelliteButton = view.findViewById(R.id.menu_satellite);
+    satelliteButton.setOnCheckedChangeListener(this);
   }
 
   @Override
@@ -101,7 +108,15 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
       inCallButtonUiDelegate.showDialpadClicked(isChecked);
     } else if (button == holdButton) {
       inCallButtonUiDelegate.holdClicked(isChecked);
+    } else if (button == satelliteButton) {
+      setSatelliteButtonChecked(isChecked);
+      inCallButtonUiDelegate.satelliteAvailabilityButtonClicked(isChecked);
+      dismiss();
     }
+  }
+
+  void setSatelliteButtonChecked(boolean isChecked) {
+    satelliteButton.setChecked(isChecked);
   }
 
   void setMuteButtonChecked(boolean isChecked) {
@@ -158,5 +173,9 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
 
   void enableHoldButton(boolean enabled) {
     holdButton.setVisibility(enabled ? View.VISIBLE : View.GONE);
+  }
+
+  void enableSatelliteButton(boolean enabled) {
+    satelliteButton.setVisibility(enabled ? View.VISIBLE : View.GONE);
   }
 }

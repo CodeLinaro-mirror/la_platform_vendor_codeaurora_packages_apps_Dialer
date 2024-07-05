@@ -13,6 +13,10 @@
   ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License
+  ~
+  ~ Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+  ~ Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+  ~ SPDX-License-Identifier: BSD-3-Clause-Clear
   -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -93,4 +97,34 @@
       android:textColor="#DD000000"
       android:textSize="14sp"/>
 
+   <LinearLayout
+      android:id="@+id/incall_satellite_prompt"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:gravity="center_horizontal"
+      android:layout_marginTop="12dp"
+      android:layout_marginBottom="12dp"
+      android:layout_below="@+id/rtt_status_banner"
+      android:orientation="vertical">
+
+   <TextView
+      android:id="@+id/satellite_text"
+      android:layout_width="200dp"
+      android:textStyle="bold"
+      android:layout_height="wrap_content"
+      android:layout_centerHorizontal="true"
+      android:visibility="gone"
+      android:layout_marginBottom="12dp" />
+
+   <Button
+      android:id="@+id/launch_satellite_app"
+      style="@style/Incall.Button.Satellite"
+      android:background="@drawable/rounded_corner"
+      android:layout_width="200dp"
+      android:layout_height="wrap_content"
+      android:layout_centerHorizontal="true"
+      android:visibility="gone"
+      android:textColor="#FFFFFF"
+      android:contentDescription="@string/incall_launch_satellite_app"/>
+   </LinearLayout>
 </LinearLayout>

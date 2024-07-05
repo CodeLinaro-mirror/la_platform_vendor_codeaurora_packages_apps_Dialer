@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.rtt.impl;
@@ -29,6 +33,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.RecyclerView.OnScrollListener;
 import android.telecom.CallAudioState;
+import android.telephony.satellite.SatelliteManager;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -40,6 +45,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.inputmethod.EditorInfo;
+import android.widget.Button;
 import android.widget.Chronometer;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -54,8 +60,10 @@ import com.android.dialer.logging.DialerImpression;
 import com.android.dialer.logging.Logger;
 import com.android.dialer.rtt.RttTranscript;
 import com.android.dialer.rtt.RttTranscriptMessage;
+import com.android.dialer.satellite.SatelliteInfo;
 import com.android.dialer.util.DrawableConverter;
 import com.android.incallui.audioroute.AudioRouteSelectorDialogFragment.AudioRouteSelectorPresenter;
+import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.state.DialerCallState;
 import com.android.incallui.hold.OnHoldFragment;
 import com.android.incallui.incall.protocol.ContactPhotoType;
@@ -109,6 +117,8 @@ public class RttChatFragment extends Fragment
   private boolean isUserScrolling;
   private boolean shouldAutoScrolling;
   private AudioSelectMenu audioSelectMenu;
+  private Button launchSatelliteAppButton;
+  private TextView satellitePromptText;
 
   /**
    * Create a new instance of RttChatFragment.
@@ -255,6 +265,14 @@ public class RttChatFragment extends Fragment
     nameTextView = view.findViewById(R.id.rtt_name_or_number);
     chronometer = view.findViewById(R.id.rtt_timer);
     statusBanner = view.findViewById(R.id.rtt_status_banner);
+
+    launchSatelliteAppButton = (Button) view.findViewById(R.id.launch_satellite_app);
+    launchSatelliteAppButton.setOnClickListener(
+            v -> {
+              LogUtil.i("RttChatFragment.onClick", "Launch Satellite button clicked");
+              inCallButtonUiDelegate.onLaunchSatelliteAppButtonClicked();
+            });
+    satellitePromptText = (TextView) view.findViewById(R.id.satellite_text);
     return view;
   }
 
@@ -553,6 +571,8 @@ public class RttChatFragment extends Fragment
         return;
       case InCallButtonIds.BUTTON_HOLD:
         overflowMenu.enableHoldButton(show);
+      case InCallButtonIds.BUTTON_SHOW_SATELLITE_PROMPT:
+        overflowMenu.enableSatelliteButton(show);
         return;
     }
   }
@@ -618,4 +638,33 @@ public class RttChatFragment extends Fragment
 
   @Override
   public void onAudioRouteSelectorDismiss() {}
+
+  @Override
+  public void enableSatellitePrompt(boolean checked, SatelliteInfo info) {
+    LogUtil.d("RTTChatFragment.enableSatellitePrompt", "isChecked : " + checked);
+    if (!checked) {
+      launchSatelliteAppButton.setEnabled(false);
+      launchSatelliteAppButton.setVisibility(View.GONE);
+      satellitePromptText.setVisibility(View.GONE);
+      return;
+    }
+    if (info == null) {
+      LogUtil.e("enableSatellitePrompt", "unexpected call or satellite info is null");
+      return;
+    }
+    String text = getContext().getString(R.string.satellite_sos_title);
+    String buttonText = getContext().getString(R.string.launch_satellite_application);
+    if (info.getHandoverType() ==
+        SatelliteManager.EMERGENCY_CALL_TO_SATELLITE_HANDOVER_TYPE_T911) {
+      text = getContext().getString(R.string.satellite_messaging_title);
+      buttonText = getContext().getString(R.string.launch_messaging_application);
+    }
+    text += "\n \n" + getContext().getString(R.string.satellite_generic_message);
+    launchSatelliteAppButton.setVisibility(View.VISIBLE);
+    launchSatelliteAppButton.setEnabled(true);
+    launchSatelliteAppButton.setText(buttonText);
+    satellitePromptText.setVisibility(View.VISIBLE);
+    satellitePromptText.setText(text);
+  }
+
 }

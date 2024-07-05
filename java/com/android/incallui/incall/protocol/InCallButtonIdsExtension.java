@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.incall.protocol;
@@ -74,6 +78,8 @@ public class InCallButtonIdsExtension {
       return "RED_ENVELOPE";
     } else if (id == InCallButtonIds.BUTTON_LIKED) {
         return "LIKED";
+    } else if (id == InCallButtonIds.BUTTON_SHOW_SATELLITE_PROMPT) {
+        return "SATELITE_PROMPT";
     } else {
       return "INVALID_BUTTON: " + id;
     }
