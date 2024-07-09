@@ -610,7 +610,11 @@ public class CallButtonPresenter
             && call.getState() != DialerCallState.DIALING
             && call.getState() != DialerCallState.CONNECTING;
 
-    otherAccount = TelecomUtil.getOtherAccount(getContext(), call.getAccountHandle());
+    // Setting otherAccount to null when we have an HFP call because it is not actually possible to
+    // swap the call sims between the HFP account and the Cellular account.
+    otherAccount = DialerUtils.isHfpPhoneAccount(context, call.getAccountHandle()) ? null
+            : TelecomUtil.getOtherAccount(getContext(), call.getAccountHandle());
+
     boolean showSwapSim =
         !call.isEmergencyCall()
             && otherAccount != null
