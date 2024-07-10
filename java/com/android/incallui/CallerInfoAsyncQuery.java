@@ -99,8 +99,9 @@ public class CallerInfoAsyncQuery {
             Log.d(LOG_TAG, "contactsProviderQueryCompleteListener onQueryComplete");
             // If there are no other directory queries, make sure that the listener is
             // notified of this result.  see a bug
-            if ((ci != null && ci.contactExists)
-                || !startOtherDirectoriesQuery(token, context, info, listener, cookie)) {
+            if ((ci != null && (ci.isEmergencyNumber() || ci.isVoiceMailNumber() ||
+                ci.contactExists)) || !startOtherDirectoriesQuery(token, context, info,
+                listener, cookie)) {
               if (listener != null && ci != null) {
                 listener.onQueryComplete(token, cookie, ci);
               }
