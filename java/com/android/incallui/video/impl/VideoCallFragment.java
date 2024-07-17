@@ -27,6 +27,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.graphics.Insets;
 import android.graphics.Outline;
 import android.graphics.Point;
 import android.graphics.drawable.Drawable;
@@ -54,12 +55,14 @@ import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.view.View.OnApplyWindowInsetsListener;
 import android.view.View.OnClickListener;
 import android.view.View.OnLayoutChangeListener;
-import android.view.View.OnSystemUiVisibilityChangeListener;
 import android.view.ViewGroup;
 import android.view.ViewGroup.MarginLayoutParams;
 import android.view.ViewOutlineProvider;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
@@ -117,7 +120,7 @@ public class VideoCallFragment extends Fragment
         OnCheckedChangeListener,
         ExtBottomSheetActionCallback,
         AudioRouteSelectorPresenter,
-        OnSystemUiVisibilityChangeListener {
+        OnApplyWindowInsetsListener {
 
   @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
   static final String ARG_CALL_ID = "call_id";
@@ -400,10 +403,6 @@ public class VideoCallFragment extends Fragment
             LogUtil.i("VideoCallFragment.onLayoutChange", "previewTextureView layout changed");
             updatePreviewVideoScaling();
             updatePreviewOffView();
-            if ((bottom != oldBottom) && !isInGreenScreenMode && !isInFullscreenMode) {
-              Point previewOffsetStartShown = getPreviewOffsetStartShown();
-              moveAllPreviewRelatedViews(previewOffsetStartShown.x, previewOffsetStartShown.y);
-            }
           }
         });
 
@@ -458,7 +457,7 @@ public class VideoCallFragment extends Fragment
     inCallScreenDelegate.onInCallScreenReady();
     inCallButtonUiDelegate.onInCallButtonUiReady(this);
 
-    view.setOnSystemUiVisibilityChangeListener(this);
+    controlsContainer.setOnApplyWindowInsetsListener(this);
 
     if (videoCallScreenDelegate.isFullscreen()) {
         controls.setVisibility(View.INVISIBLE);
@@ -634,23 +633,16 @@ public class VideoCallFragment extends Fragment
             })
         .start();
 
-    // Animate all the preview controls up to make room for the navigation bar.
-    // In green screen mode we don't need this because the preview takes up the whole screen and has
-    // a fixed position.
-    if (!isInGreenScreenMode) {
-      Point previewOffsetStartShown = getPreviewOffsetStartShown();
-      moveAllPreviewRelatedViews(previewOffsetStartShown.x, previewOffsetStartShown.y);
-    }
-
     updateOverlayBackground();
   }
 
   private void showSystemUI() {
     View view = getView();
     if (view != null) {
-      // Code is more expressive with all flags present, even though some may be combined
-      // noinspection PointlessBitwiseExpression
-      view.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+      WindowInsetsController controller = view.getWindowInsetsController();
+      if (controller != null) {
+        controller.show(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+      }
     }
   }
 
@@ -658,10 +650,10 @@ public class VideoCallFragment extends Fragment
   private void hideSystemUI() {
     View view = getView();
     if (view != null) {
-      view.setSystemUiVisibility(
-          View.SYSTEM_UI_FLAG_FULLSCREEN
-              | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-              | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+      WindowInsetsController controller = view.getWindowInsetsController();
+      if (controller != null) {
+        controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+      }
     }
   }
 
@@ -701,11 +693,12 @@ public class VideoCallFragment extends Fragment
     if (isLandscape()) {
       int systemWindowInsetEnd =
           getView().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL
-              ? getView().getRootWindowInsets().getSystemWindowInsetLeft()
-              : -getView().getRootWindowInsets().getSystemWindowInsetRight();
+              ? getView().getRootWindowInsets().getInsets(WindowInsets.Type.systemBars()).left
+              : -getView().getRootWindowInsets().getInsets(WindowInsets.Type.systemBars()).right;
       return new Point(systemWindowInsetEnd, 0);
     } else {
-      return new Point(0, -getView().getRootWindowInsets().getSystemWindowInsetBottom());
+      return new Point(0, -getView().getRootWindowInsets().getInsets(
+          WindowInsets.Type.systemBars()).bottom);
     }
   }
 
@@ -819,12 +812,6 @@ public class VideoCallFragment extends Fragment
         .setInterpolator(new FastOutLinearInInterpolator())
         .start();
 
-    // Animate all the preview controls down now that the navigation bar is hidden.
-    // In green screen mode we don't need this because the preview takes up the whole screen and has
-    // a fixed position.
-    if (!isInGreenScreenMode) {
-      moveAllPreviewRelatedViews(0, 0);
-    }
     updateOverlayBackground();
   }
 
@@ -1773,12 +1760,6 @@ public class VideoCallFragment extends Fragment
   }
 
   @Override
-  public void onSystemUiVisibilityChange(int visibility) {
-    boolean navBarVisible = (visibility & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0;
-    videoCallScreenDelegate.onSystemUiVisibilityChange(navBarVisible);
-  }
-
-  @Override
   public void enableSatellitePrompt(boolean checked, SatelliteInfo info) {
     LogUtil.i("VideoCallFragment.enableSatellitePrompt", "isChecked : " + checked);
     satelliteButton.setChecked(checked);
@@ -1805,6 +1786,26 @@ public class VideoCallFragment extends Fragment
     launchSatelliteAppButton.setText(buttonText);
     satellitePromptText.setVisibility(View.VISIBLE);
     satellitePromptText.setText(text);
+  }
+
+  @Override
+  public @NonNull WindowInsets onApplyWindowInsets(@NonNull View v, @NonNull WindowInsets insets) {
+    if (!isInGreenScreenMode) {
+      Point previewOffsetStartShown = getPreviewOffsetStartShown();
+      moveAllPreviewRelatedViews(previewOffsetStartShown.x, previewOffsetStartShown.y);
+    }
+    Insets inset = v.getRootWindowInsets().getInsetsIgnoringVisibility(
+        WindowInsets.Type.systemBars());
+    int top = inset.top, end = 0, bottom = 0;
+    if (isLandscape()) {
+      end = getView().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL ? inset.left : inset.right;
+    } else {
+      bottom = inset.bottom;
+    }
+    controlsContainer.setPaddingRelative(0, top, end, bottom);
+    videoCallScreenDelegate.onSystemUiVisibilityChange(insets.isVisible(
+        WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars()));
+    return insets;
   }
 
   private void checkCameraPermission() {

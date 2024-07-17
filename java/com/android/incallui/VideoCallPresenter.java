@@ -224,6 +224,13 @@ public class VideoCallPresenter
      }
   };
 
+  private MediaProjection.Callback mediaProjectionCallback = new MediaProjection.Callback() {
+      @Override
+      public void onStop() {
+        LogUtil.d("VideoCallPresenter.mediaProjectionCallback", "onStop no-op");
+      }
+  };
+
   /*UiListener instance to get MT VT preview on CallResume in Screen off mode */
   private CallList.UiListener mUiListener = new CallList.UiListener() {
     @Override
@@ -266,6 +273,7 @@ public class VideoCallPresenter
         mMediaProjection = ScreenShareHelper.getProjectionManager().getMediaProjection(
                                Activity.RESULT_OK,
                                ScreenShareHelper.getPermission());
+        mMediaProjection.registerCallback(mediaProjectionCallback, handler);
         mVirtualDisplay = mMediaProjection.createVirtualDisplay("ScreenCapture", width, height,
                               mDisplayDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                               surface, null, null);
@@ -1407,6 +1415,7 @@ public class VideoCallPresenter
         mVirtualDisplay = null;
     }
     if (mMediaProjection != null) {
+        mMediaProjection.unregisterCallback(mediaProjectionCallback);
         mMediaProjection.stop();
         mMediaProjection = null;
     }
