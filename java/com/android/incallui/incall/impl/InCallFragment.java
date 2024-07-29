@@ -46,6 +46,7 @@ import android.view.View.OnAttachStateChangeListener;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -257,8 +258,9 @@ public class InCallFragment extends Fragment
           @Override
           public void onViewAttachedToWindow(View v) {
             View container = v.findViewById(R.id.incall_ui_container);
-            int topInset = v.getRootWindowInsets().getSystemWindowInsetTop();
-            int bottomInset = v.getRootWindowInsets().getSystemWindowInsetBottom();
+            int topInset = v.getRootWindowInsets().getInsets(WindowInsets.Type.systemBars()).top;
+            int bottomInset =
+                v.getRootWindowInsets().getInsets(WindowInsets.Type.systemBars()).bottom;
             if (topInset != container.getPaddingTop()) {
               TransitionManager.beginDelayedTransition(((ViewGroup) container.getParent()));
               container.setPadding(0, topInset, 0, bottomInset);
