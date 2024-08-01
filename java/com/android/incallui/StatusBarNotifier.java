@@ -293,8 +293,8 @@ public class StatusBarNotifier
     LogUtil.d("StatusBarNotifier.updateInCallNotification", "");
 
     showedCall = getCallToShow(CallList.getInstance());
-    // don't show Notification, if call has already been rejected or accepted
-    if (showedCall != null && !showedCall.isRejected() && !showedCall.isActiveCall()) {
+    // don't show Notification, if call has already been rejected
+    if (showedCall != null && !showedCall.isRejected()) {
       showNotification(showedCall);
     } else {
       cancelNotification();
@@ -455,6 +455,9 @@ public class StatusBarNotifier
           publicBuilder.setColorized(true);
           builder.setColorized(true);
           builder.setChannelId(NotificationChannelId.ONGOING_CALL);
+          // 2W Start: Dismiss foreground incoming call notification when call is active
+          TelecomAdapter.getInstance().stopForegroundNotification();
+          // 2W End: Dismiss foreground incoming call notification when call is active
         }
         break;
       default:
