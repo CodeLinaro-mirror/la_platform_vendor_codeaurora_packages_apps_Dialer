@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.app.calllog;
@@ -22,6 +26,7 @@ import android.provider.CallLog.Calls;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import com.android.contacts.common.util.DateUtils;
 import com.android.dialer.calllogutils.CallbackActionHelper;
@@ -209,6 +214,12 @@ public class CallLogGroupBuilder {
   }
 
   boolean equalNumbers(String number1, boolean isConf1, String number2, boolean isConf2) {
+    TelephonyManager telephonyManager =
+                      (TelephonyManager) appContext.getSystemService(Context.TELEPHONY_SERVICE);
+    if (telephonyManager == null) {
+      return false;
+    }
+
     if (PhoneNumberHelper.isUriNumber(number1) || PhoneNumberHelper.isUriNumber(number2)) {
       return compareSipAddresses(number1, number2);
     } else if (isConf1 && isConf2) {
@@ -219,7 +230,8 @@ public class CallLogGroupBuilder {
         return false;
       }
       for (int i = 0; i < num1.length; i++) {
-        if (!PhoneNumberUtils.compare(num1[i], num2[i])) {
+        if (!PhoneNumberUtils.areSamePhoneNumber(num1[i], num2[i],
+                                                 telephonyManager.getNetworkCountryIso())) {
           return false;
         }
       }
@@ -227,16 +239,16 @@ public class CallLogGroupBuilder {
     } else if (isConf1 != isConf2) {
       return false;
     }
-    // PhoneNumberUtils.compare(String, String) ignores special characters such as '#'. For example,
-    // it thinks "123" and "#123" are identical enough for caller ID purposes.
     // When either input number contains special characters, we put the two in the same group iff
     // their raw numbers are exactly the same.
     if (PhoneNumberHelper.numberHasSpecialChars(number1)
         || PhoneNumberHelper.numberHasSpecialChars(number2)) {
       return PhoneNumberHelper.sameRawNumbers(number1, number2);
     }
-
-    return PhoneNumberUtils.compare(number1, number2);
+    // areSamePhoneNumber compares the last 7 digits of the phone
+    // numbers and also compares the country codes.
+    return PhoneNumberUtils.areSamePhoneNumber(number1, number2,
+                                               telephonyManager.getNetworkCountryIso());
   }
 
   private boolean isSameAccount(String name1, String name2, String id1, String id2) {
