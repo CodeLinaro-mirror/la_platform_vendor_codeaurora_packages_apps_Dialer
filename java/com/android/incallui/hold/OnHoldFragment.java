@@ -30,6 +30,7 @@ import android.view.View;
 import android.view.View.OnAttachStateChangeListener;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -99,7 +100,7 @@ public class OnHoldFragment extends Fragment {
         new OnAttachStateChangeListener() {
           @Override
           public void onViewAttachedToWindow(View v) {
-            topInset = v.getRootWindowInsets().getSystemWindowInsetTop();
+            topInset = v.getRootWindowInsets().getInsets(WindowInsets.Type.systemBars()).top;
             applyInset();
           }
 
