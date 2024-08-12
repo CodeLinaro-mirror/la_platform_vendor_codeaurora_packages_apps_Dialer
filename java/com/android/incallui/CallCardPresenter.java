@@ -521,6 +521,7 @@ public class CallCardPresenter
             .setConnectionLabel(getConnectionLabel() + (isPrimaryCallActive() ? "  " +
                 (isOutgoingEmergencyCall(primary) ?
                 primary.getNumber() : primaryLocation) : ""))
+            .setCallReason(primary.getCallReason())
             .setPrimaryColor(
                 InCallPresenter.getInstance().getThemeColorManager().getPrimaryColor())
             .setSimSuggestionReason(getSimSuggestionReason())
