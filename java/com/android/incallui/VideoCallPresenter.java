@@ -159,6 +159,8 @@ public class VideoCallPresenter
   private static final int REQUEST_TO_STOP = 1;
 
   private static int mScreenShareQuery = NO_PENDING_REQUEST;
+  private int mCalculatedScreenShareWidth = -1;
+  private int mCalculatedScreenShareHeight = -1;
 
   private static PictureModeHelper mPictureModeHelper;
 
@@ -216,11 +218,16 @@ public class VideoCallPresenter
          ScreenShareHelper.onPermissionChanged(null);
          enableCamera(primaryCall, isCameraRequired());
          clearScreenShareStates();
+       } else if (mScreenShareQuery == NO_PENDING_REQUEST && surface != null) {
+         //reconfig virtual display
+         reconfigVirtualDisplay(width, height, surface);
        } else {
          LogUtil.e("VideoCallPresenter.processRecordingSurfaceChanged",
          "mismatch in expected surface from lower layer");
        }
        mScreenShareQuery = NO_PENDING_REQUEST;
+       mCalculatedScreenShareWidth = width;
+       mCalculatedScreenShareHeight = height;
      }
   };
 
@@ -279,6 +286,17 @@ public class VideoCallPresenter
                               surface, null, null);
      }
    }
+
+  private void reconfigVirtualDisplay(int width, int height, Surface surface) {
+    LogUtil.i("VideoCallPresenter.reconfigVirtualDisplay", " width: " + width
+              + " height: " + height);
+    if (mVirtualDisplay != null && (mCalculatedScreenShareWidth != width
+                || mCalculatedScreenShareHeight != height)) {
+      mVirtualDisplay.resize(width, height, mDisplayDpi);
+      //setSurface will check if surface is same as before
+      mVirtualDisplay.setSurface(surface);
+    }
+  }
 
   private boolean isCameraRequired(int videoState, int sessionModificationState) {
     return isCameraRequired(videoState, sessionModificationState, isIncomingVideoCall(primaryCall));
@@ -1410,6 +1428,8 @@ public class VideoCallPresenter
     ScreenShareHelper.onPermissionChanged(null);
     mScreenShareQuery = NO_PENDING_REQUEST;
     mImsScreenShareManager = null;
+    mCalculatedScreenShareWidth = -1;
+    mCalculatedScreenShareHeight = -1;
     if (mVirtualDisplay != null) {
         mVirtualDisplay.release();
         mVirtualDisplay = null;
