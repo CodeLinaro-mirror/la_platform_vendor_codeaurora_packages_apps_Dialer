@@ -317,7 +317,7 @@ android_app {
     ],
     libs: [
         "auto_value_annotations",
-        "org.apache.http.legacy",
+        "org.apache.http.legacy.stubs.system",
         "ims-ext-common",
         "extphonelib",
     ],
