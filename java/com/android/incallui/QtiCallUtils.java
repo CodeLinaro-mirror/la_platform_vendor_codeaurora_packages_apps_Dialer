@@ -57,7 +57,6 @@ import android.telephony.ims.ImsMmTelManager;
 import android.widget.Toast;
 import android.telecom.VideoProfile;
 import com.android.dialer.util.PermissionsUtil;
-import com.android.ims.ImsManager;
 import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.state.DialerCallState;

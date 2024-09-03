@@ -140,10 +140,11 @@ EXTRA_PACKAGE_FLAGS = [
     "--extra-packages com.android.voicemail.impl",
     "--extra-packages com.android.voicemail.impl.configui",
     "--extra-packages me.leolin.shortcutbadger",
+    "--rename-manifest-package org.codeaurora.dialer",
 ]
 
 filegroup {
-    name: "dialer_manifests",
+    name: "qti_dialer_manifests",
     srcs: ["**/AndroidManifest.xml"],
     exclude_srcs: [
         "java/com/android/dialer/binary/aosp/testing/AndroidManifest.xml",
@@ -244,7 +245,7 @@ RES_DIRS = [
 ]
 
 android_app {
-    name: "Dialer",
+    name: "QtiDialer",
     use_resource_processor: false,
     srcs: [
         "java/com/android/**/*.java",
@@ -280,7 +281,7 @@ android_app {
         // b/62875795
         "java/com/android/voicemail/impl/com/google/internal/communications/voicemailtranscription/v1/VoicemailTranscriptionServiceGrpc.java",
     ],
-    additional_manifests: [":dialer_manifests"],
+    additional_manifests: [":qti_dialer_manifests"],
     aidl: {
         local_include_dirs: ["java"],
     },
@@ -317,15 +318,17 @@ android_app {
     libs: [
         "auto_value_annotations",
         "org.apache.http.legacy",
+        "ims-ext-common",
+        "extphonelib",
     ],
     // LOCAL_ANNOTATION_PROCESSORS
     plugins: [
         "auto_value_plugin",
         "dialer-dagger2-compiler",
         "dialer-glide-annotation-processor",
-        "dialer_rootcomponentprocessor_plugin",
+        "qti_dialer_rootcomponentprocessor_plugin",
     ],
-    // Forcibly uses the same jdk version used in dialer-rootcomponentprocessor.
+    // Forcibly uses the same jdk version used in qti-dialer-rootcomponentprocessor.
     java_version: "1.8",
     optimize: {
         proguard_flags_files: ["**/proguard.flags"],
@@ -334,18 +337,15 @@ android_app {
         enabled: true,
         optimize: true,
     },
-    sdk_version: "system_current",
+    platform_apis: true,
     certificate: "shared",
     privileged: true,
-    product_specific: true,
-    required: [
-        "privapp_whitelist_com.android.dialer",
-    ],
+    system_ext_specific: true,
     uses_libs: ["org.apache.http.legacy"],
 }
 
 java_library_host {
-    name: "dialer-rootcomponentprocessor",
+    name: "qti-dialer-rootcomponentprocessor",
     srcs: [
         "java/com/android/dialer/rootcomponentgenerator/**/*.java",
         "java/com/android/dialer/inject/DialerRootComponent.java",
@@ -366,8 +366,8 @@ java_library_host {
 }
 
 java_plugin {
-    name: "dialer_rootcomponentprocessor_plugin",
-    static_libs: ["dialer-rootcomponentprocessor"],
+    name: "qti_dialer_rootcomponentprocessor_plugin",
+    static_libs: ["qti-dialer-rootcomponentprocessor"],
     processor_class: "com.android.dialer.rootcomponentgenerator.RootComponentProcessor",
-    visibility: ["//packages/apps/Dialer"],
+    visibility: ["//vendor/codeaurora/commonsys/packages/apps/Dialer"],
 }
