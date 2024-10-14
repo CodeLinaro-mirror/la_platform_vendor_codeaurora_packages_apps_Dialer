@@ -61,6 +61,7 @@ import com.android.dialer.preferredsim.PreferredSimFallbackContract.PreferredSim
 import com.android.dialer.preferredsim.suggestion.SimSuggestionComponent;
 import com.android.dialer.preferredsim.suggestion.SuggestionProvider;
 import com.android.dialer.preferredsim.suggestion.SuggestionProvider.Suggestion;
+import com.android.dialer.telecom.TelecomUtil;
 import com.android.dialer.util.DialerUtils;
 import com.android.dialer.util.PermissionsUtil;
 import com.google.common.base.Optional;
@@ -70,6 +71,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import javax.inject.Inject;
 
 /** Implements {@link PreferredAccountWorker}. */
@@ -406,10 +408,6 @@ public class PreferredAccountWorkerImpl implements PreferredAccountWorker {
    * For SS/DSDS, the above holds true but allow HFP phone accounts to be selected
    */
   private boolean isSelectable(PhoneAccountHandle phoneAccountHandle) {
-    // This is assuming that self-managed phone account(s) will not be selectable
-    if (TelephonyManager.isConcurrentCallsPossible()) {
-        return true;
-    }
     ImmutableList<ActiveCallInfo> activeCalls =
         ActiveCallsComponent.get(appContext).activeCalls().getActiveCalls();
     if (activeCalls.isEmpty()) {
@@ -420,6 +418,7 @@ public class PreferredAccountWorkerImpl implements PreferredAccountWorker {
       return true;
     }
 
+    // This is assuming that self-managed phone account(s) will not be selectable
     // For DSDS/SS, there can be a combination of HFP phone account and SIM
     // phone account(s). The restriction of only one SIM can have live/active calls
     // at a time does not apply to the HFP phone account.
@@ -427,15 +426,27 @@ public class PreferredAccountWorkerImpl implements PreferredAccountWorker {
     // selection to that SIM phone account and HFP phone account (if available).
     // If there are only calls on the HFP phone account, then all SIM account(s) are
     // selectable
+    int numOfHfpCalls = 0;
     for (ActiveCallInfo activeCall : activeCalls) {
+      PhoneAccount pa = TelecomUtil.getPhoneAccount(appContext,
+          activeCall.phoneAccountHandle().get());
+      if (pa.hasSimultaneousCallingRestriction()) {
+        Set<PhoneAccountHandle> paSet = pa.getSimultaneousCallingRestriction();
+        if (paSet.contains(phoneAccountHandle)) {
+            return true;
+        }
+      }
       if (Objects.equals(phoneAccountHandle, activeCall.phoneAccountHandle().orNull())) {
         return true;
       }
-      if (!isHfpAccount(activeCall.phoneAccountHandle().orNull())) {
-        return false;
+      if (isHfpAccount(activeCall.phoneAccountHandle().orNull())) {
+        numOfHfpCalls++;
       }
     }
-    return true;
+    // if there are only HFP calls, then allow the user to select other phone accounts
+    LogUtil.i("isSelectable", "num of hfp calls: " + numOfHfpCalls +
+            "activeCalls size: " + activeCalls.size());
+    return numOfHfpCalls == activeCalls.size();
   }
 
   private boolean isHfpAccount(PhoneAccountHandle handle) {
