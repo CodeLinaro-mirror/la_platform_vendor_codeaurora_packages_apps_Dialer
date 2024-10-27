@@ -321,8 +321,7 @@ public class SpeedDialListActivity extends ListActivity implements
             }
         }
         if (record != null) {
-            SpeedDialUtils.saveNumber(this, mPickNumber,
-                    record.normalizedNumber);
+            SpeedDialUtils.saveNumber(this, mPickNumber, record.number);
             mRecords.put(mPickNumber, record);
             mAdapter.notifyDataSetChanged();
         }
@@ -403,7 +402,7 @@ public class SpeedDialListActivity extends ListActivity implements
         if (resultCode == RESULT_OK) {
             Record record = getRecordFromQuery(data.getData(), PICK_PROJECTION);
             if (record != null) {
-                SpeedDialUtils.saveNumber(this, mPickNumber, record.normalizedNumber);
+                SpeedDialUtils.saveNumber(this, mPickNumber, record.number);
                 mRecords.put(mPickNumber, record);
                 mAdapter.notifyDataSetChanged();
             }
@@ -477,7 +476,7 @@ public class SpeedDialListActivity extends ListActivity implements
 
             if (record != null && record.contactId != -1) {
                 DefaultImageRequest request = new DefaultImageRequest(record.name,
-                        record.normalizedNumber, true /* isCircular */);
+                        record.number, true /* isCircular */);
                 mPhotoManager.removePhoto(photo);
                 mPhotoManager.loadThumbnail(photo, record.photoId,
                         false /* darkTheme */, true /* isCircular */, request);
