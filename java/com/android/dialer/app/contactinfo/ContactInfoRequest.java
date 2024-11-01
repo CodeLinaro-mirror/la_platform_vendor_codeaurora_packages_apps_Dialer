@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.app.contactinfo;
@@ -36,12 +40,9 @@ public final class ContactInfoRequest implements Comparable<ContactInfoRequest> 
   /** The country in which a call to or from this number was placed or received. */
   public final String countryIso;
 
-  public final String postDialString;
-
   /** The cached contact information stored in the call log. */
   public final ContactInfo callLogInfo;
 
-  public final boolean isConf;
 
   /** Is the request a remote lookup. Remote requests are treated as lower priority. */
   @TYPE public final int type;
@@ -65,18 +66,11 @@ public final class ContactInfoRequest implements Comparable<ContactInfoRequest> 
 
   public ContactInfoRequest(
       String number, String countryIso, ContactInfo callLogInfo, @TYPE int type) {
-    this(number, null, countryIso, callLogInfo, type, false);
-  }
-
-  public ContactInfoRequest(String number, String postDialString, String countryIso,
-      ContactInfo callLogInfo, @TYPE int type, boolean isConf) {
     this.sequenceNumber = NEXT_SEQUENCE_NUMBER.getAndIncrement();
     this.number = number;
-    this.postDialString = postDialString;
     this.countryIso = countryIso;
     this.callLogInfo = callLogInfo;
     this.type = type;
-    this.isConf = isConf;
   }
 
   @Override
@@ -94,10 +88,6 @@ public final class ContactInfoRequest implements Comparable<ContactInfoRequest> 
     ContactInfoRequest other = (ContactInfoRequest) obj;
 
     if (!TextUtils.equals(number, other.number)) {
-      return false;
-    }
-
-    if (!TextUtils.equals(postDialString, other.postDialString)) {
       return false;
     }
 
@@ -121,8 +111,7 @@ public final class ContactInfoRequest implements Comparable<ContactInfoRequest> 
 
   @Override
   public int hashCode() {
-    return Objects.hash(sequenceNumber, number, postDialString,
-        countryIso, callLogInfo, type, isConf);
+    return Objects.hash(sequenceNumber, number, countryIso, callLogInfo, type);
   }
 
   @Override

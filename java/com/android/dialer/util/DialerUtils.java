@@ -166,14 +166,6 @@ public class DialerUtils {
   }
 
   /**
-   *@return true if calllog inserted earlier when dial a ConfURI call.
-   */
-  public static boolean isConferenceURICallLog(String number, String postDialDigits) {
-    return (number == null || number.contains(";") || number.contains(",")) &&
-        TextUtils.isEmpty(postDialDigits);
-  }
-
-  /**
    * Returns whether the user should be warned about an outgoing WPS call. This checks if there is a
    * currently active call over LTE. Regardless of the country or carrier, the radio will drop an
    * active LTE call if a WPS number is dialed, so this warning is necessary.
