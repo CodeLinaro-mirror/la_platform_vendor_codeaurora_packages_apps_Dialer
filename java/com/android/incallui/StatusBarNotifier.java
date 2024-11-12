@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui;
@@ -344,6 +348,13 @@ public class StatusBarNotifier
 
     Trace.beginSection("prepare work");
     final int callState = call.getState();
+    boolean isShowingInCallUi = InCallPresenter.getInstance().isShowingInCallUi();
+    if ((callState == DialerCallState.INCOMING || callState == DialerCallState.CALL_WAITING)
+        && call.isAnswered() && !isShowingInCallUi) {
+      LogUtil.i("StatusBarNotifier.buildAndSendNotification",
+          "Call is answered by user but not updated to active state by modem, do not update!");
+      return;
+    }
     final CallAudioState callAudioState = AudioModeProvider.getInstance().getAudioState();
 
     Trace.beginSection("read icon and strings");
@@ -370,15 +381,11 @@ public class StatusBarNotifier
         // 2. Call#1 (HUN) + Call#2 (HUN), always show Call#1 and Call#2 in HUN
         // 3. Call#1 (InCallUi), Call#2 (HUN), getCallToShow to determine
         //    which one should show in HUN.
-        notificationType =
-            InCallPresenter.getInstance().isShowingInCallUi() &&
-            !hasMultipleIncomingCalls()
-                ? NOTIFICATION_INCOMING_CALL_QUIET
-                : NOTIFICATION_INCOMING_CALL;
+        notificationType = isShowingInCallUi && !hasMultipleIncomingCalls()
+            ? NOTIFICATION_INCOMING_CALL_QUIET : NOTIFICATION_INCOMING_CALL;
       } else {
         boolean alreadyActive =
-            callList.getActiveOrBackgroundCall() != null
-                && InCallPresenter.getInstance().isShowingInCallUi();
+            callList.getActiveOrBackgroundCall() != null && isShowingInCallUi;
         notificationType =
             alreadyActive ? NOTIFICATION_INCOMING_CALL_QUIET : NOTIFICATION_INCOMING_CALL;
       }
