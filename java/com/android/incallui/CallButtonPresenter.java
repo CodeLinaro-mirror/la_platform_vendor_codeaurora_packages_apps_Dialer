@@ -21,7 +21,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.SystemProperties;
 import android.os.Trace;
 import android.support.v4.app.Fragment;
 import android.support.v4.os.UserManagerCompat;
@@ -78,6 +80,11 @@ public class CallButtonPresenter
   private boolean isInCallButtonUiReady;
   private PhoneAccountHandle otherAccount;
   private static final int MAX_PARTICIPANTS_LIMIT = 6;
+  private static final String HFP_USB_HS_ON = "hfp_usb_hs_on=1";
+  private static final String HFP_SPEAKER_ON = "hfp_spkr_on=1";
+  private static final String HFP_USB_HS_OFF = "hfp_usb_hs_on=0";
+  private static final String HFP_SPEAKER_OFF = "hfp_spkr_on=0";
+  private static final String IS_BIKE = "ro.hw.vehicle.isbike";
   private final PhoneAccountChangedReceiver phoneAccountChangedReceiver;
   private final TelephonyManager telephonyManager;
 
@@ -227,6 +234,7 @@ public class CallButtonPresenter
     }
 
     int newRoute;
+    boolean isBike = SystemProperties.getBoolean(IS_BIKE, false);
     if (audioState.getRoute() == CallAudioState.ROUTE_SPEAKER) {
       newRoute = CallAudioState.ROUTE_WIRED_OR_EARPIECE;
       Logger.get(context)
@@ -234,6 +242,10 @@ public class CallButtonPresenter
               DialerImpression.Type.IN_CALL_SCREEN_TURN_ON_WIRED_OR_EARPIECE,
               call.getUniqueCallId(),
               call.getTimeAddedMs());
+      // route hfp call to headset
+      if (isBike) {
+        routeAudioToUsbHeadset();
+      }
     } else {
       newRoute = CallAudioState.ROUTE_SPEAKER;
       Logger.get(context)
@@ -241,9 +253,29 @@ public class CallButtonPresenter
               DialerImpression.Type.IN_CALL_SCREEN_TURN_ON_SPEAKERPHONE,
               call.getUniqueCallId(),
               call.getTimeAddedMs());
+      // route hfp call to speaker
+      if (isBike) {
+        routeAudioToSpeaker();
+      }
     }
 
     setAudioRoute(newRoute, null);
+  }
+
+  private void routeAudioToUsbHeadset() {
+    LogUtil.d("routeAudioToUsbHeadset","hfp call route to headset");
+    AudioManager audioManager =
+       (AudioManager) getContext().getSystemService(AudioManager.class);
+    audioManager.setParameters(HFP_SPEAKER_OFF);
+    audioManager.setParameters(HFP_USB_HS_ON);
+  }
+
+  private void routeAudioToSpeaker() {
+    LogUtil.d("routeAudioToSpeaker", "hfp call route to speaker");
+    AudioManager audioManager =
+        (AudioManager) getContext().getSystemService(AudioManager.class);
+    audioManager.setParameters(HFP_USB_HS_OFF);
+    audioManager.setParameters(HFP_SPEAKER_ON);
   }
 
   @Override
