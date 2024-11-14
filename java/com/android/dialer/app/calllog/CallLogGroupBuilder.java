@@ -26,11 +26,13 @@ import android.provider.CallLog.Calls;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import com.android.contacts.common.util.DateUtils;
 import com.android.dialer.calllogutils.CallbackActionHelper;
 import com.android.dialer.calllogutils.CallbackActionHelper.CallbackAction;
 import com.android.dialer.compat.telephony.TelephonyManagerCompat;
+import com.android.dialer.i18n.LocaleUtils;
 import com.android.dialer.inject.ApplicationContext;
 import com.android.dialer.phonenumbercache.CallLogQuery;
 import com.android.dialer.phonenumberutil.PhoneNumberHelper;
@@ -201,19 +203,27 @@ public class CallLogGroupBuilder {
    */
   @VisibleForTesting
   boolean equalNumbers(@Nullable String number1, @Nullable String number2) {
-     if (PhoneNumberHelper.isUriNumber(number1) || PhoneNumberHelper.isUriNumber(number2)) {
+    if (PhoneNumberHelper.isUriNumber(number1) || PhoneNumberHelper.isUriNumber(number2)) {
       return compareSipAddresses(number1, number2);
     }
-    // PhoneNumberUtils.compare(String, String) ignores special characters such as '#'. For example,
-    // it thinks "123" and "#123" are identical enough for caller ID purposes.
     // When either input number contains special characters, we put the two in the same group iff
     // their raw numbers are exactly the same.
     if (PhoneNumberHelper.numberHasSpecialChars(number1)
         || PhoneNumberHelper.numberHasSpecialChars(number2)) {
       return PhoneNumberHelper.sameRawNumbers(number1, number2);
     }
-
-    return PhoneNumberUtils.compare(number1, number2);
+    TelephonyManager telephonyManager =
+                      (TelephonyManager) appContext.getSystemService(Context.TELEPHONY_SERVICE);
+    if (telephonyManager == null) {
+      return false;
+    }
+    String countryIso = telephonyManager.getNetworkCountryIso();
+    if (TextUtils.isEmpty(countryIso)) {
+      countryIso = LocaleUtils.getLocale(appContext).getCountry();
+    }
+    // areSamePhoneNumber compares the last 7 digits of the phone
+    // numbers and also compares the country codes.
+    return PhoneNumberUtils.areSamePhoneNumber(number1, number2, countryIso);
   }
 
   private boolean isSameAccount(String name1, String name2, String id1, String id2) {

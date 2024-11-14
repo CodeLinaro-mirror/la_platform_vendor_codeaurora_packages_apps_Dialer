@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+/*
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
+
 package com.android.dialer.dialpadview;
 
 import android.Manifest;
@@ -366,8 +372,8 @@ public class SpecialCharSequenceMgr {
     }
 
     if (telephonyManager != null && input.equals(MMI_IMEI_DISPLAY)) {
-      final String label = context.getResources().getString(R.string.meid) + " & " +
-          context.getResources().getString(R.string.imei);
+      final String meidLabel = context.getResources().getString(R.string.meid);
+      String label = context.getResources().getString(R.string.imei);
       View customView = LayoutInflater.from(context).inflate(R.layout.dialog_deviceids, null);
       ViewGroup holder = customView.findViewById(R.id.deviceids_holder);
 
@@ -379,6 +385,7 @@ public class SpecialCharSequenceMgr {
           if ((deviceId == null && isValidMeid(meid))
               || (deviceId != null && !deviceId.equals(meid)
               && isValidMeid(meid))) {
+            label = !label.contains(meidLabel) ? (meidLabel + " & " + label) : label;
             addDeviceIdRow(
                 holder,
                 meid,
@@ -440,6 +447,7 @@ public class SpecialCharSequenceMgr {
       } else {
         final String meid = telephonyManager.getMeid();
         if (isValidMeid(meid)) {
+          label = !label.contains(meidLabel) ? (meidLabel + " & " + label) : label;
           addDeviceIdRow(
               holder,
               meid,
