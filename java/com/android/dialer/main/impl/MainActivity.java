@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.main.impl;
@@ -29,6 +33,7 @@ import com.android.dialer.interactions.PhoneNumberInteraction.InteractionErrorCo
 import com.android.dialer.interactions.PhoneNumberInteraction.InteractionErrorListener;
 import com.android.dialer.main.MainActivityPeer;
 import com.android.dialer.main.impl.bottomnav.BottomNavBar.TabIndex;
+import com.android.dialer.util.DialerUtils;
 import com.android.dialer.util.TransactionSafeActivity;
 import org.codeaurora.ims.utils.QtiCarrierConfigHelper;
 
@@ -74,6 +79,7 @@ public class MainActivity extends TransactionSafeActivity
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    DialerUtils.setupEdgeToEdge(this);
     LogUtil.enterBlock("MainActivity.onCreate");
     // If peer was set by the super, don't reset it.
     activePeer = getNewPeer();

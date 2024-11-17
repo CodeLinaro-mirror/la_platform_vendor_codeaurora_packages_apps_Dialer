@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 package com.android.dialer.app.settings;
 
@@ -42,6 +46,7 @@ import com.android.dialer.common.LogUtil;
 import com.android.dialer.compat.telephony.TelephonyManagerCompat;
 import com.android.dialer.configprovider.ConfigProviderComponent;
 import com.android.dialer.proguard.UsedByReflection;
+import com.android.dialer.util.DialerUtils;
 import com.android.dialer.util.PermissionsUtil;
 import com.android.dialer.voicemail.settings.VoicemailSettingsFragment;
 import com.android.voicemail.VoicemailClient;
@@ -80,6 +85,7 @@ public class DialerSettingsActivity extends AppCompatPreferenceActivity {
     subscriptionManager = getSystemService(SubscriptionManager.class);
 
     super.onCreate(savedInstanceState);
+    DialerUtils.setupEdgeToEdge(this);
     preferences = PreferenceManager.getDefaultSharedPreferences(this.getApplicationContext());
 
     Intent intent = getIntent();

@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 package com.android.dialer.app.calllog;
 
@@ -45,6 +49,7 @@ import com.android.dialer.logging.ScreenEvent;
 import com.android.dialer.logging.UiAction;
 import com.android.dialer.performancereport.PerformanceReport;
 import com.android.dialer.postcall.PostCall;
+import com.android.dialer.util.DialerUtils;
 import com.android.dialer.util.TransactionSafeActivity;
 import com.android.dialer.util.ViewUtil;
 
@@ -68,7 +73,7 @@ public class CallLogActivity extends TransactionSafeActivity
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-
+    DialerUtils.setupEdgeToEdge(this);
     setContentView(R.layout.call_log_activity);
     getWindow().setBackgroundDrawable(null);
 
