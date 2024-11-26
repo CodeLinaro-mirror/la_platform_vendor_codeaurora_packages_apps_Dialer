@@ -32,6 +32,7 @@ import com.android.contacts.common.util.DateUtils;
 import com.android.dialer.calllogutils.CallbackActionHelper;
 import com.android.dialer.calllogutils.CallbackActionHelper.CallbackAction;
 import com.android.dialer.compat.telephony.TelephonyManagerCompat;
+import com.android.dialer.i18n.LocaleUtils;
 import com.android.dialer.inject.ApplicationContext;
 import com.android.dialer.phonenumbercache.CallLogQuery;
 import com.android.dialer.phonenumberutil.PhoneNumberHelper;
@@ -219,6 +220,10 @@ public class CallLogGroupBuilder {
     if (telephonyManager == null) {
       return false;
     }
+    String countryIso = telephonyManager.getNetworkCountryIso();
+    if (TextUtils.isEmpty(countryIso)) {
+      countryIso = LocaleUtils.getLocale(appContext).getCountry();
+    }
 
     if (PhoneNumberHelper.isUriNumber(number1) || PhoneNumberHelper.isUriNumber(number2)) {
       return compareSipAddresses(number1, number2);
@@ -230,8 +235,7 @@ public class CallLogGroupBuilder {
         return false;
       }
       for (int i = 0; i < num1.length; i++) {
-        if (!PhoneNumberUtils.areSamePhoneNumber(num1[i], num2[i],
-                                                 telephonyManager.getNetworkCountryIso())) {
+        if (!PhoneNumberUtils.areSamePhoneNumber(num1[i], num2[i], countryIso)) {
           return false;
         }
       }
@@ -247,8 +251,7 @@ public class CallLogGroupBuilder {
     }
     // areSamePhoneNumber compares the last 7 digits of the phone
     // numbers and also compares the country codes.
-    return PhoneNumberUtils.areSamePhoneNumber(number1, number2,
-                                               telephonyManager.getNetworkCountryIso());
+    return PhoneNumberUtils.areSamePhoneNumber(number1, number2, countryIso);
   }
 
   private boolean isSameAccount(String name1, String name2, String id1, String id2) {
