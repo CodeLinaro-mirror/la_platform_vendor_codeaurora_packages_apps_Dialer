@@ -197,6 +197,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
 
   // boolean flag to check if call has already been rejected
   private boolean isRejected = false;
+  private boolean isAnswered = false;
 
   private boolean didShowCameraPermission;
   private boolean didDismissVideoChargesAlertDialog;
@@ -495,6 +496,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     this.latencyReport = latencyReport;
     id = ID_PREFIX + Integer.toString(idCounter++);
     isRejected = false;
+    isAnswered = false;
 
     telephonyManager = context.getSystemService(TelephonyManager.class);
     telecomManager = context.getSystemService(TelecomManager.class);
@@ -1733,6 +1735,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   public void answer(int videoState) {
     LogUtil.i("DialerCall.answer", "videoState: " + videoState);
     telecomCall.answer(videoState);
+    isAnswered = true;
   }
 
   public void answer() {
@@ -1740,6 +1743,10 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
         !QtiCallUtils.isVideoCallOriginally(this))
         ? VideoProfile.STATE_AUDIO_ONLY : telecomCall.getDetails().getVideoState();
     answer(videoState);
+  }
+
+  public boolean isAnswered() {
+    return isAnswered;
   }
 
   public void deflectCall(Uri address) {

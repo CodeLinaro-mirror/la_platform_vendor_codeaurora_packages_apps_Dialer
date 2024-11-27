@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.location;
@@ -35,8 +39,6 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import com.android.dialer.common.Assert;
 import com.android.dialer.common.LogUtil;
-import com.android.dialer.common.concurrent.DialerExecutor.Worker;
-import com.android.dialer.common.concurrent.DialerExecutorComponent;
 import java.util.List;
 import java.util.Locale;
 
@@ -213,60 +215,58 @@ public class CountryDetector {
       // TODO: rething how we access the gecoder here, right now we have to set the static instance
       // of CountryDetector to make this work for tests which is weird
       // (see CountryDetectorTest.locationChangedBroadcast_GeocodesLocation)
-      processLocationUpdate(context, CountryDetector.getInstance(context).geocoder, location);
+      CountryDetector detector = CountryDetector.getInstance(context);
+      processLocationUpdate(detector.geocoder, location, detector.appContext);
     }
   }
 
-  private static void processLocationUpdate(
-      Context appContext, Geocoder geocoder, Location location) {
-    DialerExecutorComponent.get(appContext)
-        .dialerExecutorFactory()
-        .createNonUiTaskBuilder(new GeocodeCountryWorker(geocoder))
-        .onSuccess(
-            country -> {
-              if (country == null) {
-                return;
-              }
-
-              PreferenceManager.getDefaultSharedPreferences(appContext)
-                  .edit()
-                  .putLong(CountryDetector.KEY_PREFERENCE_TIME_UPDATED, System.currentTimeMillis())
-                  .putString(CountryDetector.KEY_PREFERENCE_CURRENT_COUNTRY, country)
-                  .apply();
-            })
-        .onFailure(
-            throwable ->
-                LogUtil.w(
-                    "CountryDetector.processLocationUpdate",
-                    "exception occurred when getting geocoded country from location",
-                    throwable))
-        .build()
-        .executeParallel(location);
+  private static void processLocationUpdate(Geocoder geocoder,
+                                            Location location,
+                                            Context context) {
+    if (geocoder == null || location == null || context == null) {
+      return;
+    }
+    try {
+      geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1,
+                               new CountryCodeListener(context));
+    } catch (IllegalArgumentException e) {
+      LogUtil.w("CountryDetector.processLocationUpdate",
+                "Invalid latitude or longitude.");
+    } catch (RuntimeException e) {
+      LogUtil.w("CountryDetector.processLocationUpdate",
+                "RuntimeException: " + e);
+    }
   }
 
-  /** Worker that given a {@link Location} returns an ISO 3166-1 two letter country code. */
-  private static class GeocodeCountryWorker implements Worker<Location, String> {
-    @NonNull private final Geocoder geocoder;
+  /** GeocodeListener that returns an ISO 3166-1 two letter country code. */
+  private static class CountryCodeListener implements Geocoder.GeocodeListener {
+      private Context mContext;
+      CountryCodeListener(Context context) {
+          mContext = context;
+      }
+      @Override
+      public void onGeocode(List<Address> addresses) {
+          String country = null;
+          if (addresses != null && !addresses.isEmpty()) {
+              country = addresses.get(0).getCountryCode();
+              LogUtil.d("CountryCodeListener", "onGeocode: " + country);
+          }
 
-    GeocodeCountryWorker(@NonNull Geocoder geocoder) {
-      this.geocoder = Assert.isNotNull(geocoder);
-    }
+          if (country == null) {
+              return;
+          }
 
-    /** @return the ISO 3166-1 two letter country code if geocoded, else null */
-    @Nullable
-    @Override
-    public String doInBackground(@Nullable Location location) throws Throwable {
-      if (location == null) {
-        return null;
+          PreferenceManager.getDefaultSharedPreferences(mContext)
+                .edit()
+                .putLong(CountryDetector.KEY_PREFERENCE_TIME_UPDATED, System.currentTimeMillis())
+                .putString(CountryDetector.KEY_PREFERENCE_CURRENT_COUNTRY, country)
+                .apply();
       }
 
-      List<Address> addresses =
-          geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
-      if (addresses != null && !addresses.isEmpty()) {
-        return addresses.get(0).getCountryCode();
+      @Override
+      public void onError(String errorMessage) {
+          LogUtil.w("CountryCodeListener.onError", errorMessage);
       }
-      return null;
-    }
   }
 
   private static boolean hasLocationPermissions(Context context) {
