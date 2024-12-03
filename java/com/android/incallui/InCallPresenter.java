@@ -15,7 +15,7 @@
  *
  * Changes from Qualcomm Innovation Center are provided under the following license:
  *
- * Copyright (c) 2021, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021, 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted (subject to the limitations in the
@@ -273,6 +273,8 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   private ThemeColorManager themeColorManager;
   private VideoSurfaceTexture localVideoSurfaceTexture;
   private VideoSurfaceTexture remoteVideoSurfaceTexture;
+  private VideoSurfaceTexture local2VideoSurfaceTexture;
+  private VideoSurfaceTexture remote2VideoSurfaceTexture;
 
   private SpeakEasyCallManager speakEasyCallManager;
 
@@ -2332,6 +2334,29 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     return remoteVideoSurfaceTexture;
   }
 
+  VideoSurfaceTexture getLocal2VideoSurfaceTexture() {
+    if (local2VideoSurfaceTexture == null) {
+      boolean isPixel2017 = false;
+      if (context != null) {
+        isPixel2017 = context.getPackageManager().hasSystemFeature(PIXEL2017_SYSTEM_FEATURE);
+      }
+      local2VideoSurfaceTexture = VideoSurfaceBindings.createLocalVideoSurfaceTexture(isPixel2017);
+    }
+    return local2VideoSurfaceTexture;
+  }
+
+  VideoSurfaceTexture getRemote2VideoSurfaceTexture() {
+    if (remote2VideoSurfaceTexture == null) {
+      boolean isPixel2017 = false;
+      if (context != null) {
+        isPixel2017 = context.getPackageManager().hasSystemFeature(PIXEL2017_SYSTEM_FEATURE);
+      }
+      remote2VideoSurfaceTexture =
+          VideoSurfaceBindings.createRemoteVideoSurfaceTexture(isPixel2017);
+    }
+    return remote2VideoSurfaceTexture;
+  }
+
   void cleanupSurfaces() {
     if (remoteVideoSurfaceTexture != null) {
       remoteVideoSurfaceTexture.setDoneWithSurface();
@@ -2340,6 +2365,14 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     if (localVideoSurfaceTexture != null) {
       localVideoSurfaceTexture.setDoneWithSurface();
       localVideoSurfaceTexture = null;
+    }
+    if (remote2VideoSurfaceTexture != null) {
+      remote2VideoSurfaceTexture.setDoneWithSurface();
+      remote2VideoSurfaceTexture = null;
+    }
+    if (local2VideoSurfaceTexture != null) {
+      local2VideoSurfaceTexture.setDoneWithSurface();
+      local2VideoSurfaceTexture = null;
     }
   }
 

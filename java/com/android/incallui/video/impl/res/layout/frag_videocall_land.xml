@@ -67,6 +67,30 @@
     android:layout_alignParentEnd="true"
     android:importantForAccessibility="no"/>
 
+  <TextureView
+    android:id="@+id/videocall_video_preview2"
+    android:layout_width="@dimen/videocall_preview_width"
+    android:layout_height="@dimen/videocall_preview_height"
+    android:layout_marginBottom="25dp"
+    android:layout_marginEnd="36dp"
+    android:layout_alignParentBottom="true"
+    android:layout_alignParentEnd="true"
+    android:importantForAccessibility="no"/>
+
+    <FrameLayout
+      android:layout_width="match_parent"
+      android:layout_height="match_parent" >
+      <TextureView
+        android:id="@+id/videocall_video_remote2"
+        android:layout_width="120dp"
+        android:layout_height="140dp"
+        android:layout_marginTop="30dp"
+        android:layout_marginStart="15dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:importantForAccessibility="no"/>
+   </FrameLayout>
+
   <ImageView
     android:id="@+id/videocall_preview_off_blurred_image_view"
     android:layout_width="@dimen/videocall_preview_width"

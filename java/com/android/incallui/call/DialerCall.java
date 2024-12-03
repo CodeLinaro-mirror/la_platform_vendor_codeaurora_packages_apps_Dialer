@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -55,6 +55,7 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
+import android.telecom.VideoProfile.CameraCapabilities;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
@@ -124,6 +125,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import org.codeaurora.ims.utils.QtiImsExtUtils;
 import org.codeaurora.ims.QtiCallConstants;
+import org.codeaurora.ims.VideoCallProviderListenerBase;
 
 /** Describes a single call and its state. */
 public class DialerCall implements VideoTechListener, StateChangedListener, CapabilitiesListener {
@@ -232,6 +234,9 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   private boolean overwriteDisconnectCause = false;
   private TelecomManager telecomManager;
   private TelephonyManager telephonyManager;
+
+  private boolean isDualVtSupported = false;
+  private int mDualVtCapability = QtiCallConstants.DUAL_VIDEO_DISABLED;
 
   public static String getNumberFromHandle(Uri handle) {
     return handle == null ? "" : handle.getSchemeSpecificPart();
@@ -477,11 +482,14 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   private long timeAddedMs;
   private int peerDimensionWidth = UNKNOWN_PEER_DIMENSIONS;
   private int peerDimensionHeight = UNKNOWN_PEER_DIMENSIONS;
+  private int peer2DimensionWidth = UNKNOWN_PEER_DIMENSIONS;
+  private int peer2DimensionHeight = UNKNOWN_PEER_DIMENSIONS;
 
   // to track whether the call was added to call list atleast once
   private boolean wasCallAddedToCallList = false;
 
   private SatelliteInfo mSatelliteInfo;
+  private VideoCallProviderListenerBase mVideoCallProviderListener = null;
 
   public DialerCall(
       Context context,
@@ -518,6 +526,28 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     parseCallSpecificAppData();
 
     updateEnrichedCallSession();
+    mVideoCallProviderListener =
+        new VideoCallProviderListenerBase(this.context.getMainExecutor()) {
+
+      @Override
+      public void onChangeCameraCapabilities(CameraCapabilities cc) {
+        InCallVideoCallCallbackNotifier.getInstance().cameraDimensionsChanged2(DialerCall.this,
+            cc.getWidth(), cc.getHeight());
+      }
+
+      @Override
+      public void onChangePeerDimensions(int width, int height) {
+        peer2DimensionWidth = width;
+        peer2DimensionHeight = height;
+        InCallVideoCallCallbackNotifier.getInstance().peerDimensionsChanged2(DialerCall.this,
+            width, height);
+      }
+
+      @Override
+      public void onHandleCallSessionEvent(int event) {
+        InCallVideoCallCallbackNotifier.getInstance().callSessionEvent2(event);
+      }
+    };
   }
 
   private static int translateState(int state) {
@@ -973,6 +1003,24 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     if (!Objects.equals(this.callReason, callReason)) {
       this.callReason = callReason;
     }
+
+    int capability = callExtras.getInt(QtiCallConstants.DUAL_VIDEO_CAPABILITY,
+        QtiCallConstants.DUAL_VIDEO_DISABLED);
+    LogUtil.i("updateCallExtras isDualVtSupported: "," capability= " + capability);
+    this.isDualVtSupported = capability != QtiCallConstants.DUAL_VIDEO_DISABLED;
+    mDualVtCapability = capability;
+  }
+
+  public boolean isDualVideoSupported() {
+    return isDualVtSupported;
+  }
+
+  public boolean isDualVtCall() {
+    return getVideoState() == VideoProfile.STATE_DUAL_BIDIRECTIONAL;
+  }
+
+  public int getDualVtCapability() {
+    return mDualVtCapability;
   }
 
   public String getId() {
@@ -1506,7 +1554,8 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     return String.format(
         Locale.US,
         "[%s, %s, %s, %s, children:%s, parent:%s, "
-            + "conferenceable:%s, videoState:%s, mSessionModificationState:%d, CameraDir:%s]",
+            + "conferenceable:%s, videoState:%s, mSessionModificationState:%d, CameraDir:%s,"
+            + "DualVtCall:%b]",
         id,
         DialerCallState.toString(getState()),
         Details.capabilitiesToString(telecomCall.getDetails().getCallCapabilities()),
@@ -1516,7 +1565,8 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
         this.telecomCall.getConferenceableCalls(),
         VideoProfile.videoStateToString(telecomCall.getDetails().getVideoState()),
         getVideoTech().getSessionModificationState(),
-        getCameraDir());
+        getCameraDir(),
+        isDualVtCall());
   }
 
   public void addConferenceParticipants(List<Uri> participants) {
@@ -1967,6 +2017,16 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     }
   }
 
+  @Override
+  public void onDualVideoChanged(boolean isDualVt) {
+    LogUtil.i("onDualVideoChanged ", "isDualVt: " + isDualVt);
+    // trigger call state changed to re-set session modification state
+    updateFromTelecomCall();
+
+    // update clients of dual video event
+    InCallVideoCallCallbackNotifier.getInstance().onDualVideoChanged(isDualVt);
+  }
+
   private void updateEnrichedCallSession() {
     if (getNumber() == null) {
       return;
@@ -2324,6 +2384,16 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     return peerDimensionHeight;
   }
 
+  /** Gets second peer dimension width for dual video. */
+  public int getPeer2DimensionWidth() {
+    return peer2DimensionWidth;
+  }
+
+  /** Gets second peer dimension height for dual video. */
+  public int getPeer2DimensionHeight() {
+    return peer2DimensionHeight;
+  }
+
   /** Check if this call and DialerCall passed are having same phone account. */
   public boolean hasSamePhoneAccount(DialerCall call) {
     return call != null &&
@@ -2345,5 +2415,15 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
 
   public SatelliteInfo getSatelliteInfo() {
     return mSatelliteInfo;
+  }
+
+  public int getToken() {
+    final Bundle extras = getExtras();
+    return ((extras == null) ? QtiCallConstants.INVALID_PHONE_ID :
+        extras.getInt(QtiCallConstants.EXTRA_DUAL_VIDEO_TOKEN, QtiCallConstants.INVALID_PHONE_ID));
+  }
+
+  public VideoCallProviderListenerBase getVideoCallProviderListener() {
+    return mVideoCallProviderListener;
   }
 }

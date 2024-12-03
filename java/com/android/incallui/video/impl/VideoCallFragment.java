@@ -14,7 +14,7 @@
  * limitations under the License
  *
  * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -27,9 +27,14 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Insets;
 import android.graphics.Outline;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.Animatable;
 import android.os.AsyncTask;
@@ -51,6 +56,7 @@ import android.support.v4.view.animation.LinearOutSlowInInterpolator;
 import android.telecom.CallAudioState;
 import android.telephony.satellite.SatelliteManager;
 import android.text.TextUtils;
+import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.TextureView;
@@ -67,6 +73,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -107,6 +114,7 @@ import com.android.incallui.videosurface.bindings.VideoSurfaceBindings;
 import com.android.incallui.videosurface.protocol.VideoSurfaceTexture;
 import com.android.incallui.videotech.utils.VideoUtils;
 
+import org.codeaurora.ims.QtiCallConstants;
 import org.codeaurora.ims.QtiImsException;
 import org.codeaurora.ims.utils.QtiImsExtUtils;
 
@@ -141,6 +149,41 @@ public class VideoCallFragment extends Fragment
   private static final long VIDEO_OFF_VIEW_FADE_OUT_DELAY_IN_MILLIS = 2000L;
   private static final long VIDEO_CHARGES_ALERT_DIALOG_DELAY_IN_MILLIS = 500L;
 
+  public class BorderView extends View {
+    private Paint paint;
+
+    public BorderView(Context context) {
+        this(context, null);
+    }
+
+    public BorderView(Context context, @Nullable AttributeSet attrs) {
+        super(context, attrs);
+    }
+
+    @Override
+    public void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        if (paint == null) {
+            paint = new Paint();
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setAntiAlias(true);
+            paint.setColor(Color.WHITE);
+        }
+
+        drawBorder(canvas, 10);
+    }
+
+    private void drawBorder(Canvas canvas, int rectThickness) {
+        if (canvas == null) {
+            return;
+        }
+        paint.setStrokeWidth(rectThickness);
+        Path drawPath = new Path();
+        drawPath.addRect(0, 0, getWidth(), getHeight(), Path.Direction.CW);
+        canvas.drawPath(drawPath, paint);
+    }
+  }
+
   public static final ViewOutlineProvider circleOutlineProvider =
       new ViewOutlineProvider() {
         @Override
@@ -149,6 +192,16 @@ public class VideoCallFragment extends Fragment
           int y = view.getHeight() / 2;
           int radius = Math.min(x, y);
           outline.setOval(x - radius, y - radius, x + radius, y + radius);
+        }
+      };
+
+  public static final ViewOutlineProvider rectOutlineProvider =
+      new ViewOutlineProvider() {
+        @Override
+        public void getOutline(View view, Outline outline) {
+          int x = view.getWidth();
+          int y = view.getHeight();
+          outline.setRect(0, 0, x, y);
         }
       };
 
@@ -191,10 +244,17 @@ public class VideoCallFragment extends Fragment
   private View controlsContainer;
   private TextureView previewTextureView;
   private TextureView remoteTextureView;
+  private TextureView preview2TextureView;
+  private TextureView remote2TextureView;
+  private FrameLayout remote2FrameLayout;
+  private BorderView borderView;
   private View greenScreenBackgroundView;
   private View fullscreenBackgroundView;
   private boolean shouldShowRemote;
   private boolean shouldShowPreview;
+  // values to keep track of whether to show second remote/preview for dual video call
+  private boolean shouldShowRemote2;
+  private boolean shouldShowPreview2;
   private boolean isInFullscreenMode;
   private boolean isInGreenScreenMode;
   private boolean hasInitializedScreenModes;
@@ -364,7 +424,21 @@ public class VideoCallFragment extends Fragment
             checkCameraPermission();
           }
         });
+
+    preview2TextureView = (TextureView) view.findViewById(R.id.videocall_video_preview2);
+    preview2TextureView.setOutlineProvider(circleOutlineProvider);
+    preview2TextureView.setClipToOutline(true);
+
     remoteTextureView = (TextureView) view.findViewById(R.id.videocall_video_remote);
+    // setting up the second remote texture view for dual video
+    remote2TextureView = (TextureView) view.findViewById(R.id.videocall_video_remote2);
+    remote2TextureView.setOutlineProvider(rectOutlineProvider);
+    remote2TextureView.setClipToOutline(true);
+    borderView = new BorderView(getContext());
+    remote2FrameLayout = (FrameLayout) remote2TextureView.getParent();
+    remote2FrameLayout.setVisibility(View.GONE);
+    remote2FrameLayout.addView(borderView, remote2TextureView.getLayoutParams());
+
     greenScreenBackgroundView = view.findViewById(R.id.videocall_green_screen_background);
     fullscreenBackgroundView = view.findViewById(R.id.videocall_fullscreen_background);
 
@@ -382,7 +456,7 @@ public class VideoCallFragment extends Fragment
               int oldRight,
               int oldBottom) {
             LogUtil.i("VideoCallFragment.onLayoutChange", "remoteTextureView layout changed");
-            updateRemoteVideoScaling();
+            updateRemoteVideoScaling(QtiCallConstants.DUAL_VIDEO_MAIN_STREAM);
             updateRemoteOffView();
           }
         });
@@ -401,11 +475,46 @@ public class VideoCallFragment extends Fragment
               int oldRight,
               int oldBottom) {
             LogUtil.i("VideoCallFragment.onLayoutChange", "previewTextureView layout changed");
-            updatePreviewVideoScaling();
+            updatePreviewVideoScaling(QtiCallConstants.DUAL_VIDEO_MAIN_STREAM);
             updatePreviewOffView();
           }
         });
 
+    remote2TextureView.addOnLayoutChangeListener(
+        new OnLayoutChangeListener() {
+          @Override
+          public void onLayoutChange(
+              View v,
+              int left,
+              int top,
+              int right,
+              int bottom,
+              int oldLeft,
+              int oldTop,
+              int oldRight,
+              int oldBottom) {
+            LogUtil.i("VideoCallFragment.onLayoutChange", "remote2TextureView layout changed");
+            updateRemoteVideoScaling(QtiCallConstants.DUAL_VIDEO_ALT_STREAM);
+          }
+        });
+
+    preview2TextureView.addOnLayoutChangeListener(
+        new OnLayoutChangeListener() {
+          @Override
+          public void onLayoutChange(
+              View v,
+              int left,
+              int top,
+              int right,
+              int bottom,
+              int oldLeft,
+              int oldTop,
+              int oldRight,
+              int oldBottom) {
+            LogUtil.i("VideoCallFragment.onLayoutChange", "preview2TextureView layout changed");
+            updatePreviewVideoScaling(QtiCallConstants.DUAL_VIDEO_ALT_STREAM);
+          }
+        });
     controls.addOnLayoutChangeListener(
         new OnLayoutChangeListener() {
           @Override
@@ -705,6 +814,7 @@ public class VideoCallFragment extends Fragment
   private View[] getAllPreviewRelatedViews() {
     return new View[] {
       previewTextureView, previewOffOverlay, previewOffBlurredImageView, mutePreviewOverlay,
+      preview2TextureView,
     };
   }
 
@@ -827,6 +937,7 @@ public class VideoCallFragment extends Fragment
       }
       inCallButtonUiDelegate.toggleCameraClicked();
       videoCallScreenDelegate.resetAutoFullscreenTimer();
+      videoCallScreenDelegate.maybeSwitchSecondCamera();
     } else if (moreOptionsMenuButton == v) {
       LogUtil.i("VideoCallFragment.onClick", "more button clicked");
       BottomSheetHelper.getInstance()
@@ -915,21 +1026,37 @@ public class VideoCallFragment extends Fragment
 
   @Override
   public void showVideoViews(
-      boolean shouldShowPreview, boolean shouldShowRemote, boolean isRemotelyHeld) {
+      boolean shouldShowPreview, boolean shouldShowRemote, boolean isRemotelyHeld,
+      boolean shouldShowPreview2, boolean shouldShowRemote2) {
     LogUtil.i(
         "VideoCallFragment.showVideoViews",
-        "showPreview: %b, shouldShowRemote: %b",
+        "showPreview: %b, shouldShowRemote: %b showPreview2: %b, shouldShowRemote2: %b",
         shouldShowPreview,
-        shouldShowRemote);
+        shouldShowRemote,
+        shouldShowPreview2,
+        shouldShowRemote2);
 
     videoCallScreenDelegate.getLocalVideoSurfaceTexture().attachToTextureView(previewTextureView);
     videoCallScreenDelegate.getRemoteVideoSurfaceTexture().attachToTextureView(remoteTextureView);
+    videoCallScreenDelegate.getRemote2VideoSurfaceTexture().attachToTextureView(remote2TextureView);
+    videoCallScreenDelegate.getLocal2VideoSurfaceTexture().attachToTextureView(preview2TextureView);
 
     boolean updateRemoteOffView = false;
     if (this.shouldShowRemote != shouldShowRemote) {
       this.shouldShowRemote = shouldShowRemote;
       updateRemoteOffView = true;
     }
+
+    if (this.shouldShowRemote2 != shouldShowRemote2) {
+      this.shouldShowRemote2 = shouldShowRemote2;
+    }
+
+    if (shouldShowRemote2) {
+      remote2FrameLayout.setVisibility(View.VISIBLE);
+    } else {
+      remote2FrameLayout.setVisibility(View.GONE);
+    }
+
     if (this.isRemotelyHeld != isRemotelyHeld) {
       this.isRemotelyHeld = isRemotelyHeld;
       updateRemoteOffView = true;
@@ -943,11 +1070,21 @@ public class VideoCallFragment extends Fragment
       updatePreviewOffView();
     }
 
+    if (this.shouldShowPreview2 != shouldShowPreview2) {
+      this.shouldShowPreview2 = shouldShowPreview2;
+      updatePreviewOffView2();
+    }
+
     maybeLoadPreConfiguredImageAsync();
     if (videoCallScreenDelegate.shallRemovePreviewWindow(shouldShowPreview)) {
         previewTextureView.setVisibility(View.GONE);
     } else if (shouldShowPreview) {
         previewTextureView.setVisibility(View.VISIBLE);
+        if (shouldShowPreview2) {
+          preview2TextureView.setVisibility(View.VISIBLE);
+        } else {
+          preview2TextureView.setVisibility(View.GONE);
+        }
     }
   }
 
@@ -1054,22 +1191,22 @@ public class VideoCallFragment extends Fragment
   }
 
   @Override
-  public void onLocalVideoDimensionsChanged() {
-    LogUtil.i("VideoCallFragment.onLocalVideoDimensionsChanged", null);
-    updatePreviewVideoScaling();
+  public void onLocalVideoDimensionsChanged(int stream) {
+    LogUtil.i("VideoCallFragment.onLocalVideoDimensionsChanged", "for stream: " + stream);
+    updatePreviewVideoScaling(stream);
   }
 
   @Override
-  public void onLocalVideoOrientationChanged() {
-    LogUtil.i("VideoCallFragment.onLocalVideoOrientationChanged", null);
-    updatePreviewVideoScaling();
+  public void onLocalVideoOrientationChanged(int stream) {
+    LogUtil.i("VideoCallFragment.onLocalVideoOrientationChanged", "for stream: " + stream);
+    updatePreviewVideoScaling(stream);
   }
 
   /** Called when the remote video's dimensions change. */
   @Override
-  public void onRemoteVideoDimensionsChanged() {
-    LogUtil.i("VideoCallFragment.onRemoteVideoDimensionsChanged", null);
-    updateRemoteVideoScaling();
+  public void onRemoteVideoDimensionsChanged(int stream) {
+    LogUtil.i("VideoCallFragment.onRemoteVideoDimensionsChanged", "for stream: " + stream);
+    updateRemoteVideoScaling(stream);
   }
 
   @Override
@@ -1429,20 +1566,32 @@ public class VideoCallFragment extends Fragment
     // Do nothing
   }
 
-  private void updatePreviewVideoScaling() {
+  private void updatePreviewVideoScaling(int stream) {
+    VideoSurfaceTexture localVideoSurfaceTexture = null;
+    if (stream == QtiCallConstants.DUAL_VIDEO_MAIN_STREAM) {
+      localVideoSurfaceTexture =
+          videoCallScreenDelegate.getLocalVideoSurfaceTexture();
+      updatePreviewVideoScaling(previewTextureView, localVideoSurfaceTexture);
+      return;
+    }
+
+    localVideoSurfaceTexture = videoCallScreenDelegate.getLocal2VideoSurfaceTexture();
+    updatePreviewVideoScaling(preview2TextureView, localVideoSurfaceTexture);
+  }
+
+  private void updatePreviewVideoScaling(TextureView textureView,
+      VideoSurfaceTexture videoSurfaceTexture) {
     if (!isAdded()) {
       LogUtil.i(
          "VideoCallFragment.updatePreviewVideoScaling","fragment not attached");
       return;
     }
 
-    if (previewTextureView.getWidth() == 0 || previewTextureView.getHeight() == 0) {
+    if (textureView.getWidth() == 0 || textureView.getHeight() == 0) {
       LogUtil.i("VideoCallFragment.updatePreviewVideoScaling", "view layout hasn't finished yet");
       return;
     }
-    VideoSurfaceTexture localVideoSurfaceTexture =
-        videoCallScreenDelegate.getLocalVideoSurfaceTexture();
-    Point cameraDimensions = localVideoSurfaceTexture.getSurfaceDimensions();
+    Point cameraDimensions = videoSurfaceTexture.getSurfaceDimensions();
     if (cameraDimensions == null) {
       LogUtil.i(
           "VideoCallFragment.updatePreviewVideoScaling", "camera dimensions haven't been set");
@@ -1450,28 +1599,48 @@ public class VideoCallFragment extends Fragment
     }
     if (isLandscape()) {
       VideoSurfaceBindings.scaleVideoAndFillView(
-          previewTextureView,
+          textureView,
           cameraDimensions.x,
           cameraDimensions.y,
           videoCallScreenDelegate.getDeviceOrientation());
     } else {
       VideoSurfaceBindings.scaleVideoAndFillView(
-          previewTextureView,
+          textureView,
           cameraDimensions.y,
           cameraDimensions.x,
           videoCallScreenDelegate.getDeviceOrientation());
     }
   }
 
-  private void updateRemoteVideoScaling() {
-    VideoSurfaceTexture remoteVideoSurfaceTexture =
-        videoCallScreenDelegate.getRemoteVideoSurfaceTexture();
-    Point videoSize = remoteVideoSurfaceTexture.getSourceVideoDimensions();
+  private void updateRemoteVideoScaling(int stream) {
+    VideoSurfaceTexture videoSurfaceTexture = null;
+    TextureView textureView = null;
+    if (stream == QtiCallConstants.DUAL_VIDEO_MAIN_STREAM) {
+      videoSurfaceTexture =
+          videoCallScreenDelegate.getRemoteVideoSurfaceTexture();
+      textureView = remoteTextureView;
+    } else {
+      videoSurfaceTexture =
+          videoCallScreenDelegate.getRemote2VideoSurfaceTexture();
+      textureView = remote2TextureView;
+    }
+
+    updateRemoteVideoScaling(videoSurfaceTexture, textureView);
+  }
+
+  private void updateRemoteVideoScaling(VideoSurfaceTexture videoSurfaceTexture,
+      TextureView textureView) {
+    if (videoSurfaceTexture == null || textureView == null) {
+      LogUtil.e("VideoCallFragment.updateRemoteVideoScaling",
+          "VideoSurfaceTexture or textureView is null");
+      return;
+    }
+    Point videoSize = videoSurfaceTexture.getSourceVideoDimensions();
     if (videoSize == null) {
       LogUtil.i("VideoCallFragment.updateRemoteVideoScaling", "video size is null");
       return;
     }
-    if (remoteTextureView.getWidth() == 0 || remoteTextureView.getHeight() == 0) {
+    if (textureView.getWidth() == 0 || textureView.getHeight() == 0) {
       LogUtil.i("VideoCallFragment.updateRemoteVideoScaling", "view layout hasn't finished yet");
       return;
     }
@@ -1479,15 +1648,16 @@ public class VideoCallFragment extends Fragment
     // If the video and display aspect ratio's are close then scale video to fill display
     float videoAspectRatio = ((float) videoSize.x) / videoSize.y;
     float displayAspectRatio =
-        ((float) remoteTextureView.getWidth()) / remoteTextureView.getHeight();
+        ((float) textureView.getWidth()) / textureView.getHeight();
     float delta = Math.abs(videoAspectRatio - displayAspectRatio);
     float sum = videoAspectRatio + displayAspectRatio;
     if (delta / sum < mAspectRatioMatchThreshold) {
-      VideoSurfaceBindings.scaleVideoAndFillView(remoteTextureView, videoSize.x, videoSize.y, 0);
+      VideoSurfaceBindings.scaleVideoAndFillView(textureView, videoSize.x, videoSize.y, 0);
     } else {
       VideoSurfaceBindings.scaleVideoMaintainingAspectRatio(
-          remoteTextureView, videoSize.x, videoSize.y);
+          textureView, videoSize.x, videoSize.y);
     }
+
   }
 
   private boolean isLandscape() {
@@ -1533,6 +1703,7 @@ public class VideoCallFragment extends Fragment
     params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
     previewTextureView.setLayoutParams(params);
     previewTextureView.setOutlineProvider(circleOutlineProvider);
+    preview2TextureView.setOutlineProvider(circleOutlineProvider);
     updateOverlayBackground();
     /*
      * If incoming video is available for dialing call to support
@@ -1558,6 +1729,22 @@ public class VideoCallFragment extends Fragment
             previewTextureView,
             previewOffBlurredImageView,
             shouldShowPreview,
+            BLUR_PREVIEW_RADIUS,
+            BLUR_PREVIEW_SCALE_FACTOR);
+    }
+  }
+
+  private void updatePreviewOffView2() {
+    LogUtil.enterBlock("VideoCallFragment.updatePreviewOffView2");
+
+    // Always hide the preview off and remote off views in green screen mode.
+    boolean previewEnabled = isInGreenScreenMode || shouldShowPreview2;
+    previewOffOverlay.setVisibility(previewEnabled ? View.GONE : View.VISIBLE);
+    if (shouldShowPreview2 && !videoCallScreenDelegate.shallTransmitStaticImage()) {
+        updateBlurredImageView(
+            preview2TextureView,
+            previewOffBlurredImageView,
+            shouldShowPreview2,
             BLUR_PREVIEW_RADIUS,
             BLUR_PREVIEW_SCALE_FACTOR);
     }

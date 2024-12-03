@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.answer.impl;
@@ -100,7 +104,8 @@ public class AnswerVideoCallScreen implements VideoCallScreen {
 
   @Override
   public void showVideoViews(
-      boolean shouldShowPreview, boolean shouldShowRemote, boolean isRemotelyHeld) {
+      boolean shouldShowPreview, boolean shouldShowRemote, boolean isRemotelyHeld,
+      boolean shouldShowPreview2, boolean shouldShowRemote2) {
     LogUtil.i(
         "AnswerVideoCallScreen.showVideoViews",
         "showPreview: %b, shouldShowRemote: %b",
@@ -109,13 +114,13 @@ public class AnswerVideoCallScreen implements VideoCallScreen {
   }
 
   @Override
-  public void onLocalVideoDimensionsChanged() {
+  public void onLocalVideoDimensionsChanged(int stream) {
     LogUtil.i("AnswerVideoCallScreen.onLocalVideoDimensionsChanged", null);
     updatePreviewVideoScaling();
   }
 
   @Override
-  public void onRemoteVideoDimensionsChanged() {
+  public void onRemoteVideoDimensionsChanged(int stream) {
     LogUtil.i("AnswerVideoCallScreen.onRemoteVideoDimensionsChanged", null);
     DialerCall call = QtiCallUtils.getIncomingCall();
     if (QtiCallUtils.isVideoCrs(call)) {
@@ -124,7 +129,7 @@ public class AnswerVideoCallScreen implements VideoCallScreen {
   }
 
   @Override
-  public void onLocalVideoOrientationChanged() {
+  public void onLocalVideoOrientationChanged(int stream) {
     LogUtil.i("AnswerVideoCallScreen.onLocalVideoOrientationChanged", null);
     updatePreviewVideoScaling();
   }

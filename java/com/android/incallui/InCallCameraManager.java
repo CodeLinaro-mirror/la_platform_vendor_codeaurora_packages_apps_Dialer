@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui;
@@ -21,6 +25,7 @@ import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -93,6 +98,23 @@ public class InCallCameraManager {
       return frontFacingCameraId;
     } else {
       return rearFacingCameraId;
+    }
+  }
+
+  /**
+   * Determines the secondary active camera id.
+   * Checks for the active camera and returns the non-active camera id
+   *
+   * @return The secondary active camera id for dual video.
+   */
+  public String getSecondaryCameraId() {
+    maybeInitializeCameraList(context);
+
+    String activeCameraId = getActiveCameraId();
+    if (Objects.equals(activeCameraId, frontFacingCameraId)) {
+        return rearFacingCameraId;
+    } else {
+        return frontFacingCameraId;
     }
   }
 

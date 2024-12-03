@@ -26,7 +26,7 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * ​​​​​Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -210,11 +210,13 @@ public class OrientationModeHandler implements InCallDetailsListener, InCallUiLi
         // Hence, restricting held VT call to change orientation.
         // Furthermore, video CRS call, volte call with video CRBT and visualized voice call are
         // disallowed rotation.
+        // Additionally, restrict rotation for dual VT call
         if (isVideoOrUpgrade(call) && (call.getNonConferenceState() != DialerCallState.ONHOLD)
                 && (call.getNonConferenceState() != DialerCallState.DISCONNECTED)
                 && !QtiCallUtils.isVideoCrs(call)
                 && !QtiCallUtils.hasVideoCrbtVoLteCall(call.getContext())
-                && !QtiCallUtils.isVisualizedVoiceCall(call)) {
+                && !QtiCallUtils.isVisualizedVoiceCall(call)
+                && !call.isDualVtCall()) {
             return (mOrientationMode == QtiCallConstants.ORIENTATION_MODE_UNSPECIFIED) ?
                     InCallOrientationEventListener.ACTIVITY_PREFERENCE_ALLOW_ROTATION :
                     QtiCallUtils.toScreenOrientation(mOrientationMode);

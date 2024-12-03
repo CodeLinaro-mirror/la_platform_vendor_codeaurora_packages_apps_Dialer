@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.video.impl;
@@ -623,7 +627,8 @@ public class SurfaceViewVideoCallFragment extends Fragment
 
   @Override
   public void showVideoViews(
-      boolean shouldShowPreview, boolean shouldShowRemote, boolean isRemotelyHeld) {
+      boolean shouldShowPreview, boolean shouldShowRemote, boolean isRemotelyHeld,
+      boolean shouldShowPreview2, boolean shoudShowRemote2) {
     LogUtil.i(
         "SurfaceViewVideoCallFragment.showVideoViews",
         "showPreview: %b, shouldShowRemote: %b",
@@ -641,18 +646,18 @@ public class SurfaceViewVideoCallFragment extends Fragment
   }
 
   @Override
-  public void onLocalVideoDimensionsChanged() {
+  public void onLocalVideoDimensionsChanged(int stream) {
     LogUtil.i("SurfaceViewVideoCallFragment.onLocalVideoDimensionsChanged", null);
   }
 
   @Override
-  public void onLocalVideoOrientationChanged() {
+  public void onLocalVideoOrientationChanged(int stream) {
     LogUtil.i("SurfaceViewVideoCallFragment.onLocalVideoOrientationChanged", null);
   }
 
   /** Called when the remote video's dimensions change. */
   @Override
-  public void onRemoteVideoDimensionsChanged() {
+  public void onRemoteVideoDimensionsChanged(int stream) {
     LogUtil.i("SurfaceViewVideoCallFragment.onRemoteVideoDimensionsChanged", null);
   }
 
