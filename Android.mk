@@ -117,6 +117,7 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
 
 LOCAL_STATIC_ANDROID_LIBRARIES := \
 	android-support-core-ui \
+	androidx.core_core \
 	$(ANDROID_SUPPORT_DESIGN_TARGETS) \
 	android-support-transition \
 	android-support-v13 \

@@ -20,6 +20,7 @@
 package com.android.dialer.util;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -43,6 +44,9 @@ import android.text.TextUtils;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import com.android.dialer.activecalls.ActiveCallInfo;
 import com.android.dialer.activecalls.ActiveCallsComponent;
 import com.android.dialer.common.LogUtil;
@@ -457,5 +461,19 @@ public class DialerUtils {
     return (handle != null) && (context != null) &&
         (context.getString(R.string.hfp_client_connection)
         .equals(handle.getComponentName().getClassName()));
+  }
+
+  public static void setupEdgeToEdge(@NonNull Activity activity) {
+    ViewCompat.setOnApplyWindowInsetsListener(activity.findViewById(android.R.id.content),
+        (v, windowInsets) -> {
+          Insets insets = windowInsets.getInsets(
+              WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.ime()
+              | WindowInsetsCompat.Type.displayCutout());
+          // Apply the insets paddings to the view.
+          v.setPadding(insets.left, insets.top, insets.right, insets.bottom);
+          // Return CONSUMED if you don't want the window insets to keep being
+          // passed down to descendant views.
+          return WindowInsetsCompat.CONSUMED;
+        });
   }
 }

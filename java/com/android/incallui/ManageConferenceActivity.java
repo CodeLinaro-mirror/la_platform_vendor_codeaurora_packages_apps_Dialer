@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui;
@@ -20,6 +24,7 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
+import com.android.dialer.util.DialerUtils;
 
 /** Shows the {@link ConferenceManagerFragment} */
 public class ManageConferenceActivity extends AppCompatActivity {
@@ -33,6 +38,7 @@ public class ManageConferenceActivity extends AppCompatActivity {
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    DialerUtils.setupEdgeToEdge(this);
     InCallPresenter.getInstance().setManageConferenceActivity(this);
 
     getSupportActionBar().setDisplayHomeAsUpEnabled(true);
