@@ -20,8 +20,6 @@
 
 package com.android.incallui;
 
-import static com.android.incallui.NotificationBroadcastReceiver.EXTRA_CALL_ID;
-
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.AppTask;
@@ -219,8 +217,6 @@ public class InCallActivity extends TransactionSafeFragmentActivity
       didShowRttCallScreen = bundle.getBoolean(KeysForSavedInstance.DID_SHOW_RTT_CALL_SCREEN);
       didShowSpeakEasyScreen = bundle.getBoolean(KeysForSavedInstance.DID_SHOW_SPEAK_EASY_SCREEN);
     }
-
-    CallList.getInstance().setSelectedIncomingCall(getIntent().getStringExtra(EXTRA_CALL_ID));
 
     setWindowFlags();
     setContentView(R.layout.incall_screen);
@@ -677,7 +673,6 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     } else {
       onNewIntent(intent, false /* isRecreating */);
     }
-    CallList.getInstance().setSelectedIncomingCall(getIntent().getStringExtra(EXTRA_CALL_ID));
   }
 
   @VisibleForTesting

@@ -1227,7 +1227,6 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     InCallState newState = startOrFinishUi(InCallState.INCOMING);
     InCallState oldState = inCallState;
 
-    onForegroundCallChanged(call);
     LogUtil.i(
         "InCallPresenter.onIncomingCall", "Phone switching state: " + oldState + " -> " + newState);
     inCallState = newState;

@@ -84,7 +84,6 @@ public class CallList implements DialerCallDelegate {
   private DialerCall secondaryCall;
   private DialerCall lastActiveCall;
   private DialerCall lastHeldCall;
-  private String selectedIncomingCall;
 
   /**
    * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is load factor before
@@ -292,9 +291,7 @@ public class CallList implements DialerCallDelegate {
         LogUtil.w(
             "CallList.onCallRemoved", "Removing call not previously disconnected " + call.getId());
       }
-      if (call.getId() == selectedIncomingCall) {
-          selectedIncomingCall = null;
-      }
+
       call.onRemovedFromCallList();
     }
 
@@ -492,9 +489,6 @@ public class CallList implements DialerCallDelegate {
       call = getFirstCallWithState(DialerCallState.CALL_WAITING);
     }
 
-    if (getIncomingCalls().size() > 1 && selectedIncomingCall != null) {
-      call = getCallById(selectedIncomingCall);
-    }
     return call;
   }
 
@@ -556,18 +550,6 @@ public class CallList implements DialerCallDelegate {
   public DialerCall getLastHeldCall() {
     return (lastHeldCall != null && !isCallDead(lastHeldCall) &&
         lastHeldCall.getState() != DialerCallState.DISCONNECTED) ? lastHeldCall : null;
-  }
-
-  public void setSelectedIncomingCall(String id) {
-    DialerCall call = getCallById(id);
-    if (call == null || !(call.getState() == DialerCallState.INCOMING
-        || call.getState() == DialerCallState.CALL_WAITING)) {
-      LogUtil.w(
-        "CallList.setSelectedIncomingCall", "Incoming call with given id does not exist " + id);
-      return;
-    }
-    selectedIncomingCall = id;
-    notifyGenericListeners();
   }
 
   /**
@@ -707,10 +689,6 @@ public class CallList implements DialerCallDelegate {
     }
     DialerCall activeCall = getActiveCall();
     lastActiveCall = activeCall == null ? lastActiveCall: activeCall;
-    if (call.getId() == selectedIncomingCall && (call.getState() != DialerCallState.INCOMING ||
-        call.getState() != DialerCallState.CALL_WAITING)) {
-      selectedIncomingCall = null;
-    }
     Trace.endSection();
   }
 
