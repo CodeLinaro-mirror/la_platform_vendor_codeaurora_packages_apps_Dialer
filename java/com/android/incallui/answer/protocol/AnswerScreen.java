@@ -45,6 +45,4 @@ public interface AnswerScreen {
   Fragment getAnswerScreenFragment();
 
   void updateAnswerScreenUi();
-
-  void updateAnswerScreenSecondaryInfo(boolean shouldAllowAnswerAndRelease);
 }
