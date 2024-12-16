@@ -25,6 +25,10 @@
  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.app.settings;
@@ -69,6 +73,7 @@ import android.widget.TextView;
 import com.android.dialer.contactphoto.ContactPhotoManager;
 import com.android.dialer.contactphoto.ContactPhotoManager.DefaultImageRequest;
 import com.android.dialer.app.R;
+import com.android.dialer.util.DialerUtils;
 import com.google.common.base.FinalizablePhantomReference;
 
 import java.util.List;
@@ -145,6 +150,7 @@ public class SpeedDialListActivity extends ListActivity implements
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        DialerUtils.setupEdgeToEdge(this);
         Log.i(TAG, "onCreate");
 
         mInitialPickNumber = getIntent().getIntExtra(EXTRA_INITIAL_PICK_NUMBER, -1);
