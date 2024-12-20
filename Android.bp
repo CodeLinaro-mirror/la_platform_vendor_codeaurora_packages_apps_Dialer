@@ -306,15 +306,19 @@ android_app {
         "android-support-v7-recyclerview",
         "android-support-dynamic-animation",
         "com.android.vcard",
-        "dialer-common-m2-target-deps",
-        "dialer-glide-target-deps",
         "error_prone_annotations",
         "jsr305",
         "libbackup",
         "libphonenumber",
         "volley",
         "zxing-core-1.7",
-    ],
+    ] + select(soong_config_variable("qtidialer", "enable_fwk_dependency"), {
+        true: [
+            "dialer-common-m2-target-deps",
+            "dialer-glide-target-deps",
+        ],
+        default: [],
+    }),
     libs: [
         "auto_value_annotations",
         "org.apache.http.legacy.stubs.system",
@@ -324,8 +328,8 @@ android_app {
     // LOCAL_ANNOTATION_PROCESSORS
     plugins: [
         "auto_value_plugin",
-        "dialer-dagger2-compiler",
-        "dialer-glide-annotation-processor",
+        "qtidialer-dagger2-compiler",
+        "qtidialer-glide-annotation-processor",
         "qti_dialer_rootcomponentprocessor_plugin",
     ],
     // Forcibly uses the same jdk version used in qti-dialer-rootcomponentprocessor.
@@ -358,10 +362,14 @@ java_library_host {
     static_libs: [
         "auto_service_annotations",
         "auto_common",
-        "dialer-common-m2-host-deps",
         "error_prone_annotations",
         "javapoet",
-    ],
+    ] + select(soong_config_variable("qtidialer", "enable_fwk_dependency"), {
+        true: [
+            "dialer-common-m2-host-deps",
+        ],
+        default: [],
+    }),
     java_version: "1.8",
 }
 
@@ -370,4 +378,32 @@ java_plugin {
     static_libs: ["qti-dialer-rootcomponentprocessor"],
     processor_class: "com.android.dialer.rootcomponentgenerator.RootComponentProcessor",
     visibility: ["//vendor/codeaurora/commonsys/packages/apps/Dialer"],
+}
+
+java_plugin {
+    name: "qtidialer-dagger2-compiler",
+    visibility: [
+        "//vendor/codeaurora/commonsys/packages/apps/Dialer",
+    ],
+    static_libs: select(soong_config_variable("qtidialer", "enable_fwk_dependency"), {
+        true: [
+            "dialer-dagger2-compiler-deps",
+        ],
+        default: [],
+    }),
+    processor_class: "dagger.internal.codegen.ComponentProcessor",
+}
+
+java_plugin {
+    name: "qtidialer-glide-annotation-processor",
+    visibility: ["//vendor/codeaurora/commonsys/packages/apps/Dialer"],
+    static_libs: select(soong_config_variable("qtidialer", "enable_fwk_dependency"), {
+        true: [
+            "dialer-glide-host-deps",
+        ],
+        default: [],
+    }),
+    processor_class: "com.bumptech.glide.annotation.compiler.GlideAnnotationProcessor",
+    // Allow annotation processor generates classes referenced from outside the module.
+    generates_api: true,
 }
