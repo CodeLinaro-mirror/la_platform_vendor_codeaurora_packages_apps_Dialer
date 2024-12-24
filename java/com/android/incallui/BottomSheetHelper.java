@@ -63,6 +63,7 @@ import com.android.incallui.videotech.utils.SessionModificationState;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.List;
 import java.util.Objects;
 
@@ -80,6 +81,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    private ExtBottomSheetFragment moreOptionsSheet;
    private boolean mIsHideMe = false;
    private Context mContext;
+   private Executor mExecutor;
    private DialerCall mCall;
    private String[][] mMoreOptions;
    private PrimaryCallTracker mPrimaryCallTracker;
@@ -93,19 +95,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    private static final int BLIND_TRANSFER = 0;
    private static final int ASSURED_TRANSFER = 1;
    private static final int CONSULTATIVE_TRANSFER = 2;
-
-   private QtiImsExtListenerBaseImpl imsInterfaceListener =
-      new QtiImsExtListenerBaseImpl() {
-
-     /* Handles cancel call modify response */
-     @Override
-     public void receiveCancelModifyCallResponse(int phoneId, int result) {
-          LogUtil.w("BottomSheetHelper.receiveCancelModifyCallResponse", "result: " + result);
-          mHasSentCancelUpgradeRequest = false;
-          maybeUpdateCancelModifyCallInMap();
-     }
-   };
-
+   private QtiImsExtListenerBaseImpl mImsInterfaceListener;
    private AlertDialog modifyCallDialog;
    private static final int INVALID_INDEX = -1;
 
@@ -142,6 +132,17 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    public void setUp(Context context) {
      LogUtil.d("BottomSheetHelper","setUp");
      mContext = context;
+     mExecutor = context.getMainExecutor();
+     mImsInterfaceListener = new QtiImsExtListenerBaseImpl(mExecutor) {
+       /* Handles cancel call modify response */
+       @Override
+       public void receiveCancelModifyCallResponse(int phoneId, int result) {
+            LogUtil.d("BottomSheetHelper.receiveCancelModifyCallResponse", "result: " + result);
+            mHasSentCancelUpgradeRequest = false;
+            maybeUpdateCancelModifyCallInMap();
+       }
+     };
+
      createQtiImsExtConnector(context);
      mQtiImsExtConnector.connect();
      mResources = context.getResources();
@@ -963,7 +964,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
       try {
         LogUtil.d("BottomSheetHelper.cancelUpgradeClicked",
             "Sending cancel upgrade request with Phone id " + getPhoneId());
-        mQtiImsExtManager.sendCancelModifyCall(getPhoneId(),imsInterfaceListener);
+        mQtiImsExtManager.sendCancelModifyCall(getPhoneId(), mImsInterfaceListener);
         mHasSentCancelUpgradeRequest = true;
         maybeUpdateCancelModifyCallInMap();
       } catch (QtiImsException e) {
