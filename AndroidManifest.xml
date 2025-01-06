@@ -17,6 +17,12 @@
  * SPDX-License-Identifier: BSD-3-Clause-Clear
 -->
 
+<!--
+    Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+    Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+    SPDX-License-Identifier: BSD-3-Clause-Clear
+-->
+
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
   coreApp="true"
   package="com.android.dialer"
@@ -122,6 +128,11 @@
   <uses-permission android:name="com.qualcomm.qti.permission.USE_EXT_TELEPHONY_SERVICE" />
   <uses-permission android:name="com.qti.permission.RECEIVE_ESSENTIAL_RECORDS_LOADED"/>
 
+  <overlay
+      android:targetPackage="com.android.dialer"
+      android:requiredSystemPropertyName="ro.boot.vendor.qspa.modem"
+      android:requiredSystemPropertyValue="enabled"/>
+
   <application
     android:hardwareAccelerated="true"
     android:icon="@mipmap/ic_launcher_phone"
@@ -129,7 +140,7 @@
     android:name="com.android.dialer.binary.aosp.AospDialerApplication"
     android:supportsRtl="true"
     android:usesCleartextTraffic="false"
-    android:extractNativeLibs="false"
+    android:extractNativeLibs="true"
     tools:replace="android:appComponentFactory"
     android:appComponentFactory="androidx.core.app.CoreComponentFactory">
 

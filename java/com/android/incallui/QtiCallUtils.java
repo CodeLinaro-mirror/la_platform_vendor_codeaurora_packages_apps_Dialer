@@ -57,7 +57,6 @@ import android.telephony.ims.ImsMmTelManager;
 import android.widget.Toast;
 import android.telecom.VideoProfile;
 import com.android.dialer.util.PermissionsUtil;
-import com.android.ims.ImsManager;
 import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.state.DialerCallState;
@@ -350,11 +349,6 @@ public class QtiCallUtils {
             return false;
         }
 
-        if (hasConferenceCall()) {
-            Log.i(LOG_TAG, "shouldShowAdhocConferenceCallOption ongoing conference call");
-            return false;
-        }
-
         TelecomManager telecomManager = context.getSystemService(TelecomManager.class);
 
         for (PhoneAccountHandle accountHandle : telecomManager.getCallCapablePhoneAccounts()) {
@@ -565,17 +559,6 @@ public class QtiCallUtils {
                 BottomSheetHelper.getInstance().getPhoneId(), context);
         return (videoCrbtConfig && call != null && call.getState() == DialerCallState.DIALING
                 && isVideoBidirectional(call));
-    }
-
-    //Checks if CallList has conference call
-    public static boolean hasConferenceCall() {
-        DialerCall activeCall = CallList.getInstance().getActiveCall();
-        boolean hasConfCall = activeCall != null ? activeCall.isConferenceCall() : false;
-        if (!hasConfCall) {
-            DialerCall bgCall = CallList.getInstance().getBackgroundCall();
-            hasConfCall = bgCall != null ? bgCall.isConferenceCall() : false;
-        }
-        return hasConfCall;
     }
 
     //Checks if incoming call has video CRS
