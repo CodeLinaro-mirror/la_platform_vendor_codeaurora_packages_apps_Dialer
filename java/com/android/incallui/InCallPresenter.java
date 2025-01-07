@@ -2479,10 +2479,6 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
   private final Set<InCallUiLock> inCallUiLocks = new ArraySet<>();
 
-  public StatusBarNotifier getStatusBarNotifier() {
-    return statusBarNotifier;
-  }
-
   /** Gets the secondary call. */
   public DialerCall getSecondaryCall() {
     return callList.getBackgroundCall();
