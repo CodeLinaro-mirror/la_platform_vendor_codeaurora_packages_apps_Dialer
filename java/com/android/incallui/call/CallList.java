@@ -941,7 +941,6 @@ public class CallList implements DialerCallDelegate {
     public void onDialerCallDisconnect() {
       updateCallInMap(call);
       LogUtil.i("DialerCallListenerImpl.onDialerCallDisconnect", String.valueOf(call));
-      onUpdateCall(call);
       // notify those listening for all disconnects
       notifyListenersOfDisconnect(call);
     }
