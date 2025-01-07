@@ -32,7 +32,6 @@ import android.support.annotation.VisibleForTesting;
 import android.telecom.Call;
 import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccount;
-import android.telecom.PhoneAccountHandle;
 import android.util.ArrayMap;
 import com.android.dialer.blocking.FilteredNumberAsyncQueryHandler;
 import com.android.dialer.common.Assert;
@@ -81,9 +80,6 @@ public class CallList implements DialerCallDelegate {
 
   private final Map<String, DialerCall> callById = new ArrayMap<>();
   private final Map<android.telecom.Call, DialerCall> callByTelecomCall = new ArrayMap<>();
-  private DialerCall secondaryCall;
-  private DialerCall lastActiveCall;
-  private DialerCall lastHeldCall;
 
   /**
    * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is load factor before
@@ -445,36 +441,6 @@ public class CallList implements DialerCallDelegate {
     return getCallWithState(DialerCallState.ONHOLD, 1);
   }
 
-  public ArrayList<DialerCall> getBackgroundCalls() {
-     return getBackgroundCalls(null);
-  }
-
-  public ArrayList<DialerCall> getBackgroundCalls(DialerCall ignoreCall) {
-    ArrayList<DialerCall> backgroundCalls = new ArrayList<>();
-    for (DialerCall call : getAllCalls()) {
-      if (call.getState() == DialerCallState.ONHOLD && call != ignoreCall) {
-        backgroundCalls.add(call);
-      }
-    }
-    return backgroundCalls;
-  }
-
-  /**
-   * Return the list of active or background calls with the same phoneaccounthandle
-   * as the passed paramater.
-   */
-  public ArrayList<DialerCall> getActiveAndBackgroundCalls(PhoneAccountHandle handle) {
-    ArrayList<DialerCall> activeAndBackgroundCalls = new ArrayList<>();
-    for (DialerCall call : getAllCalls()) {
-      if ((call.getState() == DialerCallState.ONHOLD ||
-          call.getState() == DialerCallState.ACTIVE) &&
-          Objects.equals(handle, call.getAccountHandle())) {
-        activeAndBackgroundCalls.add(call);
-      }
-    }
-    return activeAndBackgroundCalls;
-  }
-
   public DialerCall getActiveOrBackgroundCall() {
     DialerCall call = getActiveCall();
     if (call == null) {
@@ -545,11 +511,6 @@ public class CallList implements DialerCallDelegate {
       }
     }
     return true;
-  }
-
-  public DialerCall getLastHeldCall() {
-    return (lastHeldCall != null && !isCallDead(lastHeldCall) &&
-        lastHeldCall.getState() != DialerCallState.DISCONNECTED) ? lastHeldCall : null;
   }
 
   /**
@@ -684,11 +645,6 @@ public class CallList implements DialerCallDelegate {
     if (updateCallInMap(call)) {
       LogUtil.i("CallList.onUpdateCall", String.valueOf(call));
     }
-    if (call == lastActiveCall && call.getState() == DialerCallState.ONHOLD) {
-      lastHeldCall = call;
-    }
-    DialerCall activeCall = getActiveCall();
-    lastActiveCall = activeCall == null ? lastActiveCall: activeCall;
     Trace.endSection();
   }
 
