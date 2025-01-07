@@ -265,7 +265,7 @@ public class AnswerScreenPresenter
         "AnswerScreenPresenter.onDetailsChanged",
         "call: %s, details: %s", dialerCall, details);
     if (dialerCall != null && dialerCall.equals(call)) {
-      answerScreen.updateAnswerScreenUi(dialerCall.answeringDisconnectsOtherCall());
+      answerScreen.updateAnswerScreenUi();
     }
   }
 
