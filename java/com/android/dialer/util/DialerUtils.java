@@ -33,7 +33,6 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.telecom.PhoneAccountHandle;
-import android.telecom.PhoneAccount;
 import android.telecom.TelecomManager;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
@@ -47,14 +46,9 @@ import android.widget.Toast;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import com.android.dialer.activecalls.ActiveCallInfo;
-import com.android.dialer.activecalls.ActiveCallsComponent;
 import com.android.dialer.common.LogUtil;
 import com.android.dialer.telecom.TelecomUtil;
-import com.android.incallui.call.state.DialerCallState;
-import com.google.common.collect.ImmutableList;
 import java.io.File;
-import java.util.Objects;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -135,19 +129,6 @@ public class DialerUtils {
               });
           builder.setNegativeButton(android.R.string.cancel, null);
           builder.create().show();
-        } else if (shouldWarnConcurrentCallsInDsds(context, null)) {
-          AlertDialog.Builder dsdsBuilder = new AlertDialog.Builder(context);
-          dsdsBuilder.setMessage(R.string.outgoing_dsds_transition_call_warning);
-          dsdsBuilder.setPositiveButton(
-              R.string.dialog_continue,
-              new OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                  placeCallOrMakeToast(context, intent);
-                }
-              });
-          dsdsBuilder.setNegativeButton(android.R.string.cancel, null);
-          dsdsBuilder.create().show();
         } else {
           placeCallOrMakeToast(context, intent);
         }
@@ -404,54 +385,6 @@ public class DialerUtils {
     extras.putBundle(QtiCallConstants.EXTRA_CALL_COMPOSER_INFO, b);
 
     return extras;
-  }
-
-  /**
-   * Returns whether the user should be warned about ending call in DSDS mode.
-   * This checks if there are concurrent calls when the UE has transitioned
-   * from DSDA to DSDS
-   * returns true if there are calls on both SUBs and the UE is in DSDS
-   */
-  @SuppressLint("MissingPermission")
-  public static boolean shouldWarnConcurrentCallsInDsds(Context context,
-      PhoneAccountHandle handle) {
-    SubscriptionManager subscriptionManager = context.getSystemService(SubscriptionManager.class);
-
-    if (handle == null || TextUtils.isEmpty(handle.getId())) {
-      LogUtil.i("DialerUtils.shouldWarnConcurrentCallsInDsds",
-          "phoneAccountHandle is null or empty. Getting default outgoing phone account");
-      handle = TelecomUtil.getDefaultOutgoingPhoneAccount(context, PhoneAccount.SCHEME_TEL);
-    }
-    if (hasConcurrentCallsInDsds(context)) {
-        ImmutableList<ActiveCallInfo> activeCalls =
-            ActiveCallsComponent.get(context).activeCalls().getActiveCalls();
-        for (int i = 0; i < activeCalls.size(); i++) {
-            ActiveCallInfo call = activeCalls.get(i);
-            if (Objects.equals(handle, call.phoneAccountHandle().orNull()) &&
-                    call.state() == DialerCallState.ACTIVE) {
-                return false;
-            }
-        }
-        return true;
-    }
-    return false;
-  }
-
-  // Helper function to check if in dsds transition mode
-  // ie Device is in DSDS and there are calls on both SUBs
-  private static boolean hasConcurrentCallsInDsds(Context context) {
-    ImmutableList<ActiveCallInfo> activeCalls =
-        ActiveCallsComponent.get(context).activeCalls().getActiveCalls();
-    if (TelephonyManager.isDsdsMode() && !activeCalls.isEmpty()) {
-      PhoneAccountHandle handle = activeCalls.get(0).phoneAccountHandle().orNull();
-      for (int i = 1; i < activeCalls.size(); i++) {
-        ActiveCallInfo call = activeCalls.get(i);
-        if (!Objects.equals(handle, call.phoneAccountHandle().orNull())) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   public static boolean isHfpPhoneAccount(Context context, PhoneAccountHandle handle) {

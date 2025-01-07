@@ -45,7 +45,6 @@ public class ActiveCallsCallListListener implements InCallPresenter.InCallStateL
         activeCalls.add(
             ActiveCallInfo.builder()
                 .setPhoneAccountHandle(Optional.of(call.getAccountHandle()))
-                .setState(call.getState())
                 .build());
       }
     }
