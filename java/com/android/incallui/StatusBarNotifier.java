@@ -117,7 +117,6 @@ public class StatusBarNotifier
     implements InCallPresenter.InCallStateListener,
         InCallPresenter.IncomingCallListener,
         InCallPresenter.InCallEventListener,
-        InCallPresenter.InCallOrientationListener,
         EnrichedCallManager.StateChangedListener,
         ContactInfoCacheCallback {
 
@@ -152,17 +151,12 @@ public class StatusBarNotifier
   private int savedIncomingCallCount;
   private Uri ringtone;
 
-  /** Cache the current rotation of the device. */
-  private int currentOrientation;
-
   // Stores the call Id of the incoming call which is currently shown.
   private String visibleIncomingCallId;
   // Stores the index of the incoming call which is currently shown.
   private int visibleIncomingCallIndex = 0;
 
   private DialerCall showedCall;
-
-  private boolean orientationChanged = false;
 
   public StatusBarNotifier(@NonNull Context context, @NonNull ContactInfoCache contactInfoCache) {
     Trace.beginSection("StatusBarNotifier.Constructor");
@@ -173,7 +167,6 @@ public class StatusBarNotifier
             new InCallTonePlayer(new ToneGeneratorFactory(), new PausableExecutorImpl()),
             CallList.getInstance());
     currentNotification = NOTIFICATION_NONE;
-    currentOrientation = InCallOrientationEventListener.getCurrentOrientation();
     Trace.endSection();
   }
 
@@ -664,14 +657,12 @@ public class StatusBarNotifier
             || !Objects.equals(this.ringtone, ringtone)
             || !Objects.equals(savedCallAudioState, callAudioState)
             || (numOfIncomingCalls != savedIncomingCallCount)
-            || shouldUpdateNotificationForInCallUi
-            || orientationChanged;
+            || shouldUpdateNotificationForInCallUi;
 
     LogUtil.d(
         "StatusBarNotifier.checkForChangeAndSaveData",
         "data changed: icon: %b, content: %b, state: %b, videoState: %b, largeIcon: %b, title: %b,"
-            + "ringtone: %b, audioState: %b, type: %b numOfIncomingCalls: %b,"
-            + "orientationChanged: %b,",
+            + "ringtone: %b, audioState: %b, type: %b numOfIncomingCalls: %b",
         (savedIcon != icon),
         !Objects.equals(savedContent, content),
         (callState != state),
@@ -681,8 +672,7 @@ public class StatusBarNotifier
         !Objects.equals(this.ringtone, ringtone),
         !Objects.equals(savedCallAudioState, callAudioState),
         currentNotification != notificationType,
-        numOfIncomingCalls != savedIncomingCallCount,
-        orientationChanged);
+        numOfIncomingCalls != savedIncomingCallCount);
     // If we aren't showing a notification right now or the notification type is changing,
     // definitely do an update.
     if (currentNotification != notificationType) {
@@ -703,7 +693,6 @@ public class StatusBarNotifier
     savedCallAudioState = callAudioState;
     savedIncomingCallCount = numOfIncomingCalls;
     wasShowingInCallUi = isShowingInCallUi;
-    orientationChanged = false;
 
     if (retval) {
       LogUtil.d(
@@ -1276,23 +1265,5 @@ public class StatusBarNotifier
     if (call != null) {
       buildAndSendNotification(CallList.getInstance(), call, entry);
     }
-  }
-
-  /**
-   * Handles changes to the device orientation.
-   *
-   * @param orientation The screen orientation of the device (one of: {@link
-   *     InCallOrientationEventListener#SCREEN_ORIENTATION_0}, {@link
-   *     InCallOrientationEventListener#SCREEN_ORIENTATION_90}, {@link
-   *     InCallOrientationEventListener#SCREEN_ORIENTATION_180}, {@link
-   *     InCallOrientationEventListener#SCREEN_ORIENTATION_270}).
-   */
-  @Override
-  public void onDeviceOrientationChanged(int orientation) {
-    if (currentOrientation != orientation) {
-      orientationChanged = true;
-      updateNotification();
-    }
-    currentOrientation = orientation;
   }
 }
