@@ -409,15 +409,12 @@ public class DialerUtils {
   /**
    * Returns whether the user should be warned about ending call in DSDS mode.
    * This checks if there are concurrent calls when the UE has transitioned
-   * from DSDA to DSDS if dsds transition is supported
+   * from DSDA to DSDS
    * returns true if there are calls on both SUBs and the UE is in DSDS
    */
   @SuppressLint("MissingPermission")
   public static boolean shouldWarnConcurrentCallsInDsds(Context context,
       PhoneAccountHandle handle) {
-    if (!TelephonyManager.isDsdsTransitionSupported()) {
-        return false;
-    }
     SubscriptionManager subscriptionManager = context.getSystemService(SubscriptionManager.class);
 
     if (handle == null || TextUtils.isEmpty(handle.getId())) {

@@ -35,9 +35,6 @@ message SelectPhoneAccountDialogOptions {
   optional string call_id = 4;
   // Phone accounts to show in the dialog
   repeated Entry entries = 5;
-  // Whether the dialog should include the DSDS transition text view. Defaults to
-  // false
-  optional bool show_dsds_transition_text_view = 6;
 
   message Entry {
     // PhoneAccountHandle.getComponentName().flattenToString()

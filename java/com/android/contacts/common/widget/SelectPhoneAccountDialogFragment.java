@@ -302,8 +302,7 @@ public class SelectPhoneAccountDialogFragment extends DialogFragment {
       holder.numberTextView.setEnabled(entry.getEnabled());
       holder.hintTextView.setEnabled(entry.getEnabled());
       holder.imageView.setImageAlpha(entry.getEnabled() ? 255 : 97 /* 38%*/);
-      if (DialerUtils.shouldWarnConcurrentCallsInDsds(getContext(), accountHandle) &&
-          options.getShowDsdsTransitionTextView()) {
+      if (DialerUtils.shouldWarnConcurrentCallsInDsds(getContext(), accountHandle)) {
         holder.dsdsTransitionView.setVisibility(View.VISIBLE);
         holder.dsdsTransitionView.setText(R.string.outgoing_dsds_transition_call_warning);
       } else {
