@@ -24,7 +24,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.hardware.display.DisplayManager;
@@ -943,14 +942,6 @@ public class CallCardPresenter
     return backgroundCalls.size();
   }
 
-  private Bitmap getProviderIcon(DialerCall call) {
-    if (call == null) {
-      return null;
-    }
-    Drawable callProviderIcon = call.getCallProviderIcon();
-    return callProviderIcon != null ? ((BitmapDrawable) callProviderIcon).getBitmap() : null;
-  }
-
   private void updateSecondaryDisplayInfo() {
     if (inCallScreen == null) {
       return;
@@ -987,7 +978,7 @@ public class CallCardPresenter
               .setIsVideoCall(secondary.isVideoCall())
               .setIsFullscreen(isFullscreen)
               .setShouldShowNext(getTotalSecondaryCalls() > 1)
-              .setProviderIcon(getProviderIcon(secondary))
+              .setProviderIcon(((BitmapDrawable)secondary.getCallProviderIcon()).getBitmap())
               .setCurrentSecondaryCallIndex(getSecondaryCallIndex())
               .setTotalSecondaryCalls(Integer.toString(getTotalSecondaryCalls()))
               .build());
@@ -1005,7 +996,7 @@ public class CallCardPresenter
               .setIsVideoCall(secondary.isVideoCall())
               .setIsFullscreen(isFullscreen)
               .setShouldShowNext(getTotalSecondaryCalls() > 1)
-              .setProviderIcon(getProviderIcon(secondary))
+              .setProviderIcon(((BitmapDrawable)secondary.getCallProviderIcon()).getBitmap())
               .setCurrentSecondaryCallIndex(getSecondaryCallIndex())
               .setTotalSecondaryCalls(Integer.toString(getTotalSecondaryCalls()))
               .build());
