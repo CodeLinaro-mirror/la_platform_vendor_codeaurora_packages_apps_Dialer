@@ -14,6 +14,10 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License
+*
+* Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+* Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
 package com.android.dialer.app.calllog;
@@ -28,6 +32,8 @@ import com.android.dialer.calllogutils.PhoneAccountUtils;
 import com.android.dialer.common.LogUtil;
 import com.android.dialer.database.CallLogQueryHandler;
 import com.android.dialer.R;
+import com.android.dialer.util.DialerUtils;
+import java.lang.NumberFormatException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -80,8 +86,19 @@ public class SpinnerContent {
       for (PhoneAccountHandle acountHandle : counts) {
         String subDisplayName = PhoneAccountUtils.getAccountLabel(context, acountHandle);
         if (!TextUtils.isEmpty(subDisplayName)) {
-          values.add(new SpinnerContent(index, subDisplayName + acountHandle.getId(),
-                     acountHandle.getId()));
+          String accountId = acountHandle.getId();
+          String displayName = subDisplayName + accountId;
+          try {
+            int slotIndex = DialerUtils.getSlotIndexFromSubsriptionId(context,
+                Integer.parseInt(accountId));
+            if (slotIndex != INVALID_SIM_SLOT_INDEX) {
+              displayName = subDisplayName + (slotIndex + 1);
+            }
+          } catch (NumberFormatException e) {
+            LogUtil.e("SpinnerContent.setupSlotFilterContent",
+                "account handle id is not equal to subsription id!");
+          }
+          values.add(new SpinnerContent(index, displayName, accountId));
         }
         ++index;
       }
