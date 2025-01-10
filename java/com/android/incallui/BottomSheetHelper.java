@@ -839,14 +839,16 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
       }
 
       if (isVideoEnabled && QtiCallUtils.hasReceiveVideoCapabilities(mCall)
-                  && !QtiCallUtils.isVideoRxOnly(mCall)) {
+          && !QtiCallUtils.isVideoRxOnly(mCall)
+          && !QtiCallUtils.hasVisualizedVoiceAttribute(mCall)) {
         items.add(mResources.getText(R.string.modify_call_option_vt_rx));
         itemToCallType.add(VideoProfile.STATE_RX_ENABLED);
       }
 
       if (isVideoEnabled && QtiCallUtils.hasTransmitVideoCapabilities(mCall)
           && (!QtiCallUtils.isVideoTxOnly(mCall)
-          || ScreenShareHelper.screenShareRequested())) {
+          || ScreenShareHelper.screenShareRequested())
+          && !QtiCallUtils.hasVisualizedVoiceAttribute(mCall)) {
         items.add(mResources.getText(R.string.modify_call_option_vt_tx));
         itemToCallType.add(VideoProfile.STATE_TX_ENABLED);
       }

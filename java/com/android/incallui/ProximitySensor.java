@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui;
@@ -32,6 +36,7 @@ import com.android.incallui.audiomode.AudioModeProvider;
 import com.android.incallui.audiomode.AudioModeProvider.AudioModeListener;
 import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
+import com.android.incallui.QtiCallUtils;
 
 /**
  * Class manages the proximity sensor for the in-call UI. We enable the proximity sensor while the
@@ -114,7 +119,8 @@ public class ProximitySensor
             || hasOngoingCall;
 
     DialerCall activeCall = callList.getActiveCall();
-    boolean isVideoCall = activeCall != null && activeCall.isVideoCall();
+    boolean isVideoCall = activeCall != null && activeCall.isVideoCall()
+        && !QtiCallUtils.isVisualizedVoiceCall(activeCall);
     boolean isRttCall = activeCall != null && activeCall.isActiveRttCall();
 
     if (isOffhook != isPhoneOffhook
@@ -267,7 +273,7 @@ public class ProximitySensor
   @Override
   public void onDetailsChanged(DialerCall call, android.telecom.Call.Details details) {
     if (call != null && call.isActiveCall() ) {
-      boolean isVideoCall = call.isVideoCall();
+      boolean isVideoCall = call.isVideoCall() && !QtiCallUtils.isVisualizedVoiceCall(call);
       boolean isRttCall = call.isActiveRttCall();
       if (isVideoCall != this.isVideoCall || isRttCall != this.isRttCall) {
         this.isRttCall = isRttCall;
