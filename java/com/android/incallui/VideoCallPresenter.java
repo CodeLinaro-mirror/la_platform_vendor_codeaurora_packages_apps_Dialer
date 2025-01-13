@@ -63,7 +63,7 @@ import com.android.incallui.videosurface.protocol.VideoSurfaceTexture;
 import com.android.incallui.videotech.utils.SessionModificationState;
 import com.android.incallui.videotech.utils.VideoUtils;
 import java.util.Objects;
-
+import java.util.concurrent.Executor;
 import org.codeaurora.ims.ImsScreenShareListenerBase;
 import org.codeaurora.ims.ImsScreenShareManager;
 import org.codeaurora.ims.QtiCallConstants;
@@ -113,6 +113,7 @@ public class VideoCallPresenter
 
   /** The current context. */
   private Context context;
+  private Executor mExecutor;
 
   /** The call the video surfaces are currently related to */
   private DialerCall primaryCall;
@@ -207,33 +208,8 @@ public class VideoCallPresenter
   private MediaProjection mMediaProjection;
   private QtiImsExtConnector mQtiImsExtConnector;
   private QtiImsExtManager mQtiImsExtManager = null;
-
   /* ImsScreenShareListenerBase instance to handle screen share response */
-  private ImsScreenShareListenerBase mImsScreenShareListener =
-      new ImsScreenShareListenerBase() {
-
-     /* Handle screen share response */
-     @Override
-     public void onRecordingSurfaceChanged(int phoneId, Surface surface, int width, int height) {
-       LogUtil.i("VideoCallPresenter.onRecordingSurfaceChanged", "surface: " + surface);
-       if (mScreenShareQuery == REQUEST_TO_START && surface != null) {
-         setupVirtualDisplay(width, height, surface);
-       } else if (mScreenShareQuery == REQUEST_TO_STOP && surface == null) {
-         ScreenShareHelper.onPermissionChanged(null);
-         enableCamera(primaryCall, isCameraRequired());
-         clearScreenShareStates();
-       } else if (mScreenShareQuery == NO_PENDING_REQUEST && surface != null) {
-         //reconfig virtual display
-         reconfigVirtualDisplay(width, height, surface);
-       } else {
-         LogUtil.e("VideoCallPresenter.processRecordingSurfaceChanged",
-         "mismatch in expected surface from lower layer");
-       }
-       mScreenShareQuery = NO_PENDING_REQUEST;
-       mCalculatedScreenShareWidth = width;
-       mCalculatedScreenShareHeight = height;
-     }
-  };
+  private ImsScreenShareListenerBase mImsScreenShareListener;
 
   private MediaProjection.Callback mediaProjectionCallback = new MediaProjection.Callback() {
       @Override
@@ -510,6 +486,26 @@ public class VideoCallPresenter
     return call == null ? null : call.toSimpleString();
   }
 
+  private void recordingSurfaceChanged(int phoneId, Surface surface, int width, int height) {
+    LogUtil.i("VideoCallPresenter.onRecordingSurfaceChanged", "surface: " + surface);
+    if (mScreenShareQuery == REQUEST_TO_START && surface != null) {
+        setupVirtualDisplay(width, height, surface);
+    } else if (mScreenShareQuery == REQUEST_TO_STOP && surface == null) {
+        ScreenShareHelper.onPermissionChanged(null);
+        enableCamera(primaryCall, isCameraRequired());
+        clearScreenShareStates();
+    } else if (mScreenShareQuery == NO_PENDING_REQUEST && surface != null) {
+        //reconfig virtual display
+        reconfigVirtualDisplay(width, height, surface);
+    } else {
+        LogUtil.e("VideoCallPresenter.processRecordingSurfaceChanged",
+        "mismatch in expected surface from lower layer");
+    }
+    mScreenShareQuery = NO_PENDING_REQUEST;
+    mCalculatedScreenShareWidth = width;
+    mCalculatedScreenShareHeight = height;
+  }
+
   /**
    * Initializes the presenter.
    *
@@ -518,6 +514,14 @@ public class VideoCallPresenter
   @Override
   public void initVideoCallScreenDelegate(Context context, VideoCallScreen videoCallScreen) {
     this.context = context;
+    this.mExecutor = context.getMainExecutor();
+    this.mImsScreenShareListener = new ImsScreenShareListenerBase(this.mExecutor) {
+       /* Handle screen share response */
+       @Override
+       public void onRecordingSurfaceChanged(int phoneId, Surface surface, int width, int height) {
+           recordingSurfaceChanged(phoneId, surface, width, height);
+       }
+    };
     this.videoCallScreen = videoCallScreen;
     mPictureModeHelper = new PictureModeHelper(context);
     isAutoFullscreenEnabled =
