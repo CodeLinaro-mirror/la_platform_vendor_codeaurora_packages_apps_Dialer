@@ -1115,6 +1115,11 @@ public class AnswerFragment extends Fragment
         && getArguments().getBoolean(ARG_IS_VIDEO_ORIGINALLY);
   }
 
+  @Override
+  public boolean isVideoCrs() {
+    return getArguments().getBoolean(ARG_HAS_VIDEO_CRS);
+  }
+
   public boolean isSelfManagedCamera() {
     return getArguments().getBoolean(ARG_IS_SELF_MANAGED_CAMERA);
   }
