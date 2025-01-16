@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -67,10 +67,21 @@ public class CallLogGroupBuilder {
   private final Context appContext;
   /** The object on which the groups are created. */
   private final GroupCreator groupCreator;
+  private final String countryIso;
 
   public CallLogGroupBuilder(@ApplicationContext Context appContext, GroupCreator groupCreator) {
     this.appContext = appContext;
     this.groupCreator = groupCreator;
+    TelephonyManager telephonyManager =
+                      (TelephonyManager) appContext.getSystemService(Context.TELEPHONY_SERVICE);
+    String networkCountryIso = null;
+    if (telephonyManager != null) {
+        networkCountryIso = telephonyManager.getNetworkCountryIso();
+    }
+    if (TextUtils.isEmpty(networkCountryIso)) {
+        networkCountryIso = LocaleUtils.getLocale(appContext).getCountry();
+    }
+    this.countryIso = networkCountryIso;
   }
 
   /**
@@ -211,15 +222,6 @@ public class CallLogGroupBuilder {
     if (PhoneNumberHelper.numberHasSpecialChars(number1)
         || PhoneNumberHelper.numberHasSpecialChars(number2)) {
       return PhoneNumberHelper.sameRawNumbers(number1, number2);
-    }
-    TelephonyManager telephonyManager =
-                      (TelephonyManager) appContext.getSystemService(Context.TELEPHONY_SERVICE);
-    if (telephonyManager == null) {
-      return false;
-    }
-    String countryIso = telephonyManager.getNetworkCountryIso();
-    if (TextUtils.isEmpty(countryIso)) {
-      countryIso = LocaleUtils.getLocale(appContext).getCountry();
     }
     // areSamePhoneNumber compares the last 7 digits of the phone
     // numbers and also compares the country codes.
