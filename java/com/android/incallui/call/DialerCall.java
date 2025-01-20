@@ -1460,17 +1460,6 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     return extras.getBoolean(CallCompat.Details.EXTRA_ANSWERING_DROPS_FOREGROUND_CALL);
   }
 
-  /**
-   * Determines if swap across calls is disabled.
-    *
-   * @return {@code true} if swap option is disabled, {@code false} otherwise.
-   */
-  public boolean isSwapDisabled() {
-    Bundle extras = getExtras();
-    return extras != null &&
-        extras.getBoolean("android.telecom.extra.DISABLE_SWAP_CALL", false);
-  }
-
   private void parseCallSpecificAppData() {
     if (isExternalCall()) {
       return;

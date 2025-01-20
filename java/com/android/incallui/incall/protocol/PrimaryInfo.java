@@ -74,8 +74,6 @@ public abstract class PrimaryInfo {
 
   public abstract int numberPresentation();
 
-  public abstract boolean isSwapDisabled();
-
   public static Builder builder() {
     return new AutoValue_PrimaryInfo.Builder();
   }
@@ -122,8 +120,6 @@ public abstract class PrimaryInfo {
 
     public abstract Builder setNumberPresentation(int numberPresentation);
 
-    public abstract Builder setIsSwapDisabled(boolean isSwapDisabled);
-
     public abstract PrimaryInfo build();
   }
 
@@ -140,7 +136,6 @@ public abstract class PrimaryInfo {
         .setShouldShowLocation(false)
         .setShowInCallButtonGrid(true)
         .setNumberPresentation(-1)
-        .setIsSwapDisabled(false)
         .build();
   }
 

@@ -542,7 +542,7 @@ public class CallButtonPresenter
   }
 
   private boolean shouldEnableSwapToSecondaryButton(DialerCall call) {
-    if (call != null && !call.isSwapDisabled() && !call.isEmergencyCall() &&
+    if (call != null && !call.isEmergencyCall() &&
             (call.getState() == DialerCallState.ACTIVE ||
              call.getState() == DialerCallState.ONHOLD)) {
         return true;

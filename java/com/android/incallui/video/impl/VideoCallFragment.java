@@ -1318,7 +1318,6 @@ public class VideoCallFragment extends Fragment
   public void setPrimary(@NonNull PrimaryInfo primaryInfo) {
     LogUtil.i("VideoCallFragment.setPrimary", primaryInfo.toString());
     contactGridManager.setPrimary(primaryInfo);
-    switchOnHoldCallController.disableSwapButton(primaryInfo.isSwapDisabled());
   }
 
   @Override
