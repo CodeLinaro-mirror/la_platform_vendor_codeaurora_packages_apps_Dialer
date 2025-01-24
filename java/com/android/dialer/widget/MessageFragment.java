@@ -51,6 +51,10 @@ public class MessageFragment extends Fragment
   private TextView remainingChar;
   private int charLimit;
 
+   public MessageFragment() {
+     this.setRetainInstance(true);
+   }
+
   private static MessageFragment newInstance(Builder builder) {
     MessageFragment fragment = new MessageFragment();
     Bundle args = new Bundle();
