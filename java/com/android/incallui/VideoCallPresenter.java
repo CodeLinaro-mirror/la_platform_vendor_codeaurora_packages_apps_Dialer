@@ -1239,6 +1239,7 @@ public class VideoCallPresenter
    *  1. Video CRBT for VoLTE call (VT-RX) in DIALING stage
    *  2. Video service call(VT-RX) in ACTIVE stage
    *  3. Video CRBT for VT call (VT-BI) in DIALING stage
+   *  4. Visualized voice call
    **/
   @Override
   public boolean shallRemovePreviewWindow(boolean shouldShowPreview) {
@@ -1246,7 +1247,8 @@ public class VideoCallPresenter
     return ((QtiCallUtils.hasVideoCrbtVoLteCall(context)
                 || (primaryCall != null && primaryCall.isCustomerServiceCall()))
             && !shouldShowPreview)
-        || (QtiCallUtils.hasVideoCrbtVtCall(context) && isCrbtReady);
+        || (QtiCallUtils.hasVideoCrbtVtCall(context) && isCrbtReady)
+        || QtiCallUtils.isVisualizedVoiceCall();
   }
 
   /** Checks for a change to the video call and changes it if required. */
@@ -1482,7 +1484,8 @@ public class VideoCallPresenter
         isModifyToVideoRxType);
     updateRemoteVideoSurfaceDimensions();
     videoCallScreen.showVideoViews(showOutgoingVideo && !shallTransmitStaticImage() &&
-        !QtiCallUtils.hasVideoCrbtVoLteCall(context), showIncomingVideo, isRemotelyHeld);
+        !QtiCallUtils.hasVideoCrbtVoLteCall(context) && !QtiCallUtils.isVisualizedVoiceCall(),
+        showIncomingVideo, isRemotelyHeld);
     if (BottomSheetHelper.getInstance().canDisablePipMode() && mPictureModeHelper != null) {
       mPictureModeHelper.setPreviewVideoLayoutParams();
     }
@@ -1870,12 +1873,14 @@ public class VideoCallPresenter
 
     @Override
     public void onSurfaceClick(VideoSurfaceTexture videoCallSurface) {
-      // Set CRBT call not support full screen mode.
-      if (QtiCallUtils.hasVideoCrbtVtCall(context)
-          || QtiCallUtils.hasVideoCrbtVoLteCall(context)) {
+      boolean isCrbtReady = isIncomingVideoAvailableForEarlyMedia();
+      // Set CRBT call and visualized voice call not support full screen mode.
+      if ((QtiCallUtils.hasVideoCrbtVtCall(context) && isCrbtReady)
+          || QtiCallUtils.hasVideoCrbtVoLteCall(context)
+          || QtiCallUtils.isVisualizedVoiceCall()) {
         LogUtil.i(
             "VideoCallPresenter.RemoteDelegate",
-            "ignore to enter full screen mode for CRBT call.");
+            "ignore to enter full screen mode for CRBT/UVS call.");
         return;
       }
       VideoCallPresenter.this.onSurfaceClick();

@@ -24,6 +24,10 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * ​​​​​Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui;
@@ -204,10 +208,13 @@ public class OrientationModeHandler implements InCallDetailsListener, InCallUiLi
     public int getOrientation(DialerCall call) {
         // When VT call is put on hold, user is presented with VoLTE UI.
         // Hence, restricting held VT call to change orientation.
+        // Furthermore, video CRS call, volte call with video CRBT and visualized voice call are
+        // disallowed rotation.
         if (isVideoOrUpgrade(call) && (call.getNonConferenceState() != DialerCallState.ONHOLD)
                 && (call.getNonConferenceState() != DialerCallState.DISCONNECTED)
                 && !QtiCallUtils.isVideoCrs(call)
-                && !QtiCallUtils.hasVideoCrbtVoLteCall(call.getContext())) {
+                && !QtiCallUtils.hasVideoCrbtVoLteCall(call.getContext())
+                && !QtiCallUtils.isVisualizedVoiceCall(call)) {
             return (mOrientationMode == QtiCallConstants.ORIENTATION_MODE_UNSPECIFIED) ?
                     InCallOrientationEventListener.ACTIVITY_PREFERENCE_ALLOW_ROTATION :
                     QtiCallUtils.toScreenOrientation(mOrientationMode);

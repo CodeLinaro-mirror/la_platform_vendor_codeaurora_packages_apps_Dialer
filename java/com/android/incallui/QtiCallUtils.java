@@ -534,31 +534,46 @@ public class QtiCallUtils {
         return intent;
     }
 
-    //Checks if DialerCall has video CRBT - an outgoing receive-only video call
+    //Checks if it is VoLTE call with Video CRBT
     public static boolean hasVideoCrbtVoLteCall(Context context, DialerCall call) {
-        if (context == null || !QtiImsExtUtils.isVideoCrbtSupported(
-                    BottomSheetHelper.getInstance().getPhoneId(), context)) {
+        if (context == null) {
+            Log.w(LOG_TAG, "context is null");
             return false;
         }
-        return (call != null && call.getState() == DialerCallState.DIALING
-            && isVideoRxOnly(call));
+        if (call == null) {
+            Log.w(LOG_TAG, "call is null");
+            return false;
+        }
+        final Bundle extras = call.getExtras();
+        if (extras == null) {
+            return false;
+        }
+        return extras.getBoolean(QtiCallConstants.EXTRA_IS_CRBT_CALL, false);
     }
 
     public static boolean hasVideoCrbtVoLteCall(Context context) {
         return hasVideoCrbtVoLteCall(context, CallList.getInstance().getFirstCall());
     }
 
-    //Checks if CallList has CRBT Video Call. An outgoing bidirectional video call
-    //is treated as CRBT video call if CRBT feature is enabled
+    //Checks if it is VT call with Video CRBT, it is limitation that CRBT flag will not exist in
+    //VT call with video CRBT, so we could only rely on the carrier + dialing state + VT-BI call
+    //type + early media, early media condition is implemented in VideoCallPresenter.java
     public static boolean hasVideoCrbtVtCall(Context context) {
         if (context == null) {
+            Log.w(LOG_TAG, "context is null");
             return false;
         }
         DialerCall call = CallList.getInstance().getFirstCall();
-        boolean videoCrbtConfig = QtiImsExtUtils.isVideoCrbtSupported(
-                BottomSheetHelper.getInstance().getPhoneId(), context);
-        return (videoCrbtConfig && call != null && call.getState() == DialerCallState.DIALING
-                && isVideoBidirectional(call));
+        if (call == null) {
+            Log.w(LOG_TAG, "call is null");
+            return false;
+        }
+        if (call.getState() != DialerCallState.DIALING) {
+            Log.w(LOG_TAG, "call is not dialing state.");
+            return false;
+        }
+        return QtiImsExtUtils.isVideoCrbtSupported(BottomSheetHelper.getInstance().getPhoneId(),
+                context) && isVideoBidirectional(call);
     }
 
     //Checks if incoming call has video CRS
@@ -662,6 +677,39 @@ public class QtiCallUtils {
         final Bundle extras = call.getExtras();
         return ((extras == null) ? INVALID_MODEM_CALL_ID :
             extras.getInt(QtiCallConstants.EXTRA_DATA_CHANNEL_MODEM_CALL_ID,
-           INVALID_MODEM_CALL_ID));
+            INVALID_MODEM_CALL_ID));
+    }
+
+    /**
+     * Check if call has visualized voice attribute, it could be used in the case,
+     * if return true, the options VT-TX/RX will not be shown in the Modify call sheet
+     * even if this visualized voice call is downgraded to voice call or upgraded to VT call.
+     */
+    public static boolean hasVisualizedVoiceAttribute(DialerCall call) {
+        if (call == null) {
+            return false;
+        }
+        final Bundle extras = call.getExtras();
+        return ((extras == null) ? false :
+            extras.getBoolean(QtiCallConstants.EXTRA_IS_VISUALIZED_VOICE_CALL, false));
+    }
+
+
+    /**
+     * Check if it is VT-RX call with visualized voice attribute, it could be used
+     * in the cases, if return true:
+     *   1. Do not show local preview window
+     *   2. Support to turn off screen while user ear is close to the screen
+     *   3. Disallow the rotation
+     *   4. Show voice call icon in status bar
+     * If this visualized voice call is downgraded or upgraded, these Dialer UI
+     * behaviors follow its current call type completely.
+     */
+    public static boolean isVisualizedVoiceCall(DialerCall call) {
+        return hasVisualizedVoiceAttribute(call) && isVideoRxOnly(call);
+    }
+
+    public static boolean isVisualizedVoiceCall() {
+        return isVisualizedVoiceCall(CallList.getInstance().getFirstCall());
     }
 }
