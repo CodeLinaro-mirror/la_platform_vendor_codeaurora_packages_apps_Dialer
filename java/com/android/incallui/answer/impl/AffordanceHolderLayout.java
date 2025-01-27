@@ -162,6 +162,10 @@ public class AffordanceHolderLayout extends FrameLayout {
     if (AccessibilityUtil.isTouchExplorationEnabled(getContext())) {
       return false;
     }
+    View dialpadView = findViewById(R.id.dtmf_twelve_key_dialer_view);
+    if (dialpadView != null && dialpadView.getVisibility() == View.VISIBLE) {
+      return false;
+    }
     return affordanceHelper.onTouchEvent(event) || super.onInterceptTouchEvent(event);
   }
 
