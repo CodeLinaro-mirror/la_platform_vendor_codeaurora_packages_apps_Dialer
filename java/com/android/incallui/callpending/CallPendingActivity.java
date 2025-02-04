@@ -200,7 +200,6 @@ public class CallPendingActivity extends FragmentActivity
         .setMultimediaData(multimediaData)
         .setShowInCallButtonGrid(false)
         .setNumberPresentation(TelecomManager.PRESENTATION_ALLOWED)
-        .setIsSwapDisabled(false)
         .build();
   }
 

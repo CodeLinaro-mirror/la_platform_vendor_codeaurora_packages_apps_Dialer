@@ -561,7 +561,7 @@ public class CallCardPresenter
     if (secondary == null) {
       return ButtonState.NOT_SUPPORT;
     }
-    if (!primary.isSwapDisabled() && (primary.getState() == DialerCallState.ACTIVE)) {
+    if (primary.getState() == DialerCallState.ACTIVE) {
       // Unwant showing swap icon while having upgrade request
       final int sessionModificationState = primary.getVideoTech()
         .getSessionModificationState();
@@ -736,7 +736,6 @@ public class CallCardPresenter
               .setShouldShowLocation(shouldShowLocation())
               .setShowInCallButtonGrid(true)
               .setNumberPresentation(primary.getNumberPresentation())
-              .setIsSwapDisabled(primary.isSwapDisabled())
               .build());
     } else if (primaryContactInfo != null) {
       LogUtil.v(
@@ -789,7 +788,6 @@ public class CallCardPresenter
               .setMultimediaData(multimediaData)
               .setShowInCallButtonGrid(true)
               .setNumberPresentation(primary.getNumberPresentation())
-              .setIsSwapDisabled(primary.isSwapDisabled())
               .build());
     } else {
       // Clear the primary display info.
