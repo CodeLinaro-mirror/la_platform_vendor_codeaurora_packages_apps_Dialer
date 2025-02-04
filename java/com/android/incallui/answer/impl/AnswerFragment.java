@@ -140,7 +140,7 @@ public class AnswerFragment extends Fragment
 
   static final String ARG_ALLOW_ANSWER_AND_RELEASE = "allow_answer_and_release";
 
-  static final String ARG_HAS_MAX_CALLS = "has_max_calls";
+  static final String ARG_HAS_CALL_ON_HOLD = "has_call_on_hold";
 
   @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
   static final String ARG_IS_VIDEO_UPGRADE_REQUEST = "is_video_upgrade_request";
@@ -410,7 +410,7 @@ public class AnswerFragment extends Fragment
       boolean isVideoUpgradeRequest,
       boolean isSelfManagedCamera,
       boolean allowAnswerAndRelease,
-      boolean hasMaxCalls,
+      boolean hasCallOnHold,
       boolean allowSpeakEasy,
       boolean hasVideoCrs,
       boolean isVideoCallOriginally) {
@@ -421,7 +421,7 @@ public class AnswerFragment extends Fragment
     bundle.putBoolean(ARG_IS_VIDEO_UPGRADE_REQUEST, isVideoUpgradeRequest);
     bundle.putBoolean(ARG_IS_SELF_MANAGED_CAMERA, isSelfManagedCamera);
     bundle.putBoolean(ARG_ALLOW_ANSWER_AND_RELEASE, allowAnswerAndRelease);
-    bundle.putBoolean(ARG_HAS_MAX_CALLS, hasMaxCalls);
+    bundle.putBoolean(ARG_HAS_CALL_ON_HOLD, hasCallOnHold);
     bundle.putBoolean(ARG_ALLOW_SPEAK_EASY, allowSpeakEasy);
     bundle.putBoolean(ARG_HAS_VIDEO_CRS, hasVideoCrs);
     bundle.putBoolean(ARG_IS_VIDEO_ORIGINALLY, isVideoCallOriginally);
@@ -545,8 +545,8 @@ public class AnswerFragment extends Fragment
     return getArguments().getBoolean(ARG_ALLOW_SPEAK_EASY);
   }
 
-  private boolean hasMaxCalls() {
-    return getArguments().getBoolean(ARG_HAS_MAX_CALLS);
+  private boolean hasCallOnHold() {
+    return getArguments().getBoolean(ARG_HAS_CALL_ON_HOLD);
   }
 
   @Override
@@ -1220,7 +1220,7 @@ public class AnswerFragment extends Fragment
   private void restoreSwipeHintTexts() {
     if (getAnswerMethod() != null) {
       if (allowAnswerAndRelease()) {
-        if (hasMaxCalls()) {
+        if (hasCallOnHold()) {
           getAnswerMethod()
               .setHintText(getText(R.string.call_incoming_default_label_answer_and_release_third));
         } else if (primaryCallState.supportsCallOnHold()) {

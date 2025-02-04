@@ -146,7 +146,6 @@ public class StatusBarNotifier
   private String savedContent = null;
   private Bitmap savedLargeIcon;
   private String savedContentTitle;
-  private boolean wasShowingInCallUi = false;
   private CallAudioState savedCallAudioState;
   private int savedIncomingCallCount;
   private Uri ringtone;
@@ -370,7 +369,7 @@ public class StatusBarNotifier
         // however for case 2, ststus bar notifier is already aware of both incoming calls,
         // hence second check is needed to show the proper notification type
         notificationType = isShowingInCallUi &&
-            (callList.getIncomingCalls().size() == savedIncomingCallCount)
+            !hasMultipleIncomingCalls()
                 ? NOTIFICATION_INCOMING_CALL_QUIET
                 : NOTIFICATION_INCOMING_CALL;
       } else {
@@ -639,9 +638,6 @@ public class StatusBarNotifier
     } else {
       largeIconChanged = largeIcon == null || !savedLargeIcon.sameAs(largeIcon);
     }
-    // HUN is needed for the use case when we move out of InCallUi to HomeScreen
-    boolean isShowingInCallUi = InCallPresenter.getInstance().isShowingInCallUi();
-    boolean shouldUpdateNotificationForInCallUi = wasShowingInCallUi && !isShowingInCallUi;
 
     // any change means we are definitely updating
     boolean retval =
@@ -653,8 +649,7 @@ public class StatusBarNotifier
             || contentTitleChanged
             || !Objects.equals(this.ringtone, ringtone)
             || !Objects.equals(savedCallAudioState, callAudioState)
-            || (numOfIncomingCalls != savedIncomingCallCount)
-            || shouldUpdateNotificationForInCallUi;
+            || (numOfIncomingCalls != savedIncomingCallCount);
 
     LogUtil.d(
         "StatusBarNotifier.checkForChangeAndSaveData",
@@ -689,7 +684,6 @@ public class StatusBarNotifier
     this.ringtone = ringtone;
     savedCallAudioState = callAudioState;
     savedIncomingCallCount = numOfIncomingCalls;
-    wasShowingInCallUi = isShowingInCallUi;
 
     if (retval) {
       LogUtil.d(
@@ -1031,7 +1025,6 @@ public class StatusBarNotifier
       // Reset visibleIncomingCallIndex if there are no multiple incoming calls so that when we
       // receive another incoming call we have proper value of visibleIncomingCallIndex.
       visibleIncomingCallIndex = 0;
-      visibleIncomingCallId = null;
     }
     if (call == null) {
       call = callList.getOutgoingCall();
@@ -1220,9 +1213,6 @@ public class StatusBarNotifier
         InCallActivity.getIntent(
             context, false /* showDialpad */, false /* newOutgoingCall */, isFullScreen);
 
-    if (hasMultipleIncomingCalls()) {
-        intent.putExtra(EXTRA_CALL_ID, visibleIncomingCallId);
-    }
     int requestCode = InCallActivity.PendingIntentRequestCodes.NON_FULL_SCREEN;
     if (isFullScreen) {
       // Use a unique request code so that the pending intent isn't clobbered by the
@@ -1235,8 +1225,7 @@ public class StatusBarNotifier
     // and clicks the notification's expanded view.  It's also used to
     // launch the InCallActivity immediately when when there's an incoming
     // call (see the "fullScreenIntent" field below).
-    return PendingIntent.getActivity(context, requestCode, intent,
-        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
+    return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_MUTABLE);
   }
 
   private boolean hasMultiplePhoneAccounts(DialerCall call) {

@@ -135,16 +135,6 @@ public class CallButtonPresenter
     } else if (newState == InCallState.INCALL) {
       call = callList.getActiveOrBackgroundCall();
 
-      // If we have multiple held calls and no active call, the call in
-      // foreground will be the last call which went into held state.
-      if (call != null && call.getState() == DialerCallState.ONHOLD &&
-          callList.getBackgroundCalls().size() > 1) {
-        DialerCall lastPrimary = callList.getLastHeldCall();
-        LogUtil.v("CallButtonPresenter.onStateChange", "lastPrimary call: " + lastPrimary);
-        if (lastPrimary != null) {
-          call = lastPrimary;
-        }
-      }
       // When connected to voice mail, automatically shows the dialpad.
       // (On previous releases we showed it when in-call shows up, before waiting for
       // OUTGOING.  We may want to do that once we start showing "Voice mail" label on
@@ -741,13 +731,6 @@ public class CallButtonPresenter
       if (inCallButtonUi != null && call != null) {
         updateSipDtmfButtons(sipDtmfbitMap);
       }
-  }
-
-  @Override
-  public void onShowNextSecondaryCall(DialerCall nextSecondaryCall) {
-    if (inCallButtonUi != null && call != null) {
-      updateButtonsState(call);
-    }
   }
 
   private void updateSipDtmfButtons(int sipDtmfbitMap) {

@@ -16,7 +16,6 @@
 
 package com.android.incallui.hold;
 
-import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -28,16 +27,12 @@ import android.transition.TransitionManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnAttachStateChangeListener;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import com.android.dialer.common.Assert;
-import com.android.incallui.call.CallList;
 import com.android.incallui.incall.protocol.SecondaryInfo;
-import com.android.incallui.InCallPresenter;
 
 /** Shows banner UI for background call */
 public class OnHoldFragment extends Fragment {
@@ -62,7 +57,6 @@ public class OnHoldFragment extends Fragment {
 
     SecondaryInfo secondaryInfo = getArguments().getParcelable(ARG_INFO);
     secondaryInfo = Assert.isNotNull(secondaryInfo);
-    String BACKWARD_SLASH = "\\";
 
     ((TextView) view.findViewById(R.id.hold_contact_name))
         .setText(
@@ -76,26 +70,6 @@ public class OnHoldFragment extends Fragment {
             secondaryInfo.isVideoCall()
                 ? R.drawable.quantum_ic_videocam_white_18
                 : R.drawable.quantum_ic_phone_paused_vd_theme_24);
-    if (secondaryInfo.shouldShowNext()) {
-      ImageView carrierIconView = (ImageView) view.findViewById(R.id.carrier_icon);
-      Button nextButton = ((Button) view.findViewById(R.id.next_button));
-      TextView secondaryCallIndexView = (TextView) view.findViewById
-          (R.id.current_secondary_call_index);
-      TextView totalSecondaryCallsView = (TextView) view.findViewById(R.id.total_secondary_calls);
-
-      carrierIconView.setVisibility(View.VISIBLE);
-      carrierIconView.setImageDrawable(new BitmapDrawable(secondaryInfo.providerIcon()));
-      nextButton.setVisibility(View.VISIBLE);
-      nextButton.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-              InCallPresenter.getInstance().showNextSecondaryCallClicked();
-            }
-          });
-      secondaryCallIndexView.setVisibility(View.VISIBLE);
-      secondaryCallIndexView.setText(secondaryInfo.currentSecondaryCallIndex() + BACKWARD_SLASH);
-      totalSecondaryCallsView.setVisibility(View.VISIBLE);
-      totalSecondaryCallsView.setText(secondaryInfo.totalSecondaryCalls());
-    }
     view.addOnAttachStateChangeListener(
         new OnAttachStateChangeListener() {
           @Override
