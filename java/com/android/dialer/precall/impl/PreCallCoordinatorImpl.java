@@ -196,6 +196,7 @@ public class PreCallCoordinatorImpl implements PreCallCoordinator {
         LogUtil.e("PreCallCoordinatorImpl.placeCall", "duo.getCallIntent() returned absent");
       }
     }
+
     if (DialerUtils.shouldWarnForOutgoingWps(activity, builder.getUri().getSchemeSpecificPart(),
         builder.getPhoneAccountHandle())) {
       LogUtil.i("PreCallCoordinatorImpl.placeCall",
@@ -218,28 +219,6 @@ public class PreCallCoordinatorImpl implements PreCallCoordinator {
             }
           });
       alertBuilder.create().show();
-    } else if (DialerUtils.shouldWarnConcurrentCallsInDsds(activity,
-        builder.getPhoneAccountHandle())) {
-      AlertDialog.Builder dsdsBuilder = new AlertDialog.Builder(activity);
-      dsdsBuilder.setMessage(R.string.outgoing_dsds_transition_call_warning);
-      dsdsBuilder.setPositiveButton(
-          R.string.dialog_continue,
-          new OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-              TelecomUtil.placeCall(activity, builder.build());
-              activity.finish();
-            }
-        });
-      dsdsBuilder.setNegativeButton(
-        android.R.string.cancel,
-        new OnClickListener() {
-          @Override
-          public void onClick(DialogInterface dialog, int which) {
-            activity.finish();
-          }
-        });
-      dsdsBuilder.create().show();
     } else {
       TelecomUtil.placeCall(activity, builder.build());
       activity.finish();

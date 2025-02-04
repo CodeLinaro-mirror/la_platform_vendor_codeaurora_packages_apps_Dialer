@@ -65,7 +65,6 @@ import android.view.animation.AnimationUtils;
 import android.widget.CheckBox;
 import android.widget.Toast;
 import com.android.contacts.common.widget.SelectPhoneAccountDialogFragment;
-import com.android.contacts.common.widget.SelectPhoneAccountDialogOptions;
 import com.android.dialer.animation.AnimUtils;
 import com.android.dialer.animation.AnimationListenerAdapter;
 import com.android.dialer.common.Assert;
@@ -450,12 +449,9 @@ public class InCallActivity extends TransactionSafeFragmentActivity
                   waitingForAccountCall.getNumber(),
                   result.getSuggestion().orNull(),
                   result.getDataId().orNull()));
-          SelectPhoneAccountDialogOptions.Builder builder = result.getDialogOptionsBuilder().get();
-          builder.setCallId(callId);
-          builder.setShowDsdsTransitionTextView(true);
           selectPhoneAccountDialogFragment =
               SelectPhoneAccountDialogFragment.newInstance(
-                  builder.build(),
+                  result.getDialogOptionsBuilder().get().setCallId(callId).build(),
                   selectPhoneAccountListener);
           selectPhoneAccountDialogFragment.show(getFragmentManager(), Tags.SELECT_ACCOUNT_FRAGMENT);
         },
@@ -1589,7 +1585,7 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     Assert.checkArgument(call != null, "didShowAnswerScreen was false but call was still null");
 
     boolean isVideoUpgradeRequest = call.hasReceivedVideoUpgradeRequest();
-    boolean shouldAllowAnswerAndRelease = shouldAllowAnswerAndRelease(call);
+
     // Check if we're already showing an answer screen for this call.
     if (didShowAnswerScreen) {
       AnswerScreen answerScreen = getAnswerScreen();
@@ -1600,9 +1596,6 @@ public class InCallActivity extends TransactionSafeFragmentActivity
         LogUtil.d(
             "InCallActivity.showAnswerScreenFragment",
             "answer fragment exists for same call and has NOT been accepted/rejected/timed out");
-        if (answerScreen.allowAnswerAndRelease() != shouldAllowAnswerAndRelease) {
-            answerScreen.updateAnswerScreenSecondaryInfo(shouldAllowAnswerAndRelease);
-        }
         return false;
       }
       if (answerScreen.isActionTimeout()) {
@@ -1625,7 +1618,7 @@ public class InCallActivity extends TransactionSafeFragmentActivity
             call.isVideoCall(),
             isVideoUpgradeRequest,
             call.getVideoTech().isSelfManagedCamera(),
-            shouldAllowAnswerAndRelease,
+            shouldAllowAnswerAndRelease(call),
             hasMaxCallsOnSameSub(call),
             getSpeakEasyCallManager().isAvailable(getApplicationContext())
                 && call.isSpeakEasyEligible(),

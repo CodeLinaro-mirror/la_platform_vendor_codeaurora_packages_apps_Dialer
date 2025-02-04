@@ -28,7 +28,6 @@ public abstract class ActiveCallInfo {
 
   /** The {@link PhoneAccountHandle} the call is made with */
   public abstract Optional<PhoneAccountHandle> phoneAccountHandle();
-  public abstract int state();
 
   public static Builder builder() {
     return new AutoValue_ActiveCallInfo.Builder();
@@ -43,7 +42,7 @@ public abstract class ActiveCallInfo {
     }
 
     public abstract Builder setPhoneAccountHandle(Optional<PhoneAccountHandle> phoneAccountHandle);
-    public abstract Builder setState(int state);
+
     public abstract ActiveCallInfo build();
   }
 }

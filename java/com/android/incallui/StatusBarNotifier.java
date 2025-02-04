@@ -117,7 +117,6 @@ public class StatusBarNotifier
     implements InCallPresenter.InCallStateListener,
         InCallPresenter.IncomingCallListener,
         InCallPresenter.InCallEventListener,
-        InCallPresenter.InCallOrientationListener,
         EnrichedCallManager.StateChangedListener,
         ContactInfoCacheCallback {
 
@@ -152,17 +151,12 @@ public class StatusBarNotifier
   private int savedIncomingCallCount;
   private Uri ringtone;
 
-  /** Cache the current rotation of the device. */
-  private int currentOrientation;
-
   // Stores the call Id of the incoming call which is currently shown.
   private String visibleIncomingCallId;
   // Stores the index of the incoming call which is currently shown.
   private int visibleIncomingCallIndex = 0;
 
   private DialerCall showedCall;
-
-  private boolean orientationChanged = false;
 
   public StatusBarNotifier(@NonNull Context context, @NonNull ContactInfoCache contactInfoCache) {
     Trace.beginSection("StatusBarNotifier.Constructor");
@@ -173,7 +167,6 @@ public class StatusBarNotifier
             new InCallTonePlayer(new ToneGeneratorFactory(), new PausableExecutorImpl()),
             CallList.getInstance());
     currentNotification = NOTIFICATION_NONE;
-    currentOrientation = InCallOrientationEventListener.getCurrentOrientation();
     Trace.endSection();
   }
 
@@ -232,11 +225,6 @@ public class StatusBarNotifier
   @Override
   public void onIncomingCall(InCallState oldState, InCallState newState, DialerCall call) {
     LogUtil.enterBlock("StatusBarNotifier.onIncomingCall");
-    if (hasMultipleIncomingCalls()) {
-      // If a new incoming call is added move to the nextIncomingCall which will
-      // update visibleIncomingCallIndex so that we show notification for the new call
-      moveToNextIncomingCall();
-    }
     updateNotification();
   }
 
@@ -329,7 +317,7 @@ public class StatusBarNotifier
   }
 
   private boolean hasMultipleIncomingCalls() {
-    return CallList.getInstance().getIncomingCalls().size() > 1;
+      return CallList.getInstance().getIncomingCalls().size() > 1;
   }
 
   /** Sets up the main Ui for the notification */
@@ -375,14 +363,16 @@ public class StatusBarNotifier
       if (ConfigProviderComponent.get(context)
           .getConfigProvider()
           .getBoolean("quiet_incoming_call_if_ui_showing", true)) {
-
-        // 1. Call#1 (Active/Hold), incoming call Call#2, Call#2 only show in IncallUI,
-        //    not show in HUN
-        // 2. Call#1 (HUN) + Call#2 (HUN), always show Call#1 and Call#2 in HUN
-        // 3. Call#1 (InCallUi), Call#2 (HUN), getCallToShow to determine
-        //    which one should show in HUN.
-        notificationType = isShowingInCallUi && !hasMultipleIncomingCalls()
-            ? NOTIFICATION_INCOMING_CALL_QUIET : NOTIFICATION_INCOMING_CALL;
+        // Status bar notifier needs to differentiate between below 2 use cases:
+        // 1. Call 1 (InCallUi) + Call 2 (HUN)
+        // 2. Call 1 (HUN) + Call 2 (HUN)
+        // Between case 1 and case 2, difference is incomingcallcount increases for case 1,
+        // however for case 2, ststus bar notifier is already aware of both incoming calls,
+        // hence second check is needed to show the proper notification type
+        notificationType = isShowingInCallUi &&
+            (callList.getIncomingCalls().size() == savedIncomingCallCount)
+                ? NOTIFICATION_INCOMING_CALL_QUIET
+                : NOTIFICATION_INCOMING_CALL;
       } else {
         boolean alreadyActive =
             callList.getActiveOrBackgroundCall() != null && isShowingInCallUi;
@@ -664,14 +654,12 @@ public class StatusBarNotifier
             || !Objects.equals(this.ringtone, ringtone)
             || !Objects.equals(savedCallAudioState, callAudioState)
             || (numOfIncomingCalls != savedIncomingCallCount)
-            || shouldUpdateNotificationForInCallUi
-            || orientationChanged;
+            || shouldUpdateNotificationForInCallUi;
 
     LogUtil.d(
         "StatusBarNotifier.checkForChangeAndSaveData",
         "data changed: icon: %b, content: %b, state: %b, videoState: %b, largeIcon: %b, title: %b,"
-            + "ringtone: %b, audioState: %b, type: %b numOfIncomingCalls: %b,"
-            + "orientationChanged: %b,",
+            + "ringtone: %b, audioState: %b, type: %b numOfIncomingCalls: %b",
         (savedIcon != icon),
         !Objects.equals(savedContent, content),
         (callState != state),
@@ -681,8 +669,7 @@ public class StatusBarNotifier
         !Objects.equals(this.ringtone, ringtone),
         !Objects.equals(savedCallAudioState, callAudioState),
         currentNotification != notificationType,
-        numOfIncomingCalls != savedIncomingCallCount,
-        orientationChanged);
+        numOfIncomingCalls != savedIncomingCallCount);
     // If we aren't showing a notification right now or the notification type is changing,
     // definitely do an update.
     if (currentNotification != notificationType) {
@@ -703,7 +690,6 @@ public class StatusBarNotifier
     savedCallAudioState = callAudioState;
     savedIncomingCallCount = numOfIncomingCalls;
     wasShowingInCallUi = isShowingInCallUi;
-    orientationChanged = false;
 
     if (retval) {
       LogUtil.d(
@@ -1030,14 +1016,14 @@ public class StatusBarNotifier
       return null;
     }
     DialerCall call = callList.getIncomingCall();
-
-    if (hasMultipleIncomingCalls()) {
-      //Call#1 (HUN) + Call#2 (HUN)
-      //If select call#1, call#1 will InCallUI, call#2 will show in HUN
-      //If select call#2, call#2 will InCallUI, call#1 will show in HUN
-      if (InCallPresenter.getInstance().isShowingInCallUi()
-              && Objects.equals(
-              callList.getIncomingCalls().get(visibleIncomingCallIndex).getId(), call.getId())) {
+    // If there are more than one incoming call update notification for the currently visible
+    // incoming call.
+    if(hasMultipleIncomingCalls()) {
+      // If a new incoming call is added move to the nextIncomingCall which will
+      // update visibleIncomingCallIndex so that we show notification for the new call
+      // when IncallActivity is showing.
+      if(InCallPresenter.getInstance().isShowingInCallUi() &&
+          callList.getIncomingCalls().size() > savedIncomingCallCount) {
         moveToNextIncomingCall();
       }
       call = callList.getIncomingCalls().get(visibleIncomingCallIndex);
@@ -1277,23 +1263,5 @@ public class StatusBarNotifier
     if (call != null) {
       buildAndSendNotification(CallList.getInstance(), call, entry);
     }
-  }
-
-  /**
-   * Handles changes to the device orientation.
-   *
-   * @param orientation The screen orientation of the device (one of: {@link
-   *     InCallOrientationEventListener#SCREEN_ORIENTATION_0}, {@link
-   *     InCallOrientationEventListener#SCREEN_ORIENTATION_90}, {@link
-   *     InCallOrientationEventListener#SCREEN_ORIENTATION_180}, {@link
-   *     InCallOrientationEventListener#SCREEN_ORIENTATION_270}).
-   */
-  @Override
-  public void onDeviceOrientationChanged(int orientation) {
-    if (currentOrientation != orientation) {
-      orientationChanged = true;
-      updateNotification();
-    }
-    currentOrientation = orientation;
   }
 }
