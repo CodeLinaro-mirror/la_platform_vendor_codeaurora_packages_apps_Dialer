@@ -32,6 +32,7 @@ import android.support.v4.os.UserManagerCompat;
 import android.telecom.CallAudioState;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.telephony.TelephonyManager;
 import android.widget.Toast;
 import com.android.contacts.common.compat.CallCompat;
 import com.android.dialer.common.Assert;
@@ -85,10 +86,12 @@ public class CallButtonPresenter
   private PhoneAccountHandle otherAccount;
   private static final int MAX_PARTICIPANTS_LIMIT = 6;
   private final PhoneAccountChangedReceiver phoneAccountChangedReceiver;
+  private final TelephonyManager telephonyManager;
 
   public CallButtonPresenter(Context context) {
     this.context = context.getApplicationContext();
     phoneAccountChangedReceiver = new PhoneAccountChangedReceiver(this);
+    telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
   }
 
   @Override
@@ -550,6 +553,29 @@ public class CallButtonPresenter
     return false;
   }
 
+  /** Helper function to determine whether swap button should be shown
+   *  Only in DSDS transition mode, show the swap button if
+   *  calls are across sub.
+   */
+  private boolean shouldShowSwitchtoSecondaryCall(DialerCall call, DialerCall secondaryCall) {
+    if (call == null || secondaryCall == null) {
+      return false;
+    }
+
+    if (telephonyManager.isDsdsTransitionSupported()) {
+        return true;
+    }
+    // if UE is in DSDS but the calls are on different phone accounts
+    // don't allow swap if dsds transition mode is not supported
+    // If there is an HFP call, Dialer treats this like a different
+    // phone account and this leads to the swap button being disabled.
+    // So by checking if either call is an HFP call, we can enable swap
+    // between any combination of HFP call and normal cellular call.
+    return call.hasSamePhoneAccount(secondaryCall)
+            || DialerUtils.isHfpPhoneAccount(context, secondaryCall.getAccountHandle())
+            || DialerUtils.isHfpPhoneAccount(context, call.getAccountHandle());
+  }
+
   /**
    * Updates the buttons applicable for the UI.
    *
@@ -650,7 +676,8 @@ public class CallButtonPresenter
                                                      : showMerge);
     inCallButtonUi.showButton(InCallButtonIds.BUTTON_DOWNGRADE_TO_VOICE, showDowngradeRtt);
 
-    boolean showSwitchToSecondary = InCallPresenter.getInstance().getSecondaryCall() != null
+    boolean showSwitchToSecondary = shouldShowSwitchtoSecondaryCall(call,
+        InCallPresenter.getInstance().getSecondaryCall())
         && !call.hasSentVideoUpgradeRequest();
     boolean enableSwitchToSecondary = showSwitchToSecondary
         && shouldEnableSwapToSecondaryButton(call);

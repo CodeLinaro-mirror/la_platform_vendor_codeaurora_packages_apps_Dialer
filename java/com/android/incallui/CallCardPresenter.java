@@ -561,7 +561,7 @@ public class CallCardPresenter
     if (secondary == null) {
       return ButtonState.NOT_SUPPORT;
     }
-    if (primary.getState() == DialerCallState.ACTIVE) {
+    if (!primary.isEmergencyCall() && primary.getState() == DialerCallState.ACTIVE) {
       // Unwant showing swap icon while having upgrade request
       final int sessionModificationState = primary.getVideoTech()
         .getSessionModificationState();
