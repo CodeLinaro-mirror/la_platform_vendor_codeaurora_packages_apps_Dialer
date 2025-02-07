@@ -124,6 +124,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.Executor;
 
 import org.codeaurora.ims.CrsCrbtManager;
 import org.codeaurora.ims.CrsCrbtListenerBase;
@@ -178,6 +179,8 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   private ExternalCallNotifier externalCallNotifier;
   private ContactInfoCache contactInfoCache;
   private Context context;
+  private Executor mExecutor;
+  private CrsCrbtListenerBase mCrsDataUpdateListener;
   private final OnCheckBlockedListener onCheckBlockedListener =
       new OnCheckBlockedListener() {
         @Override
@@ -365,6 +368,33 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
     Objects.requireNonNull(context);
     this.context = context;
+    // Use newCachedThreadPool() in the unlikely event that the context is null.
+    mExecutor = context.getMainExecutor();
+    mCrsDataUpdateListener = new CrsCrbtListenerBase(mExecutor) {
+      @Override
+      public void onCrsDataUpdated(int phoneId, int crsType, boolean isPreparatory) {
+          LogUtil.i("InCallPresenter.onCrsDataUpdated", "crs type: "
+                  + crsType + " isPreparatory:: " + isPreparatory );
+          if (!isPreparatory && mIsPreparatoryMode && mCrsCrbtCall!= null) {
+            onIncomingCall(mCrsCrbtCall);
+            mIsPreparatoryMode = false;
+          }
+      }
+
+      @Override
+      public void onSipDtmfReceived(int phoneId, String config) {
+          LogUtil.i("InCallPresenter.onSipDtmfReceived", "phoneId : %s, sipDtmfConfig : %s ",
+                  phoneId, config);
+          //cache this bitMap due to sometimes SIP DTMF come early and UI is not shown,
+          //will use this cache value to update buttons for MT call CRS and MO CRBT call.
+          mCacheSipDtmfBitMask = SipDtmfUtil.toButtonBitmask(config);
+          for (InCallEventListener listener : inCallEventListeners) {
+            mHandler.post(()->listener.onSipDtmfChanged(mCacheSipDtmfBitMask));
+          }
+       }
+    };
+
+
     BottomSheetHelper.getInstance().setUp(context);
     this.contactInfoCache = contactInfoCache;
 
@@ -514,32 +544,6 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
         LogUtil.e("InCallPresenter.removeCrsCrbtListener", "exception " + e);
     }
   }
-
-  private CrsCrbtListenerBase mCrsDataUpdateListener =
-      new CrsCrbtListenerBase() {
-      @Override
-      public void onCrsDataUpdated(int phoneId, int crsType, boolean isPreparatory) {
-          LogUtil.i("InCallPresenter.onCrsDataUpdated", "crs type: "
-                  + crsType + " isPreparatory:: " + isPreparatory );
-          if (!isPreparatory && mIsPreparatoryMode && mCrsCrbtCall!= null) {
-            onIncomingCall(mCrsCrbtCall);
-            mIsPreparatoryMode = false;
-          }
-      }
-
-      @Override
-      public void onSipDtmfReceived(int phoneId, String config) {
-          LogUtil.i("InCallPresenter.onSipDtmfReceived", "phoneId : %s, sipDtmfConfig : %s ",
-                  phoneId, config);
-          //cache this bitMap due to sometimes SIP DTMF come early and UI is not shown,
-          //will use this cache value to update buttons for MT call CRS and MO CRBT call.
-          mCacheSipDtmfBitMask = SipDtmfUtil.toButtonBitmask(config);
-          for (InCallEventListener listener : inCallEventListeners) {
-            mHandler.post(()->listener.onSipDtmfChanged(mCacheSipDtmfBitMask));
-          }
-      }
-  };
-
   /**
    * Send SIP DTMF to modem/network when user clicks the icons in CRS/CRBT UI.
    */

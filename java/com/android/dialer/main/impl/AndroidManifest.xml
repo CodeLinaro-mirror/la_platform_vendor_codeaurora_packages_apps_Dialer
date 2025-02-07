@@ -13,6 +13,10 @@
   ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License
+
+  ~ ​Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+  ~ Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+  ~ SPDX-License-Identifier: BSD-3-Clause-Clear
   -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.android.dialer.main.impl">
@@ -30,7 +34,7 @@
         android:label="@string/main_activity_label"
         android:launchMode="singleTask"
         android:resizeableActivity="true"
-        android:theme="@style/MainActivityTheme"
+        android:theme="@style/QtiMainActivityTheme"
         android:windowSoftInputMode="stateAlwaysHidden|adjustNothing">
 
       <intent-filter>

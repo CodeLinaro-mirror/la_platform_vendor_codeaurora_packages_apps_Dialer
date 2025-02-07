@@ -36,6 +36,10 @@ public class ExpirableCacheHeadlessFragment extends Fragment {
 
   private ExpirableCache<NumberWithCountryIso, ContactInfo> retainedCache;
 
+   public ExpirableCacheHeadlessFragment() {
+     this.setRetainInstance(true);
+   }
+
   @NonNull
   public static ExpirableCacheHeadlessFragment attach(@NonNull AppCompatActivity parentActivity) {
     return attach(parentActivity.getSupportFragmentManager());

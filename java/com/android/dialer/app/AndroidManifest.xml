@@ -11,6 +11,10 @@
      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
      See the License for the specific language governing permissions and
      limitations under the License.
+
+     ​​​​​Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+     Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+     SPDX-License-Identifier: BSD-3-Clause-Clear
 -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -79,7 +83,7 @@
     <activity
       android:label="@string/call_log_activity_title"
       android:name="com.android.dialer.app.calllog.CallLogActivity"
-      android:theme="@style/DialtactsTheme">
+      android:theme="@style/QtiDialtactsTheme">
     </activity>
 
     <receiver
@@ -167,7 +171,7 @@
     <activity
         android:exported="true"
         android:name="com.android.dialer.app.settings.SpeedDialListActivity"
-        android:theme="@style/SpeedDialtactsTheme"
+        android:theme="@style/QtiSpeedDialtactsTheme"
         android:label="@string/speed_dial_settings" >
         <intent-filter>
             <action android:name="android.intent.action.MAIN"/>
