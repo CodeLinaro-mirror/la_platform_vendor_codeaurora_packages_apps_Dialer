@@ -41,6 +41,10 @@ public class OnHoldFragment extends Fragment {
   private boolean padTopInset = true;
   private int topInset;
 
+  public OnHoldFragment() {
+    this.setRetainInstance(true);
+  }
+
   public static OnHoldFragment newInstance(@NonNull SecondaryInfo info) {
     OnHoldFragment fragment = new OnHoldFragment();
     Bundle args = new Bundle();
