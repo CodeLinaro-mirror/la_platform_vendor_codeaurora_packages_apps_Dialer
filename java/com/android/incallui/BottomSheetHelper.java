@@ -26,7 +26,7 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -618,7 +618,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
     * Returns true if active and secondary banner call are on the same sub, false otherwise.
     */
    private static boolean isConsultativeTransferOnSameSub() {
-     DialerCall secondaryCall = InCallPresenter.getInstance().getSecondaryCall();
+     DialerCall secondaryCall = CallList.getInstance().getBackgroundCall();
      DialerCall foregroundCall = CallList.getInstance().getActiveCall();
      return secondaryCall != null && foregroundCall != null &&
          Objects.equals(secondaryCall.getAccountHandle(), foregroundCall.getAccountHandle());
