@@ -47,4 +47,6 @@ public interface AnswerScreen {
   void updateAnswerScreenUi(boolean answeringDisconnectsOngoingCall);
 
   void updateAnswerScreenSecondaryInfo(boolean shouldAllowAnswerAndRelease);
+
+  boolean isVideoCrs();
 }
