@@ -1577,6 +1577,7 @@ public class InCallActivity extends TransactionSafeFragmentActivity
       AnswerScreen answerScreen = getAnswerScreen();
       if (answerScreen.getCallId().equals(call.getId())
           && answerScreen.isVideoCall() == call.isVideoCall()
+          && answerScreen.isVideoCrs() == QtiCallUtils.isVideoCrs(call)
           && answerScreen.isVideoUpgradeRequest() == isVideoUpgradeRequest
           && !answerScreen.isActionTimeout()) {
         LogUtil.d(

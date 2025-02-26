@@ -45,4 +45,6 @@ public interface AnswerScreen {
   Fragment getAnswerScreenFragment();
 
   void updateAnswerScreenUi();
+
+  boolean isVideoCrs();
 }
