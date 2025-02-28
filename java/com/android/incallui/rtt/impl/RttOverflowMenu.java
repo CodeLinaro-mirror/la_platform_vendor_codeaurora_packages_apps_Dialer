@@ -178,4 +178,8 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
   void enableSatelliteButton(boolean enabled) {
     satelliteButton.setVisibility(enabled ? View.VISIBLE : View.GONE);
   }
+
+  void enableAddCallButton(boolean enabled) {
+    addCallButton.setVisibility(enabled ? View.VISIBLE : View.GONE);
+  }
 }
