@@ -137,7 +137,6 @@ public class CallButtonPresenter
       call = callList.getOutgoingCall();
     } else if (newState == InCallState.INCALL) {
       call = callList.getActiveOrBackgroundCall();
-      LogUtil.v("CallButtonPresenter.onStateChange", "lastPrimary call: " + call);
 
       // When connected to voice mail, automatically shows the dialpad.
       // (On previous releases we showed it when in-call shows up, before waiting for
@@ -546,12 +545,35 @@ public class CallButtonPresenter
   }
 
   private boolean shouldEnableSwapToSecondaryButton(DialerCall call) {
-    if (call != null && !call.isSwapDisabled() && !call.isEmergencyCall() &&
+    if (call != null && !call.isEmergencyCall() &&
             (call.getState() == DialerCallState.ACTIVE ||
              call.getState() == DialerCallState.ONHOLD)) {
         return true;
     }
     return false;
+  }
+
+  /** Helper function to determine whether swap button should be shown
+   *  Only in DSDS transition mode, show the swap button if
+   *  calls are across sub.
+   */
+  private boolean shouldShowSwitchtoSecondaryCall(DialerCall call, DialerCall secondaryCall) {
+    if (call == null || secondaryCall == null) {
+      return false;
+    }
+
+    if (telephonyManager.isDsdsTransitionSupported()) {
+        return true;
+    }
+    // if UE is in DSDS but the calls are on different phone accounts
+    // don't allow swap if dsds transition mode is not supported
+    // If there is an HFP call, Dialer treats this like a different
+    // phone account and this leads to the swap button being disabled.
+    // So by checking if either call is an HFP call, we can enable swap
+    // between any combination of HFP call and normal cellular call.
+    return call.hasSamePhoneAccount(secondaryCall)
+            || DialerUtils.isHfpPhoneAccount(context, secondaryCall.getAccountHandle())
+            || DialerUtils.isHfpPhoneAccount(context, call.getAccountHandle());
   }
 
   /**
@@ -654,7 +676,7 @@ public class CallButtonPresenter
                                                      : showMerge);
     inCallButtonUi.showButton(InCallButtonIds.BUTTON_DOWNGRADE_TO_VOICE, showDowngradeRtt);
 
-    boolean showSwitchToSecondary = canSwitchToSecondaryCall(call,
+    boolean showSwitchToSecondary = shouldShowSwitchtoSecondaryCall(call,
         InCallPresenter.getInstance().getSecondaryCall())
         && !call.hasSentVideoUpgradeRequest();
     boolean enableSwitchToSecondary = showSwitchToSecondary
@@ -674,29 +696,6 @@ public class CallButtonPresenter
       BottomSheetHelper.getInstance().updateMap();
     }
     inCallButtonUi.updateButtonStates();
-  }
-
-  /** Helper function to determine whether swap button should be shown
-   *  Only in DSDA or DSDS transition mode, show the swap button if
-   *  calls are across sub.
-   */
-  private boolean canSwitchToSecondaryCall(DialerCall call, DialerCall secondaryCall) {
-    if (call == null || secondaryCall == null) {
-      return false;
-    }
-
-    if (telephonyManager.isDsdaOrDsdsTransitionMode()) {
-        return true;
-    }
-    // if UE is in DSDS but the calls are on different phone accounts
-    // don't allow swap if dsds transition mode is not supported
-    // If there is an HFP call, Dialer treats this like a different
-    // phone account and this leads to the swap button being disabled.
-    // So by checking if either call is an HFP call, we can enable swap
-    // between any combination of HFP call and normal cellular call.
-    return call.hasSamePhoneAccount(secondaryCall)
-            || DialerUtils.isHfpPhoneAccount(context, secondaryCall.getAccountHandle())
-            || DialerUtils.isHfpPhoneAccount(context, call.getAccountHandle());
   }
 
   private boolean hasVideoCallCapabilities(DialerCall call) {
@@ -759,13 +758,6 @@ public class CallButtonPresenter
       if (inCallButtonUi != null && call != null) {
         updateSipDtmfButtons(sipDtmfbitMap);
       }
-  }
-
-  @Override
-  public void onShowNextSecondaryCall(DialerCall nextSecondaryCall) {
-    if (inCallButtonUi != null && call != null) {
-      updateButtonsState(call);
-    }
   }
 
   private void updateSipDtmfButtons(int sipDtmfbitMap) {

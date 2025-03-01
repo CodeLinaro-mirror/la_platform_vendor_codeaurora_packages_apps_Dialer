@@ -20,8 +20,6 @@
 
 package com.android.incallui;
 
-import static com.android.incallui.NotificationBroadcastReceiver.EXTRA_CALL_ID;
-
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.AppTask;
@@ -65,7 +63,6 @@ import android.view.animation.AnimationUtils;
 import android.widget.CheckBox;
 import android.widget.Toast;
 import com.android.contacts.common.widget.SelectPhoneAccountDialogFragment;
-import com.android.contacts.common.widget.SelectPhoneAccountDialogOptions;
 import com.android.dialer.animation.AnimUtils;
 import com.android.dialer.animation.AnimationListenerAdapter;
 import com.android.dialer.common.Assert;
@@ -220,8 +217,6 @@ public class InCallActivity extends TransactionSafeFragmentActivity
       didShowRttCallScreen = bundle.getBoolean(KeysForSavedInstance.DID_SHOW_RTT_CALL_SCREEN);
       didShowSpeakEasyScreen = bundle.getBoolean(KeysForSavedInstance.DID_SHOW_SPEAK_EASY_SCREEN);
     }
-
-    CallList.getInstance().setSelectedIncomingCall(getIntent().getStringExtra(EXTRA_CALL_ID));
 
     setWindowFlags();
     setContentView(R.layout.incall_screen);
@@ -450,12 +445,9 @@ public class InCallActivity extends TransactionSafeFragmentActivity
                   waitingForAccountCall.getNumber(),
                   result.getSuggestion().orNull(),
                   result.getDataId().orNull()));
-          SelectPhoneAccountDialogOptions.Builder builder = result.getDialogOptionsBuilder().get();
-          builder.setCallId(callId);
-          builder.setShowDsdsTransitionTextView(true);
           selectPhoneAccountDialogFragment =
               SelectPhoneAccountDialogFragment.newInstance(
-                  builder.build(),
+                  result.getDialogOptionsBuilder().get().setCallId(callId).build(),
                   selectPhoneAccountListener);
           selectPhoneAccountDialogFragment.show(getFragmentManager(), Tags.SELECT_ACCOUNT_FRAGMENT);
         },
@@ -681,7 +673,6 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     } else {
       onNewIntent(intent, false /* isRecreating */);
     }
-    CallList.getInstance().setSelectedIncomingCall(getIntent().getStringExtra(EXTRA_CALL_ID));
   }
 
   @VisibleForTesting
@@ -1570,15 +1561,6 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     return new ShouldShowUiResult(false, null);
   }
 
-  /**
-   * Function to check if there are more than one held/active call with same account
-   * as that of the call parameter passed.
-   */
-  private boolean hasMaxCallsOnSameSub(DialerCall call) {
-    return call != null &&
-        CallList.getInstance().getActiveAndBackgroundCalls(call.getAccountHandle()).size() > 1;
-  }
-
   private boolean showAnswerScreenFragment(FragmentTransaction transaction, DialerCall call) {
     // When rejecting a call the active call can become null in which case we should continue
     // showing the answer screen.
@@ -1589,7 +1571,7 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     Assert.checkArgument(call != null, "didShowAnswerScreen was false but call was still null");
 
     boolean isVideoUpgradeRequest = call.hasReceivedVideoUpgradeRequest();
-    boolean shouldAllowAnswerAndRelease = shouldAllowAnswerAndRelease(call);
+
     // Check if we're already showing an answer screen for this call.
     if (didShowAnswerScreen) {
       AnswerScreen answerScreen = getAnswerScreen();
@@ -1600,9 +1582,6 @@ public class InCallActivity extends TransactionSafeFragmentActivity
         LogUtil.d(
             "InCallActivity.showAnswerScreenFragment",
             "answer fragment exists for same call and has NOT been accepted/rejected/timed out");
-        if (answerScreen.allowAnswerAndRelease() != shouldAllowAnswerAndRelease) {
-            answerScreen.updateAnswerScreenSecondaryInfo(shouldAllowAnswerAndRelease);
-        }
         return false;
       }
       if (answerScreen.isActionTimeout()) {
@@ -1625,8 +1604,8 @@ public class InCallActivity extends TransactionSafeFragmentActivity
             call.isVideoCall(),
             isVideoUpgradeRequest,
             call.getVideoTech().isSelfManagedCamera(),
-            shouldAllowAnswerAndRelease,
-            hasMaxCallsOnSameSub(call),
+            shouldAllowAnswerAndRelease(call),
+            CallList.getInstance().getBackgroundCall() != null,
             getSpeakEasyCallManager().isAvailable(getApplicationContext())
                 && call.isSpeakEasyEligible(),
             QtiCallUtils.isVideoCrs(call),
@@ -1642,8 +1621,8 @@ public class InCallActivity extends TransactionSafeFragmentActivity
   }
 
   private boolean shouldAllowAnswerAndRelease(DialerCall call) {
-    if (CallList.getInstance().getActiveOrBackgroundCall() == null) {
-      LogUtil.i("InCallActivity.shouldAllowAnswerAndRelease", "no active or background call");
+    if (CallList.getInstance().getActiveCall() == null) {
+      LogUtil.i("InCallActivity.shouldAllowAnswerAndRelease", "no active call");
       return false;
     }
     if (getSystemService(TelephonyManager.class).getPhoneType()

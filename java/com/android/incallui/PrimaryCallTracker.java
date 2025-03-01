@@ -23,7 +23,6 @@ import com.android.incallui.InCallPresenter.InCallStateListener;
 import com.android.incallui.InCallPresenter.IncomingCallListener;
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.CallList;
-import com.android.incallui.call.state.DialerCallState;
 import com.google.common.base.Preconditions;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.List;
@@ -90,7 +89,6 @@ public class PrimaryCallTracker implements InCallStateListener, IncomingCallList
             primaryCall = callList.getPendingOutgoingCall();
         } else if (newState == InCallPresenter.InCallState.INCALL) {
             primaryCall = callList.getActiveOrBackgroundCall();
-            Log.v(this, "onStateChange: lastPrimary call: " + primaryCall);
         }
 
         if (!Objects.equals(mPrimaryCall, primaryCall)) {

@@ -28,8 +28,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.hardware.display.DisplayManager;
 import android.os.BatteryManager;
@@ -84,7 +82,6 @@ import com.android.incallui.incall.protocol.SecondaryInfo;
 import com.android.incallui.videotech.utils.SessionModificationState;
 import com.android.incallui.videotech.utils.VideoUtils;
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.Objects;
 
 /**
@@ -134,7 +131,6 @@ public class CallCardPresenter
   private InCallScreen inCallScreen;
   private boolean isInCallScreenReady;
   private boolean shouldSendAccessibilityEvent;
-  private int heldCallCount;
   private AccessibilityManager accessibilityManager;
   private Display defaultDisplay;
   private PrimaryCallState primaryCallState;
@@ -324,10 +320,7 @@ public class CallCardPresenter
       maybeStartSearch(this.primary, true);
     }
 
-    int currentHeldCallCount = CallList.getInstance().getBackgroundCalls(this.primary).size();
-    // Secondary display info should be updated in case secondary changed or the
-    // number of held calls changed.
-    if (secondaryChanged  || heldCallCount != currentHeldCallCount) {
+    if (secondaryChanged) {
       if (this.secondary == null) {
         // Secondary call may have ended.  Update the ui.
         secondaryContactInfo = null;
@@ -338,7 +331,6 @@ public class CallCardPresenter
         updateSecondaryDisplayInfo();
         maybeStartSearch(this.secondary, false);
       }
-      heldCallCount = currentHeldCallCount;
     }
 
     // Set the call state
@@ -360,26 +352,6 @@ public class CallCardPresenter
 
     maybeSendAccessibilityEvent(oldState, newState, primaryChanged);
     Trace.endSection();
-  }
-
-  @Override
-  public void onShowNextSecondaryCall(DialerCall nextSecondaryCall) {
-    String nextSecondaryNumber = (nextSecondaryCall != null) ?
-        nextSecondaryCall.getNumber() : null;
-
-    final boolean secondaryChanged =
-        !(DialerCall.areSame(nextSecondaryCall, secondary)
-        && TextUtils.equals(nextSecondaryNumber, secondaryNumber));
-
-    if (!secondaryChanged) {
-      LogUtil.w("CallCardPresenter.moveToNextSecondaryCall", "no change to secondary call");
-      return;
-    }
-    secondary = nextSecondaryCall;
-    secondaryNumber = nextSecondaryNumber;
-    secondaryContactInfo = ContactInfoCache.buildCacheEntryFromCall(context, secondary);
-    updateSecondaryDisplayInfo();
-    maybeStartSearch(secondary, false);
   }
 
   @Override
@@ -589,9 +561,7 @@ public class CallCardPresenter
     if (secondary == null) {
       return ButtonState.NOT_SUPPORT;
     }
-    if (!primary.isSwapDisabled() && !primary.isEmergencyCall() &&
-        (primary.getState() == DialerCallState.ACTIVE ||
-        primary.getState() == DialerCallState.ONHOLD)) {
+    if (!primary.isEmergencyCall() && primary.getState() == DialerCallState.ACTIVE) {
       // Unwant showing swap icon while having upgrade request
       final int sessionModificationState = primary.getVideoTech()
         .getSessionModificationState();
@@ -766,7 +736,6 @@ public class CallCardPresenter
               .setShouldShowLocation(shouldShowLocation())
               .setShowInCallButtonGrid(true)
               .setNumberPresentation(primary.getNumberPresentation())
-              .setIsSwapDisabled(primary.isSwapDisabled())
               .build());
     } else if (primaryContactInfo != null) {
       LogUtil.v(
@@ -819,7 +788,6 @@ public class CallCardPresenter
               .setMultimediaData(multimediaData)
               .setShowInCallButtonGrid(true)
               .setNumberPresentation(primary.getNumberPresentation())
-              .setIsSwapDisabled(primary.isSwapDisabled())
               .build());
     } else {
       // Clear the primary display info.
@@ -937,26 +905,6 @@ public class CallCardPresenter
     return batteryPercent < threshold;
   }
 
-  // One is added to the return value of the function to convert the zero-based index
-  // to one-based.
-  private String getSecondaryCallIndex() {
-    ArrayList<DialerCall> backgroundCalls = CallList.getInstance().getBackgroundCalls(primary);
-    return Integer.toString(backgroundCalls.indexOf(secondary) + 1);
-  }
-
-  private Integer getTotalSecondaryCalls() {
-    ArrayList<DialerCall> backgroundCalls = CallList.getInstance().getBackgroundCalls(primary);
-    return backgroundCalls.size();
-  }
-
-  private Bitmap getProviderIcon(DialerCall call) {
-    if (call == null) {
-      return null;
-    }
-    Drawable callProviderIcon = call.getCallProviderIcon();
-    return callProviderIcon != null ? ((BitmapDrawable) callProviderIcon).getBitmap() : null;
-  }
-
   private void updateSecondaryDisplayInfo() {
     if (inCallScreen == null) {
       return;
@@ -992,10 +940,6 @@ public class CallCardPresenter
               .setIsConference(true)
               .setIsVideoCall(secondary.isVideoCall())
               .setIsFullscreen(isFullscreen)
-              .setShouldShowNext(getTotalSecondaryCalls() > 1)
-              .setProviderIcon(getProviderIcon(secondary))
-              .setCurrentSecondaryCallIndex(getSecondaryCallIndex())
-              .setTotalSecondaryCalls(Integer.toString(getTotalSecondaryCalls()))
               .build());
     } else if (secondaryContactInfo != null && !secondary.isConferenceCall()) {
       LogUtil.v("CallCardPresenter.updateSecondaryDisplayInfo", "" + secondaryContactInfo);
@@ -1010,10 +954,6 @@ public class CallCardPresenter
               .setProviderLabel(secondary.getCallProviderLabel())
               .setIsVideoCall(secondary.isVideoCall())
               .setIsFullscreen(isFullscreen)
-              .setShouldShowNext(getTotalSecondaryCalls() > 1)
-              .setProviderIcon(getProviderIcon(secondary))
-              .setCurrentSecondaryCallIndex(getSecondaryCallIndex())
-              .setTotalSecondaryCalls(Integer.toString(getTotalSecondaryCalls()))
               .build());
     } else {
       // Clear the secondary display info.

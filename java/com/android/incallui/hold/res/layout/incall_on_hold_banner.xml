@@ -23,7 +23,7 @@
   <LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingStart="16dp"
+    android:paddingStart="24dp"
     android:paddingEnd="24dp"
     android:paddingTop="16dp"
     android:paddingBottom="16dp"
@@ -34,14 +34,7 @@
       android:layout_width="18dp"
       android:layout_height="18dp"
       android:src="@drawable/quantum_ic_phone_paused_vd_theme_24"
-      android:contentDescription="@null"
-      android:layout_marginEnd="8dp"/>
-
-    <ImageView
-      android:id="@+id/carrier_icon"
-      android:layout_width="24dp"
-      android:layout_height="24dp"
-      android:visibility="gone"/>
+      android:contentDescription="@null"/>
 
     <TextView
       android:id="@+id/hold_contact_name"
@@ -49,7 +42,8 @@
       android:layout_width="0dp"
       android:layout_height="wrap_content"
       android:layout_weight="1"
-      android:layout_marginEnd="6dp"
+      android:layout_marginStart="8dp"
+      android:layout_marginEnd="24dp"
       android:ellipsize="end"
       android:singleLine="true"
       android:textColor="@android:color/white"
@@ -61,34 +55,5 @@
       android:layout_height="wrap_content"
       android:textColor="@android:color/white"
       android:text="@string/incall_on_hold"/>
-
-    <TextView
-      style="@style/Dialer.Incall.TextAppearance"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:layout_marginStart="8dp"
-      android:id="@+id/current_secondary_call_index"
-      android:textSize="16sp"
-      android:visibility="gone"/>
-
-    <TextView
-      style="@style/Dialer.Incall.TextAppearance"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:id="@+id/total_secondary_calls"
-      android:textSize="16sp"
-      android:visibility="gone"/>
-
-    <Button
-      android:id="@+id/next_button"
-      android:layout_width="52dp"
-      android:layout_height="36dp"
-      android:text="@string/next"
-      android:layout_marginStart="6dp"
-      android:textSize="16sp"
-      android:background="@drawable/button_border"
-      style="@style/Dialer.Incall.TextAppearance"
-      android:textAllCaps="false"
-      android:visibility="gone"/>
   </LinearLayout>
 </FrameLayout>

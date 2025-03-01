@@ -49,7 +49,6 @@ import com.android.dialer.location.GeoUtil;
 import com.android.dialer.phonenumberutil.PhoneNumberHelper;
 import com.android.dialer.protos.ProtoParsers;
 import com.android.dialer.telecom.TelecomUtil;
-import com.android.dialer.util.DialerUtils;
 import com.google.common.base.Optional;
 
 /**
@@ -262,7 +261,6 @@ public class SelectPhoneAccountDialogFragment extends DialogFragment {
         holder.numberTextView = (TextView) rowView.findViewById(R.id.number);
         holder.hintTextView = rowView.findViewById(R.id.hint);
         holder.imageView = (ImageView) rowView.findViewById(R.id.icon);
-        holder.dsdsTransitionView = (TextView) rowView.findViewById(R.id.dsds_transition);
         rowView.setTag(holder);
       } else {
         rowView = convertView;
@@ -302,13 +300,6 @@ public class SelectPhoneAccountDialogFragment extends DialogFragment {
       holder.numberTextView.setEnabled(entry.getEnabled());
       holder.hintTextView.setEnabled(entry.getEnabled());
       holder.imageView.setImageAlpha(entry.getEnabled() ? 255 : 97 /* 38%*/);
-      if (DialerUtils.shouldWarnConcurrentCallsInDsds(getContext(), accountHandle) &&
-          options.getShowDsdsTransitionTextView()) {
-        holder.dsdsTransitionView.setVisibility(View.VISIBLE);
-        holder.dsdsTransitionView.setText(R.string.outgoing_dsds_transition_call_warning);
-      } else {
-        holder.dsdsTransitionView.setVisibility(View.GONE);
-      }
       return rowView;
     }
 
@@ -332,7 +323,6 @@ public class SelectPhoneAccountDialogFragment extends DialogFragment {
       TextView numberTextView;
       TextView hintTextView;
       ImageView imageView;
-      TextView dsdsTransitionView;
     }
   }
 }

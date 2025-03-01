@@ -32,7 +32,6 @@ import android.support.annotation.VisibleForTesting;
 import android.telecom.Call;
 import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccount;
-import android.telecom.PhoneAccountHandle;
 import android.util.ArrayMap;
 import com.android.dialer.blocking.FilteredNumberAsyncQueryHandler;
 import com.android.dialer.common.Assert;
@@ -57,7 +56,6 @@ import com.android.incallui.videotech.utils.SessionModificationState;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -81,9 +79,6 @@ public class CallList implements DialerCallDelegate {
 
   private final Map<String, DialerCall> callById = new ArrayMap<>();
   private final Map<android.telecom.Call, DialerCall> callByTelecomCall = new ArrayMap<>();
-  private DialerCall secondaryCall;
-  private String selectedIncomingCall;
-  private ArrayList<DialerCall> heldCallList = new ArrayList<>();
 
   /**
    * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is load factor before
@@ -291,9 +286,7 @@ public class CallList implements DialerCallDelegate {
         LogUtil.w(
             "CallList.onCallRemoved", "Removing call not previously disconnected " + call.getId());
       }
-      if (Objects.equals(call.getId(), selectedIncomingCall)) {
-          selectedIncomingCall = null;
-      }
+
       call.onRemovedFromCallList();
     }
 
@@ -447,42 +440,10 @@ public class CallList implements DialerCallDelegate {
     return getCallWithState(DialerCallState.ONHOLD, 1);
   }
 
-  public ArrayList<DialerCall> getBackgroundCalls() {
-     return getBackgroundCalls(null);
-  }
-
-  public ArrayList<DialerCall> getBackgroundCalls(DialerCall ignoreCall) {
-    ArrayList<DialerCall> backgroundCalls = new ArrayList<>();
-    for (DialerCall call : getAllCalls()) {
-      if (call.getState() == DialerCallState.ONHOLD && call != ignoreCall) {
-        backgroundCalls.add(call);
-      }
-    }
-    return backgroundCalls;
-  }
-
-  /**
-   * Return the list of active or background calls with the same phoneaccounthandle
-   * as the passed paramater.
-   */
-  public ArrayList<DialerCall> getActiveAndBackgroundCalls(PhoneAccountHandle handle) {
-    ArrayList<DialerCall> activeAndBackgroundCalls = new ArrayList<>();
-    for (DialerCall call : getAllCalls()) {
-      if ((call.getState() == DialerCallState.ONHOLD ||
-          call.getState() == DialerCallState.ACTIVE) &&
-          Objects.equals(handle, call.getAccountHandle())) {
-        activeAndBackgroundCalls.add(call);
-      }
-    }
-    return activeAndBackgroundCalls;
-  }
-
   public DialerCall getActiveOrBackgroundCall() {
     DialerCall call = getActiveCall();
     if (call == null) {
-      //If we have multiple held calls, and no active call, the call in
-      //foreground will be the last call which went into held state.
-      call = getBackgroundCalls().size() > 1 ? getLastHeldCall() : getBackgroundCall();
+      call = getBackgroundCall();
     }
     return call;
   }
@@ -493,21 +454,7 @@ public class CallList implements DialerCallDelegate {
       call = getFirstCallWithState(DialerCallState.CALL_WAITING);
     }
 
-    if (getIncomingCalls().size() > 1 && selectedIncomingCall != null) {
-      call = getCallById(selectedIncomingCall);
-    }
     return call;
-  }
-
-  public ArrayList<DialerCall> getIncomingCalls() {
-    ArrayList<DialerCall> incomingCalls = new ArrayList<>();
-    for (DialerCall call : getAllCalls()) {
-      if (call.getState() == DialerCallState.INCOMING ||
-          call.getState() == DialerCallState.CALL_WAITING) {
-        incomingCalls.add(call);
-      }
-    }
-    return incomingCalls;
   }
 
   public DialerCall getFirstCall() {
@@ -552,39 +499,6 @@ public class CallList implements DialerCallDelegate {
       }
     }
     return true;
-  }
-
-  public DialerCall getLastHeldCall() {
-    for (int i = heldCallList.size() - 1; i >= 0; i--) {
-        DialerCall call = heldCallList.get(i);
-        if (call != null && !isCallDead(call) && call.getState() != DialerCallState.DISCONNECTED) {
-            return call;
-        }
-    }
-    return null; 
-  }
-
-  // Add calls that move into the held state to the end of the list. Remove calls that move out
-  // of the held state from the list.
-  private void updateLastHeldCall(DialerCall call) {
-     if (call.getState() == DialerCallState.ONHOLD && !heldCallList.contains(call)) {
-       heldCallList.add(call);
-     } else if (call.getState() != DialerCallState.ONHOLD && heldCallList.contains(call)) {
-       heldCallList.remove(call);
-     }
-    LogUtil.d("heldcallist", String.valueOf(heldCallList));
-  }
-
-  public void setSelectedIncomingCall(String id) {
-    DialerCall call = getCallById(id);
-    if (call == null || !(call.getState() == DialerCallState.INCOMING
-        || call.getState() == DialerCallState.CALL_WAITING)) {
-      LogUtil.w(
-        "CallList.setSelectedIncomingCall", "Incoming call with given id does not exist " + id);
-      return;
-    }
-    selectedIncomingCall = id;
-    notifyGenericListeners();
   }
 
   /**
@@ -715,14 +629,9 @@ public class CallList implements DialerCallDelegate {
       // calls doesn't contain the call which received the update.
       return;
     }
-    updateLastHeldCall(call);
+
     if (updateCallInMap(call)) {
       LogUtil.i("CallList.onUpdateCall", String.valueOf(call));
-    }
-    if (Objects.equals(call.getId(), selectedIncomingCall) &&
-        (call.getState() != DialerCallState.INCOMING ||
-        call.getState() != DialerCallState.CALL_WAITING)) {
-      selectedIncomingCall = null;
     }
     Trace.endSection();
   }
@@ -951,7 +860,6 @@ public class CallList implements DialerCallDelegate {
     public void onDialerCallDisconnect() {
       updateCallInMap(call);
       LogUtil.i("DialerCallListenerImpl.onDialerCallDisconnect", String.valueOf(call));
-      onUpdateCall(call);
       // notify those listening for all disconnects
       notifyListenersOfDisconnect(call);
     }

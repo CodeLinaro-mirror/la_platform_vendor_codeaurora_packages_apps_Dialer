@@ -140,7 +140,7 @@ public class AnswerFragment extends Fragment
 
   static final String ARG_ALLOW_ANSWER_AND_RELEASE = "allow_answer_and_release";
 
-  static final String ARG_HAS_MAX_CALLS = "has_max_calls";
+  static final String ARG_HAS_CALL_ON_HOLD = "has_call_on_hold";
 
   @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
   static final String ARG_IS_VIDEO_UPGRADE_REQUEST = "is_video_upgrade_request";
@@ -207,7 +207,6 @@ public class AnswerFragment extends Fragment
   private VideoCallScreen answerVideoCallScreen;
   private Handler handler = new Handler(Looper.getMainLooper());
   private boolean isVideoScreenReady = false;
-  private boolean answeringDisconnectsOngoingCall = false;
 
   private enum SecondaryBehavior {
     REJECT_WITH_SMS(
@@ -411,7 +410,7 @@ public class AnswerFragment extends Fragment
       boolean isVideoUpgradeRequest,
       boolean isSelfManagedCamera,
       boolean allowAnswerAndRelease,
-      boolean hasMaxCalls,
+      boolean hasCallOnHold,
       boolean allowSpeakEasy,
       boolean hasVideoCrs,
       boolean isVideoCallOriginally) {
@@ -422,7 +421,7 @@ public class AnswerFragment extends Fragment
     bundle.putBoolean(ARG_IS_VIDEO_UPGRADE_REQUEST, isVideoUpgradeRequest);
     bundle.putBoolean(ARG_IS_SELF_MANAGED_CAMERA, isSelfManagedCamera);
     bundle.putBoolean(ARG_ALLOW_ANSWER_AND_RELEASE, allowAnswerAndRelease);
-    bundle.putBoolean(ARG_HAS_MAX_CALLS, hasMaxCalls);
+    bundle.putBoolean(ARG_HAS_CALL_ON_HOLD, hasCallOnHold);
     bundle.putBoolean(ARG_ALLOW_SPEAK_EASY, allowSpeakEasy);
     bundle.putBoolean(ARG_HAS_VIDEO_CRS, hasVideoCrs);
     bundle.putBoolean(ARG_IS_VIDEO_ORIGINALLY, isVideoCallOriginally);
@@ -546,8 +545,8 @@ public class AnswerFragment extends Fragment
     return getArguments().getBoolean(ARG_ALLOW_SPEAK_EASY);
   }
 
-  private boolean hasMaxCalls() {
-    return getArguments().getBoolean(ARG_HAS_MAX_CALLS);
+  private boolean hasCallOnHold() {
+    return getArguments().getBoolean(ARG_HAS_CALL_ON_HOLD);
   }
 
   @Override
@@ -705,21 +704,8 @@ public class AnswerFragment extends Fragment
   }
 
   @Override
-  public void updateAnswerScreenUi(boolean answeringDisconnects) {
-    answeringDisconnectsOngoingCall = answeringDisconnects;
+  public void updateAnswerScreenUi() {
     updateUI();
-  }
-
-  @Override
-  public void updateAnswerScreenSecondaryInfo(boolean shouldAllowAnswerAndRelease) {
-    getArguments().putBoolean(ARG_ALLOW_ANSWER_AND_RELEASE, shouldAllowAnswerAndRelease);
-    if (shouldAllowAnswerAndRelease) {
-      answerAndReleaseButton.setVisibility(View.VISIBLE);
-      answerScreenDelegate.onAnswerAndReleaseButtonEnabled();
-    } else {
-      answerAndReleaseButton.setVisibility(View.INVISIBLE);
-      answerScreenDelegate.onAnswerAndReleaseButtonDisabled();
-    }
   }
 
   private AnswerMethod getAnswerMethod() {
@@ -731,7 +717,6 @@ public class AnswerFragment extends Fragment
   public void setPrimary(PrimaryInfo primaryInfo) {
     LogUtil.i("AnswerFragment.setPrimary", primaryInfo.toString());
     this.primaryInfo = primaryInfo;
-    answeringDisconnectsOngoingCall = primaryInfo.answeringDisconnectsOngoingCall();
     updatePrimaryUI();
     updateImportanceBadgeVisibility();
   }
@@ -741,7 +726,7 @@ public class AnswerFragment extends Fragment
       return;
     }
     contactGridManager.setPrimary(primaryInfo);
-    getAnswerMethod().setShowIncomingWillDisconnect(answeringDisconnectsOngoingCall);
+    getAnswerMethod().setShowIncomingWillDisconnect(primaryInfo.answeringDisconnectsOngoingCall());
     getAnswerMethod()
         .setContactPhoto(
             primaryInfo.photoType() == ContactPhotoType.CONTACT ? primaryInfo.photo() : null);
@@ -1235,7 +1220,7 @@ public class AnswerFragment extends Fragment
   private void restoreSwipeHintTexts() {
     if (getAnswerMethod() != null) {
       if (allowAnswerAndRelease()) {
-        if (hasMaxCalls()) {
+        if (hasCallOnHold()) {
           getAnswerMethod()
               .setHintText(getText(R.string.call_incoming_default_label_answer_and_release_third));
         } else if (primaryCallState.supportsCallOnHold()) {

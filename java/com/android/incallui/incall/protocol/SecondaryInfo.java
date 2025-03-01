@@ -16,7 +16,6 @@
 
 package com.android.incallui.incall.protocol;
 
-import android.graphics.Bitmap;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.Nullable;
@@ -46,25 +45,13 @@ public abstract class SecondaryInfo implements Parcelable {
 
   public abstract boolean isFullscreen();
 
-  public abstract boolean shouldShowNext();
-
-  @Nullable
-  public abstract String currentSecondaryCallIndex();
-
-  @Nullable
-  public abstract String totalSecondaryCalls();
-
-  @Nullable
-  public abstract Bitmap providerIcon();
-
   public static Builder builder() {
     return new AutoValue_SecondaryInfo.Builder()
         .setShouldShow(false)
         .setNameIsNumber(false)
         .setIsConference(false)
         .setIsVideoCall(false)
-        .setIsFullscreen(false)
-        .setShouldShowNext(false);
+        .setIsFullscreen(false);
   }
 
   /** Builder class for secondary info. */
@@ -85,14 +72,6 @@ public abstract class SecondaryInfo implements Parcelable {
     public abstract Builder setIsVideoCall(boolean isVideoCall);
 
     public abstract Builder setIsFullscreen(boolean isFullscreen);
-
-    public abstract Builder setShouldShowNext(boolean shouldShowNext);
-
-    public abstract Builder setProviderIcon(Bitmap icon);
-
-    public abstract Builder setCurrentSecondaryCallIndex(String currentSecondaryCallIndex);
-
-    public abstract Builder setTotalSecondaryCalls(String totalSecondaryCalls);
 
     public abstract SecondaryInfo build();
   }
@@ -121,10 +100,6 @@ public abstract class SecondaryInfo implements Parcelable {
               .setIsConference(in.readByte() != 0)
               .setIsVideoCall(in.readByte() != 0)
               .setIsFullscreen(in.readByte() != 0)
-              .setShouldShowNext(in.readByte() != 0)
-              .setProviderIcon(in.readParcelable(null))
-              .setCurrentSecondaryCallIndex(in.readString())
-              .setTotalSecondaryCalls(in.readString())
               .build();
         }
 
@@ -149,9 +124,5 @@ public abstract class SecondaryInfo implements Parcelable {
     dest.writeByte((byte) (isConference() ? 1 : 0));
     dest.writeByte((byte) (isVideoCall() ? 1 : 0));
     dest.writeByte((byte) (isFullscreen() ? 1 : 0));
-    dest.writeByte((byte) (shouldShowNext() ? 1 : 0));
-    dest.writeParcelable(providerIcon(), 0);
-    dest.writeString(currentSecondaryCallIndex());
-    dest.writeString(totalSecondaryCalls());
   }
 }

@@ -153,8 +153,8 @@ public class InCallFragment extends Fragment
         || id == InCallButtonIds.BUTTON_MERGE
         || id == InCallButtonIds.BUTTON_MANAGE_VOICE_CONFERENCE
         || id == InCallButtonIds.BUTTON_SWAP_SIM
-        || id == InCallButtonIds.BUTTON_UPGRADE_TO_RTT
         || id == InCallButtonIds.BUTTON_SWITCH_TO_SECONDARY
+        || id == InCallButtonIds.BUTTON_UPGRADE_TO_RTT
         || id == InCallButtonIds.BUTTON_SHOW_SATELLITE_PROMPT;
   }
 

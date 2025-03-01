@@ -497,11 +497,6 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
     }
 
     @Override
-    public void onShowNextSecondaryCall(DialerCall nextSecondaryCall) {
-      //No-op
-    }
-
-    @Override
     public void onPrimaryCallChanged(DialerCall call) {
       LogUtil.d("BottomSheetHelper.onPrimaryCallChanged", "");
       dismissBottomSheet();
@@ -677,7 +672,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
        return;
      }
      //For Consultative transfer number is not needed
-     DialerCall backgroundCall = InCallPresenter.getInstance().getSecondaryCall();
+     DialerCall backgroundCall = CallList.getInstance().getBackgroundCall();
      if (backgroundCall == null ||
          !Objects.equals(backgroundCall.getAccountHandle(), mCall.getAccountHandle())) {
        LogUtil.w("BottomSheetHelper.transferCallConsultative", "backgroundCall is null" +
@@ -801,7 +796,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      }
 
      if (mCall.answeringDisconnectsOtherCall()) {
-       AnswerUtils.disconnectAllAndAnswer(videoState, mContext);
+       AnswerUtils.disconnectAllAndAnswer(videoState);
        return;
      }
 

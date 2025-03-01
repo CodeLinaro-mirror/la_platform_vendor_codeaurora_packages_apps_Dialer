@@ -46,8 +46,5 @@
   <!-- Text presented to the user explaining that we have enabled the camera permission automatically [CHAR LIMIT=NONE] -->
   <string name="camera_privacy_text">Camera permission enabled</string>
 
-  <!-- Text presented to the user informing that in DSDS transition mode, placing this call may end calls on other SUB -->
-  <string name="outgoing_dsds_transition_call_warning">Placing this call may disconnect existing calls on other SIM</string>
-
   <string name="hfp_client_connection" translatable="false">com.android.bluetooth.hfpclient.HfpClientConnectionService</string>
 </resources>

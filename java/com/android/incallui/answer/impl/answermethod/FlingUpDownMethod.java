@@ -383,18 +383,9 @@ public class FlingUpDownMethod extends AnswerMethod implements OnProgressChanged
     this.incomingWillDisconnect = incomingWillDisconnect;
     if (incomingDisconnectText != null) {
       if (incomingWillDisconnect) {
-        incomingDisconnectText
-            .animate()
-            .alpha(1)
-            .setListener(
-                new AnimatorListenerAdapter() {
-                  @Override
-                  public void onAnimationStart(Animator animation) {
-                    super.onAnimationStart(animation);
-                    incomingDisconnectText.setVisibility(View.VISIBLE);
-                    spaceHolder.setVisibility(View.GONE);
-                  }
-                });
+        incomingDisconnectText.setVisibility(View.VISIBLE);
+        spaceHolder.setVisibility(View.GONE);
+        incomingDisconnectText.animate().alpha(1);
       } else {
         incomingDisconnectText
             .animate()

@@ -42,8 +42,6 @@ public class SwitchOnHoldCallController implements OnClickListener {
 
   private boolean isEnabled;
 
-  private boolean isSwapDisabled;
-
   @Nullable private SecondaryInfo secondaryInfo;
 
   public SwitchOnHoldCallController(
@@ -75,10 +73,6 @@ public class SwitchOnHoldCallController implements OnClickListener {
     updateButtonState();
   }
 
-  public void disableSwapButton(boolean isSwapDisabled) {
-    this.isSwapDisabled = isSwapDisabled;
-  }
-
   public void setSecondaryInfo(@Nullable SecondaryInfo secondaryInfo) {
     this.secondaryInfo = secondaryInfo;
     isVisible = hasSecondaryInfo();
@@ -89,7 +83,7 @@ public class SwitchOnHoldCallController implements OnClickListener {
   }
 
   public void updateButtonState() {
-    switchOnHoldButton.setEnabled(isEnabled && !isSwapDisabled);
+    switchOnHoldButton.setEnabled(isEnabled);
     isVisible = isVisible
         && !QtiCallUtils.hasVideoCrbtVoLteCall(context)
         && !QtiCallUtils.hasVideoCrbtVtCall(context);
