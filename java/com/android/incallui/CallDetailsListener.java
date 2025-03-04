@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
+/* Copyright (c) 2021, 2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted (subject to the limitations in the
@@ -43,6 +43,8 @@ import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.state.DialerCallState;
 import com.android.incallui.InCallPresenter.InCallDetailsListener;
 
+import java.util.HashSet;
+
 import org.codeaurora.ims.QtiCallConstants;
 import org.codeaurora.ims.QtiImsExtManager;
 import org.codeaurora.ims.QtiImsException;
@@ -63,7 +65,11 @@ public class CallDetailsListener implements InCallDetailsListener {
     public static final String ACTION_DATA_CHANNEL_INFO =
        "org.codeaurora.intent.action.DATA_CHANNEL_INFO";
     private static final int DEFAULT_MODEM_CALL_ID = -1;
-    private boolean isDcInfoSent = false;
+    private HashSet<DialerCall> notifiedCalls;
+
+    public CallDetailsListener() {
+        notifiedCalls = new HashSet<>();
+    }
 
     /**
      * This method overrides onDetailsChanged method of {@class InCallDetailsListener}.
@@ -91,12 +97,12 @@ public class CallDetailsListener implements InCallDetailsListener {
 
         Log.v(this, "onDetailsChanged - call extras : " + callExtras);
 
-        if (isDcInfoSent && call.getState() != DialerCallState.DIALING) {
-            isDcInfoSent = false;
+        if (notifiedCalls.contains(call) && call.getState() != DialerCallState.DIALING) {
+            notifiedCalls.remove(call);
             return;
         }
 
-        if (!isDcInfoSent && call.getState() == DialerCallState.DIALING) {
+        if (!notifiedCalls.contains(call) && call.getState() == DialerCallState.DIALING) {
             maybeBroadcastDcInfoIntent(call);
         }
     }
@@ -130,7 +136,7 @@ public class CallDetailsListener implements InCallDetailsListener {
             Log.v(this, "maybeBroadcastDcInfoIntent - DC is disabled.");
             return;
         }
-        Log.v(this, "maybeBroadcastDcInfoIntent", "modemCallId : " + modemCallId
+        Log.i(this, "maybeBroadcastDcInfoIntent, modemCallId : " + modemCallId
                 + ", phoneId : " + phoneId + ", isDcEnabled : " + isDcEnabled
                 + ", shouldSendDcInfo : " + shouldSendDcInfo(cxt));
 
@@ -139,6 +145,6 @@ public class CallDetailsListener implements InCallDetailsListener {
                 modemCallId);
         intent.putExtra(QtiImsExtUtils.QTI_IMS_PHONE_ID_EXTRA_KEY, phoneId);
         cxt.sendBroadcast(intent, "com.qti.permission.RECEIVE_DC_INFO");
-        isDcInfoSent = true;
+        notifiedCalls.add(call);
     }
 }
