@@ -338,8 +338,8 @@ android_app {
         proguard_flags_files: ["**/proguard.flags"],
         // LOCAL_PROGUARD_ENABLED := custom
         no_aapt_flags: true,
-        enabled: true,
-        optimize: true,
+        enabled: false,
+        optimize: false,
     },
     platform_apis: true,
     certificate: "shared",
