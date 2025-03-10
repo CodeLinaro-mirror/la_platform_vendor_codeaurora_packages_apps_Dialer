@@ -1016,7 +1016,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   }
 
   public boolean isDualVtCall() {
-    return getVideoState() == VideoProfile.STATE_DUAL_BIDIRECTIONAL;
+    return getVideoState() == QtiCallConstants.STATE_DUAL_BIDIRECTIONAL;
   }
 
   public int getDualVtCapability() {

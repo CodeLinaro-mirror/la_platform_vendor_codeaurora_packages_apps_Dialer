@@ -40,6 +40,8 @@ import com.android.incallui.call.DialerCall.CameraDirection;
 import com.android.incallui.videotech.VideoTech.VideoTechListener;
 import com.android.incallui.videotech.utils.SessionModificationState;
 
+import org.codeaurora.ims.QtiCallConstants;
+
 /** Receives IMS video call state updates. */
 public class ImsVideoCallCallback extends VideoCall.Callback {
   private static final int CLEAR_FAILED_REQUEST_TIMEOUT_MILLIS = 4000;
@@ -84,7 +86,7 @@ public class ImsVideoCallCallback extends VideoCall.Callback {
                 "ImsVideoTech.onSessionModifyRequestReceived", "Auto accept to %d", newVideoState);
         videoTech.acceptVideoRequest(newVideoState);
     } else if (previousVideoState != newVideoState) {
-      if (previousVideoState == VideoProfile.STATE_DUAL_BIDIRECTIONAL) {
+      if (previousVideoState == QtiCallConstants.STATE_DUAL_BIDIRECTIONAL) {
         LogUtil.i("ImsVideoTech.onSessionModifyRequestReceived",
                 "call downgraded from dual vt to bi-directional vt");
         videoTech.acceptVideoRequest(newVideoState);

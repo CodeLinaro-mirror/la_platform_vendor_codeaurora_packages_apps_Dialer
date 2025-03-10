@@ -40,6 +40,8 @@ import com.android.incallui.video.protocol.VideoCallScreenDelegate;
 import com.android.incallui.videotech.VideoTech;
 import com.android.incallui.videotech.utils.SessionModificationState;
 
+import org.codeaurora.ims.QtiCallConstants;
+
 /** ViLTE implementation */
 public class ImsVideoTech implements VideoTech {
   private final LoggingBindings logger;
@@ -169,7 +171,7 @@ public class ImsVideoTech implements VideoTech {
         // allow the response to clear the notification request
         // if cleared here, the UI isn't notified of the change to dual VT
         if (previousVideoState != VideoProfile.STATE_BIDIRECTIONAL &&
-            newVideoState != VideoProfile.STATE_DUAL_BIDIRECTIONAL) {
+            newVideoState != QtiCallConstants.STATE_DUAL_BIDIRECTIONAL) {
           LogUtil.i("ImsVideoTech.onCallStateChanged", "cancelling upgrade notification");
           setSessionModificationState(SessionModificationState.NO_REQUEST);
         }

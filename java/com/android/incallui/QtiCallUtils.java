@@ -162,7 +162,7 @@ public class QtiCallUtils {
 
     public static boolean isDualVideo(int videoState) {
         Log.v(LOG_TAG, "isDualVideo: " + videoState);
-        return videoState == VideoProfile.STATE_DUAL_BIDIRECTIONAL;
+        return videoState == QtiCallConstants.STATE_DUAL_BIDIRECTIONAL;
     }
 
     public static boolean isVideoTxOnly(DialerCall call) {

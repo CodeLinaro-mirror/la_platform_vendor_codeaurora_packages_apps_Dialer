@@ -235,7 +235,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      if (QtiImsExtUtils.isCancelModifyCallSupported(getPhoneId(), mContext)) {
        DialerCall call = mPrimaryCallTracker.getPrimaryCall();
        boolean isDualVtUpgradeRequest = call.getVideoTech().getUpgradeToVideoState() ==
-           VideoProfile.STATE_DUAL_BIDIRECTIONAL;
+           QtiCallConstants.STATE_DUAL_BIDIRECTIONAL;
        return !mHasSentCancelUpgradeRequest && (call.getVideoTech().getSessionModificationState()
          == SessionModificationState.WAITING_FOR_UPGRADE_TO_VIDEO_RESPONSE) &&
          !isDualVtUpgradeRequest;
@@ -883,7 +883,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
           (!mCall.isRemotelyHeld() && mCall.getNonConferenceState() != DialerCallState.ONHOLD)) {
         if (mCall.getDualVtCapability() == QtiCallConstants.DUAL_VIDEO_TX_RX_ENABLED) {
             items.add(mResources.getText(R.string.modify_call_option_dual_vt));
-            itemToCallType.add(VideoProfile.STATE_DUAL_BIDIRECTIONAL);
+            itemToCallType.add(QtiCallConstants.STATE_DUAL_BIDIRECTIONAL);
         }
       }
 
