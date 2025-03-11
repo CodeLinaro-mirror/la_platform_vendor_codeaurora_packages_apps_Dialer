@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 package com.android.dialer.app.calllog;
@@ -75,7 +75,6 @@ public class CallLogActivity extends TransactionSafeActivity
     super.onCreate(savedInstanceState);
     DialerUtils.setupEdgeToEdge(this);
     setContentView(R.layout.call_log_activity);
-    getWindow().setBackgroundDrawable(null);
 
     final ActionBar actionBar = getSupportActionBar();
     actionBar.setDisplayShowHomeEnabled(true);

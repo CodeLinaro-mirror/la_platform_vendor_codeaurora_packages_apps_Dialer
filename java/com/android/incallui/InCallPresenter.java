@@ -15,7 +15,7 @@
  *
  * Changes from Qualcomm Innovation Center are provided under the following license:
  *
- * Copyright (c) 2021, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021, 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted (subject to the limitations in the
@@ -2482,9 +2482,4 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   }
 
   private final Set<InCallUiLock> inCallUiLocks = new ArraySet<>();
-
-  /** Gets the secondary call. */
-  public DialerCall getSecondaryCall() {
-    return callList.getBackgroundCall();
-  }
 }
