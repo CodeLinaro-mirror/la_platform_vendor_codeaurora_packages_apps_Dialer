@@ -14,7 +14,7 @@
  * limitations under the License
  *
  * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -917,6 +917,11 @@ public class VideoCallPresenter
      }
      try {
        LogUtil.i("VideoCallPresenter.setScreenShareListener", "setScreenShareListener");
+       if (mImsScreenShareManager == null) {
+           LogUtil.e("VideoCallPresenter.setScreenShareListener",
+                   "mImsScreenShareManager is null");
+           return;
+       }
        mImsScreenShareManager.setScreenShareListener(mImsScreenShareListener);
        startScreenShare();
      } catch (QtiImsException e) {
@@ -1077,6 +1082,10 @@ public class VideoCallPresenter
   private void onPrimaryCallChanged(DialerCall newPrimaryCall) {
     final boolean shouldShowVideoUi = shouldShowVideoUiForCall(newPrimaryCall);
     final boolean isVideoMode = isVideoMode();
+    if (ScreenShareHelper.screenShareRequested()) {
+        exitScreenShare();
+        clearScreenShareStates();
+    }
     // Get the hide me mode for the new call
     maybeUpdateTransmitStaticImageState(newPrimaryCall);
     LogUtil.i(
