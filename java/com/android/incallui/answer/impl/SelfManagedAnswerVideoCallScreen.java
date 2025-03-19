@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.answer.impl;
@@ -85,16 +89,17 @@ public class SelfManagedAnswerVideoCallScreen extends StateCallback implements V
 
   @Override
   public void showVideoViews(
-      boolean shouldShowPreview, boolean shouldShowRemote, boolean isRemotelyHeld) {}
+      boolean shouldShowPreview, boolean shouldShowRemote, boolean isRemotelyHeld,
+      boolean shouldShowPreview2, boolean shouldShowRemote2) {}
 
   @Override
-  public void onLocalVideoDimensionsChanged() {}
+  public void onLocalVideoDimensionsChanged(int stream) {}
 
   @Override
-  public void onLocalVideoOrientationChanged() {}
+  public void onLocalVideoOrientationChanged(int stream) {}
 
   @Override
-  public void onRemoteVideoDimensionsChanged() {}
+  public void onRemoteVideoDimensionsChanged(int stream) {}
 
   @Override
   public void updateFullscreenAndGreenScreenMode(

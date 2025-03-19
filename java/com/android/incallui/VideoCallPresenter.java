@@ -70,6 +70,7 @@ import org.codeaurora.ims.QtiCallConstants;
 import org.codeaurora.ims.QtiImsException;
 import org.codeaurora.ims.QtiImsExtConnector;
 import org.codeaurora.ims.QtiImsExtManager;
+import org.codeaurora.ims.VideoCallProviderManager;
 import org.codeaurora.ims.utils.QtiImsExtUtils;
 
 /**
@@ -128,6 +129,8 @@ public class VideoCallPresenter
   private int currentCallState = DialerCallState.INVALID;
   /** Tracks the state of the preview surface negotiation with the telephony layer. */
   private int previewSurfaceState = PreviewSurfaceState.NONE;
+  /** Tracks the state of the second preview surface negotiation with the telephony layer. */
+  private int preview2SurfaceState = PreviewSurfaceState.NONE;
   /**
    * Determines whether video calls should automatically enter full screen mode after {@link
    * #autoFullscreenTimeoutMillis} milliseconds.
@@ -176,6 +179,13 @@ public class VideoCallPresenter
    * received from lower layers), incoming video is not available.
    */
   private static boolean mIsIncomingVideoAvailable = false;
+  /**
+   * Determines if the second incoming video is available. If the call session resume event has been
+   * received (i.e PLAYER_START has been received from lower layers), incoming video is
+   * available. If the call session pause event has been received (i.e PLAYER_STOP has been
+   * received from lower layers), incoming video is not available.
+   */
+  private static boolean mIsIncomingVideoAvailable2 = false;
 
   /**
    * Runnable which is posted to schedule automatically entering fullscreen mode. Will not auto
@@ -204,6 +214,7 @@ public class VideoCallPresenter
   private boolean isVideoCallScreenUiReady;
   private VirtualDisplay mVirtualDisplay = null;
   private ImsScreenShareManager mImsScreenShareManager = null;
+  private VideoCallProviderManager mVideoCallProviderManager = null;
   private int mDisplayDpi;
   private MediaProjection mMediaProjection;
   private QtiImsExtConnector mQtiImsExtConnector;
@@ -240,7 +251,11 @@ public class VideoCallPresenter
             @Override
             public void onConnectionAvailable(QtiImsExtManager qtiImsExtManager) {
               mQtiImsExtManager = qtiImsExtManager;
-              setScreenShareListener();
+              if (isDualVideoCallEnabled()) {
+                setVideoCallProviderListener();
+              } else {
+                setScreenShareListener();
+              }
             }
             @Override
             public void onConnectionUnavailable() {
@@ -366,6 +381,25 @@ public class VideoCallPresenter
     return !isPaused
         && (isCallActive || isCallOutgoingPending)
         && VideoProfile.isReceptionEnabled(videoState) && mIsIncomingVideoAvailable;
+  }
+
+  /**
+   * Determines if the incoming video surface should be shown based on the current videoState and
+   * callState. The video surface is shown when incoming video is not paused, the call is active or
+   * dialing and video reception is enabled.
+   *
+   * @param videoState The current video state.
+   * @param callState The current call state.
+   * @return {@code true} if the incoming video surface should be shown, {@code false} otherwise.
+   */
+  static boolean showIncomingVideo2(int videoState, int callState) {
+    // will be re-worked during enhancement.
+    boolean isPaused = VideoProfile.isPaused(videoState);
+    boolean isCallActive = callState == DialerCallState.ACTIVE;
+
+    return !isPaused
+        && isCallActive
+        && mIsIncomingVideoAvailable2;
   }
 
   /**
@@ -548,7 +582,10 @@ public class VideoCallPresenter
     InCallPresenter.getInstance().addInCallEventListener(this);
     InCallPresenter.getInstance().getLocalVideoSurfaceTexture().setDelegate(new LocalDelegate());
     InCallPresenter.getInstance().getRemoteVideoSurfaceTexture().setDelegate(new RemoteDelegate());
-
+    // creates VideoSurfaceDelegate for second remote/local surfaces
+    InCallPresenter.getInstance().getLocal2VideoSurfaceTexture().setDelegate(new Local2Delegate());
+    InCallPresenter.getInstance().getRemote2VideoSurfaceTexture().setDelegate(
+        new Remote2Delegate());
     CallList.getInstance().setUiListener(mUiListener);
 
     // Register for surface and video events from {@link InCallVideoCallListener}s.
@@ -574,6 +611,19 @@ public class VideoCallPresenter
         onUpdatePeerDimensions(primaryCall, width, height);
       }
     }
+    if (isDualVideoCallEnabled()) {
+      Point source2VideoDimensions = getRemote2VideoSurfaceTexture().getSourceVideoDimensions();
+      if (source2VideoDimensions != null && primaryCall != null) {
+        int width = primaryCall.getPeer2DimensionWidth();
+        int height = primaryCall.getPeer2DimensionHeight();
+        boolean updated = DialerCall.UNKNOWN_PEER_DIMENSIONS != width
+            && DialerCall.UNKNOWN_PEER_DIMENSIONS != height;
+        if (updated && (source2VideoDimensions.x != width || source2VideoDimensions.y != height)) {
+          onUpdatePeerDimensions2(primaryCall, width, height);
+        }
+        updateSecondaryVideo(primaryCall);
+      }
+    }
   }
 
   /** Called when the user interface is no longer ready to be used. */
@@ -595,6 +645,7 @@ public class VideoCallPresenter
     InCallPresenter.getInstance().removeInCallEventListener(this);
     InCallPresenter.getInstance().getLocalVideoSurfaceTexture().setDelegate(null);
 
+    InCallPresenter.getInstance().getLocal2VideoSurfaceTexture().setDelegate(null);
     CallList.getInstance().setUiListener(null);
 
     InCallVideoCallCallbackNotifier.getInstance().removeSurfaceChangeListener(this);
@@ -623,6 +674,7 @@ public class VideoCallPresenter
     sShallTransmitStaticImage = false;
     sUseDefaultImage = false;
     mIsIncomingVideoAvailable = false;
+    mIsIncomingVideoAvailable2 = false;
     isVideoMode = false;
   }
 
@@ -661,8 +713,18 @@ public class VideoCallPresenter
   }
 
   @Override
+  public VideoSurfaceTexture getLocal2VideoSurfaceTexture() {
+    return InCallPresenter.getInstance().getLocal2VideoSurfaceTexture();
+  }
+
+  @Override
   public VideoSurfaceTexture getRemoteVideoSurfaceTexture() {
     return InCallPresenter.getInstance().getRemoteVideoSurfaceTexture();
+  }
+
+  @Override
+  public VideoSurfaceTexture getRemote2VideoSurfaceTexture() {
+    return InCallPresenter.getInstance().getRemote2VideoSurfaceTexture();
   }
 
   @Override
@@ -690,6 +752,14 @@ public class VideoCallPresenter
     }
     PermissionsUtil.setCameraPrivacyToastShown(context);
     enableCamera(primaryCall, isCameraRequired());
+    if (isDualVideoCallEnabled()) {
+        try {
+          enableCamera2(primaryCall, isCameraRequired());
+        } catch (QtiImsException e) {
+          LogUtil.w("VideoCallPresenter.onCameraPermissionGranted",
+              "Unable to enable camera2 for dual video call");
+        }
+    }
     showVideoUi(
         primaryCall.getVideoState(),
         primaryCall.getState(),
@@ -1024,6 +1094,7 @@ public class VideoCallPresenter
 
     if (shouldShowVideoUi) {
       adjustVideoMode(call);
+      updateSecondaryVideo(call);
     } else if (isVideoMode()) {
       exitVideoMode();
     }
@@ -1121,6 +1192,7 @@ public class VideoCallPresenter
         enableCamera(primaryCall, false);
       }
       adjustVideoMode(newPrimaryCall);
+      updateSecondaryVideo(newPrimaryCall);
     }
   }
 
@@ -1164,6 +1236,17 @@ public class VideoCallPresenter
     if (!call.equals(primaryCall)) {
       LogUtil.v("VideoCallPresenter.onDetailsChanged", "details not for current active call");
       return;
+    }
+    Log.i("VideoCallPresenter.onDetailsChanged", "getToken: " + call.getToken());
+    if(isDualVideoCallEnabled() && mVideoCallProviderManager == null
+               && call.getToken() != QtiCallConstants.INVALID_TOKEN_ID) {
+      Log.i("VideoCallPresenter.onDetailsChanged", "maybeCreateConnector");
+      if (mQtiImsExtConnector == null) {
+          maybeCreateQtiImsExtConnector(context);
+      } else {
+        // mVideoCallProviderManager is not created, try to set the listener again
+        setVideoCallProviderListener();
+      }
     }
 
     updateVideoCall(call);
@@ -1259,6 +1342,19 @@ public class VideoCallPresenter
         || QtiCallUtils.isVisualizedVoiceCall();
   }
 
+  @Override
+  public void maybeSwitchSecondCamera() {
+    if (isDualVideoCallEnabled()) {
+      InCallCameraManager cameraManager = InCallPresenter.getInstance().getInCallCameraManager();
+      try {
+        mVideoCallProviderManager.setCamera(cameraManager.getSecondaryCameraId());
+      } catch (QtiImsException ex) {
+        LogUtil.e("VideoCallPresenter.maybeSwitchSecondCamera",
+            "exception attempting to setCamera");
+      }
+    }
+  }
+
   /** Checks for a change to the video call and changes it if required. */
   private void checkForVideoCallChange(DialerCall call) {
     final VideoCall videoCall = call.getVideoCall();
@@ -1295,6 +1391,7 @@ public class VideoCallPresenter
 
     if (shouldShowVideoUiForCall(call) && hasChanged) {
       adjustVideoMode(call);
+      updateSecondaryVideo(call);
     }
   }
 
@@ -1366,6 +1463,32 @@ public class VideoCallPresenter
     }
   }
 
+  private void updateSecondaryVideo(DialerCall call) {
+    // Communicate the secondary camera to telephony and make a request for the camera
+    // capabilities.
+    if (!isDualVideoCallEnabled()) {
+        return;
+    }
+    if (mVideoCallProviderManager != null) {
+      LogUtil.i("VideoCallPresenter.updateSecondaryVideo", "updating secondary video if connected");
+      Surface surface = getRemote2VideoSurfaceTexture().getSavedSurface();
+      try {
+        if (surface != null) {
+          LogUtil.v(
+              "VideoCallPresenter.updateSecondaryVideo", "setDisplaySurface with: " + surface);
+          mVideoCallProviderManager.setDisplaySurface(surface);
+        }
+        enableCamera2(
+            call, isCameraRequired(call.getVideoState(),
+            call.getVideoTech().getSessionModificationState(),
+            isIncomingVideoCall(call)));
+      } catch (QtiImsException e) {
+        LogUtil.e("VideoCallPresenter.updateSecondaryVideo",
+            "unable to enable secondary camera");
+      }
+    }
+  }
+
   private static boolean shouldShowVideoUiForCall(@Nullable DialerCall call) {
     if (call == null) {
       return false;
@@ -1406,6 +1529,44 @@ public class VideoCallPresenter
     }
   }
 
+  private void enableCamera2(DialerCall call, boolean isCameraRequired) throws QtiImsException {
+    LogUtil.v("VideoCallPresenter.enableCamera2", "call: %s, enabling: %b", call, isCameraRequired);
+    if (call == null || mVideoCallProviderManager == null) {
+      LogUtil.i("VideoCallPresenter.enableCamera2", "call or VideoCallProviderManager is null");
+      return;
+    }
+
+    boolean hasCameraPermission = VideoUtils.hasCameraPermissionAndShownPrivacyToast(context);
+    if (!hasCameraPermission) {
+      mVideoCallProviderManager.setCamera(null);
+      preview2SurfaceState = PreviewSurfaceState.NONE;
+      // TODO(wangqi): Inform remote party that the video is off. This is similar to a bug.
+    } else if (isCameraRequired) {
+      InCallCameraManager cameraManager = InCallPresenter.getInstance().getInCallCameraManager();
+      mVideoCallProviderManager.setCamera(cameraManager.getSecondaryCameraId());
+      preview2SurfaceState = PreviewSurfaceState.CAMERA_SET;
+    } else {
+      preview2SurfaceState = PreviewSurfaceState.NONE;
+      mVideoCallProviderManager.setCamera(null);
+    }
+  }
+
+  private void exitDualVideoMode() {
+    LogUtil.i("VideoCallPresenter.exitDualVideoMode", "");
+    mIsIncomingVideoAvailable2 = false;
+    showVideoUi(
+        VideoProfile.STATE_BIDIRECTIONAL,
+        DialerCallState.ACTIVE,
+        SessionModificationState.NO_REQUEST,
+        false /* isRemotelyHeld */);
+    try {
+     enableCamera2(primaryCall, false);
+    } catch (QtiImsException ex) {
+        LogUtil.e("VideoCallPresenter.exitDualVideoMode",
+            "unable to disable camera2");
+    }
+  }
+
   /** Exits video mode by hiding the video surfaces and making other adjustments (eg. audio). */
   private void exitVideoMode() {
     LogUtil.i("VideoCallPresenter.exitVideoMode", "");
@@ -1425,6 +1586,17 @@ public class VideoCallPresenter
       clearScreenShareStates();
     }
 
+    if (mVideoCallProviderManager != null) {
+        try {
+         enableCamera2(primaryCall, false);
+        } catch (QtiImsException ex) {
+          LogUtil.e("VideoCallPresenter.exitVideoMode",
+              "unable to disable camera2");
+        }
+        removeVideoCallProviderListener();
+        clearVideoCallProvider();
+    }
+
     if (primaryCall != null &&
         videoCall != null &&
         QtiImsExtUtils.shallTransmitStaticImage(
@@ -1436,6 +1608,14 @@ public class VideoCallPresenter
     }
 
     isVideoMode = false;
+  }
+
+  private void clearVideoCallProvider() {
+    if (mQtiImsExtConnector != null) {
+      mQtiImsExtConnector.disconnect();
+      mQtiImsExtConnector = null;
+      mQtiImsExtManager = null;
+    }
   }
 
   private void clearScreenShareStates() {
@@ -1479,8 +1659,12 @@ public class VideoCallPresenter
     }
     boolean isModifyToVideoRxType = isModifyToVideoRxType(primaryCall);
     boolean showIncomingVideo = showIncomingVideo(videoState, callState);
+    // for now, show second remote once dual video is enabled, so display surface is created
+    boolean showIncomingVideo2 = isDualVideoCallEnabled();
     boolean showOutgoingVideo = showOutgoingVideo(context, videoState, sessionModificationState,
         isModifyToVideoRxType);
+    // show second outgoing video if able to show out going video and dual video call is enabled
+    boolean showOutgoingVideo2 = showOutgoingVideo && isDualVideoCallEnabled();
     LogUtil.i(
         "VideoCallPresenter.showVideoUi",
         "showIncoming: %b, showOutgoing: %b, isRemotelyHeld: %b shallTransmitStaticImage: %b" +
@@ -1493,7 +1677,7 @@ public class VideoCallPresenter
     updateRemoteVideoSurfaceDimensions();
     videoCallScreen.showVideoViews(showOutgoingVideo && !shallTransmitStaticImage() &&
         !QtiCallUtils.hasVideoCrbtVoLteCall(context) && !QtiCallUtils.isVisualizedVoiceCall(),
-        showIncomingVideo, isRemotelyHeld);
+        showIncomingVideo, isRemotelyHeld, showOutgoingVideo2, showIncomingVideo2);
     if (BottomSheetHelper.getInstance().canDisablePipMode() && mPictureModeHelper != null) {
       mPictureModeHelper.setPreviewVideoLayoutParams();
     }
@@ -1528,7 +1712,34 @@ public class VideoCallPresenter
     // Change size of display surface to match the peer aspect ratio
     if (width > 0 && height > 0 && videoCallScreen != null) {
       getRemoteVideoSurfaceTexture().setSourceVideoDimensions(new Point(width, height));
-      videoCallScreen.onRemoteVideoDimensionsChanged();
+      videoCallScreen.onRemoteVideoDimensionsChanged(QtiCallConstants.DUAL_VIDEO_MAIN_STREAM);
+    }
+  }
+
+  /**
+   * Handles the second peer video dimension changes.
+   *
+   * @param call The call which experienced a peer video dimension change.
+   * @param width The new peer video width .
+   * @param height The new peer video height.
+   */
+  @Override
+  public void onUpdatePeerDimensions2(DialerCall call, int width, int height) {
+    LogUtil.i("VideoCallPresenter.onUpdatePeerDimensions2", "width: %d, height: %d", width, height);
+    if (videoCallScreen == null) {
+      LogUtil.e("VideoCallPresenter.onUpdatePeerDimensions2", "videoCallScreen is null");
+      return;
+    }
+    if (!call.equals(primaryCall)) {
+      LogUtil.e(
+          "VideoCallPresenter.onUpdatePeerDimensions2", "current call is not equal to primary");
+      return;
+    }
+
+    // Change size of display surface to match the peer aspect ratio
+    if (width > 0 && height > 0) {
+      getRemote2VideoSurfaceTexture().setSourceVideoDimensions(new Point(width, height));
+      videoCallScreen.onRemoteVideoDimensionsChanged(QtiCallConstants.DUAL_VIDEO_ALT_STREAM);
     }
   }
 
@@ -1571,7 +1782,8 @@ public class VideoCallPresenter
     }
 
     previewSurfaceState = PreviewSurfaceState.CAPABILITIES_RECEIVED;
-    changePreviewDimensions(width, height);
+    changePreviewDimensions(width, height,
+        QtiCallConstants.DUAL_VIDEO_MAIN_STREAM);
 
     // Check if the preview surface is ready yet; if it is, set it on the {@code VideoCall}.
     // If it not yet ready, it will be set when when creation completes.
@@ -1583,12 +1795,62 @@ public class VideoCallPresenter
   }
 
   /**
+   * Handles a change to the dimensions of the local camera. Receiving the camera capabilities
+   * triggers the creation of the video
+   *
+   * @param call The call which experienced the camera dimension change.
+   * @param width The new camera video width.
+   * @param height The new camera video height.
+   */
+  @Override
+  public void onCameraDimensionsChange2(DialerCall call, int width, int height) {
+    LogUtil.i(
+        "VideoCallPresenter.onCameraDimensionsChange2",
+        "call: %s, width: %d, height: %d videoCall: %s",
+        call,
+        width,
+        height,
+        call.getVideoCall());
+    if (videoCallScreen == null) {
+      LogUtil.e("VideoCallPresenter.onCameraDimensionsChange2", "ui is null");
+      return;
+    }
+
+    if (!call.equals(primaryCall)) {
+      LogUtil.e("VideoCallPresenter.onCameraDimensionsChange2", "not the primary call");
+      return;
+    }
+
+    if (preview2SurfaceState == PreviewSurfaceState.NONE) {
+      LogUtil.w("VideoCallPresenter.onCameraDimensionsChange2",
+          "capabilities received when camera is OFF.");
+      return;
+    }
+
+    preview2SurfaceState = PreviewSurfaceState.CAPABILITIES_RECEIVED;
+    changePreviewDimensions(width, height, QtiCallConstants.DUAL_VIDEO_ALT_STREAM);
+
+    // Check if the preview surface is ready yet; if it is, set it on the {@code VideoCall}.
+    // If it not yet ready, it will be set when when creation completes.
+    Surface surface = getLocal2VideoSurfaceTexture().getSavedSurface();
+    if (surface != null && mVideoCallProviderManager != null) {
+      preview2SurfaceState = PreviewSurfaceState.SURFACE_SET;
+      try {
+        mVideoCallProviderManager.setPreviewSurface(surface);
+      } catch (QtiImsException e) {
+        LogUtil.e("VideoCallPresenter.onCameraDimensionsChange2",
+            "unable to set preview surface");
+      }
+    }
+  }
+
+  /**
    * Changes the dimensions of the preview surface.
    *
    * @param width The new width.
    * @param height The new height.
    */
-  private void changePreviewDimensions(int width, int height) {
+  private void changePreviewDimensions(int width, int height, int stream) {
     if (videoCallScreen == null) {
       return;
     }
@@ -1598,8 +1860,17 @@ public class VideoCallPresenter
     LogUtil.i("VideoCallPresenter.changePreviewDimensions", "width: %d, height: %d", previewSize.x,
         previewSize.y);
     // Resize the surface used to display the preview video
-    getLocalVideoSurfaceTexture().setSurfaceDimensions(previewSize);
-    videoCallScreen.onLocalVideoDimensionsChanged();
+    getLocalVideoSurfaceTexture(stream).setSurfaceDimensions(previewSize);
+    videoCallScreen.onLocalVideoDimensionsChanged(stream);
+  }
+
+  // Retrieves the local video surface texture based on the stream
+  private VideoSurfaceTexture getLocalVideoSurfaceTexture(int stream) {
+    if (stream == QtiCallConstants.DUAL_VIDEO_MAIN_STREAM) {
+        return getLocalVideoSurfaceTexture();
+    } else {
+        return getLocal2VideoSurfaceTexture();
+    }
   }
 
   /**
@@ -1632,9 +1903,26 @@ public class VideoCallPresenter
         "orientation: %d, size: %s",
         orientation,
         previewDimensions);
-    changePreviewDimensions(previewDimensions.x, previewDimensions.y);
+    changePreviewDimensions(previewDimensions.x, previewDimensions.y,
+        QtiCallConstants.DUAL_VIDEO_MAIN_STREAM);
+    videoCallScreen.onLocalVideoOrientationChanged(
+        QtiCallConstants.DUAL_VIDEO_MAIN_STREAM);
 
-    videoCallScreen.onLocalVideoOrientationChanged();
+    if (isDualVideoCallEnabled()) {
+      Point preview2Dimensions = getLocal2VideoSurfaceTexture().getSurfaceDimensions();
+      if (preview2Dimensions == null) {
+        return;
+      }
+      LogUtil.i(
+          "VideoCallPresenter.onDeviceOrientationChanged for alt preview",
+          "orientation: %d, size: %s",
+          orientation,
+          preview2Dimensions);
+      changePreviewDimensions(preview2Dimensions.x, preview2Dimensions.y,
+          QtiCallConstants.DUAL_VIDEO_ALT_STREAM);
+      videoCallScreen.onLocalVideoOrientationChanged(
+          QtiCallConstants.DUAL_VIDEO_ALT_STREAM);
+    }
   }
 
   /**
@@ -1725,6 +2013,9 @@ public class VideoCallPresenter
     }
   }
 
+  // Updates the remote video surface dimensions,
+  // and updates the second remote video surface texture
+  // if dual video call is enabled
   private void updateRemoteVideoSurfaceDimensions() {
     if (videoCallScreen == null) {
       LogUtil.i("VideoCallPresenter.updateRemoteVideoSurfaceDimensions",
@@ -1737,6 +2028,9 @@ public class VideoCallPresenter
       Point screenSize = new Point();
       activity.getWindowManager().getDefaultDisplay().getSize(screenSize);
       getRemoteVideoSurfaceTexture().setSurfaceDimensions(screenSize);
+      if (isDualVideoCallEnabled()) {
+        getRemote2VideoSurfaceTexture().setSurfaceDimensions(screenSize);
+      }
     }
   }
 
@@ -1895,6 +2189,113 @@ public class VideoCallPresenter
     }
   }
 
+  private class Local2Delegate implements VideoSurfaceDelegate {
+    @Override
+    public void onSurfaceCreated(VideoSurfaceTexture videoCallSurface) {
+      if (videoCallScreen == null) {
+        LogUtil.e("VideoCallPresenter.Local2Delegate.onSurfaceCreated", "no UI");
+        return;
+      }
+      if (videoCall == null || mVideoCallProviderManager == null) {
+        LogUtil.e("VideoCallPresenter.Local2Delegate.onSurfaceCreated", "no video call");
+        return;
+      }
+      // If the preview surface has just been created and we have already received camera
+      // capabilities, but not yet set the surface, we will set the surface now.
+      try {
+          if (preview2SurfaceState == PreviewSurfaceState.CAPABILITIES_RECEIVED) {
+            preview2SurfaceState = PreviewSurfaceState.SURFACE_SET;
+            mVideoCallProviderManager.setPreviewSurface(videoCallSurface.getSavedSurface());
+          } else if (preview2SurfaceState == PreviewSurfaceState.NONE && isCameraRequired()) {
+            enableCamera2(primaryCall, true);
+          }
+      } catch (QtiImsException e) {
+        LogUtil.e("VideoCallPresenter.Local2Delegate.onSurfaceCreated",
+            "unable to enable camera2");
+      }
+    }
+
+    @Override
+    public void onSurfaceReleased(VideoSurfaceTexture videoCallSurface) {
+      if (videoCall == null || mVideoCallProviderManager == null) {
+        LogUtil.e("VideoCallPresenter.LocalDelegate2.onSurfaceReleased", "no video call");
+        return;
+      }
+      try {
+        mVideoCallProviderManager.setPreviewSurface(null);
+        enableCamera2(primaryCall, false);
+      } catch (QtiImsException e) {
+        LogUtil.e("VideoCallPresenter.Local2Delegate.onSurfaceReleased",
+            "unable to disable camera2");
+      }
+    }
+
+    @Override
+    public void onSurfaceDestroyed(VideoSurfaceTexture videoCallSurface) {
+      if (videoCall == null || mVideoCallProviderManager == null) {
+        LogUtil.e("VideoCallPresenter.LocalDelegate2.onSurfaceDestroyed", "no video call");
+        return;
+      }
+
+      boolean isChangingConfigurations = InCallPresenter.getInstance().isChangingConfigurations();
+      if (!isChangingConfigurations) {
+        try {
+          enableCamera2(primaryCall, false);
+        } catch (QtiImsException e) {
+
+        }
+      } else {
+        LogUtil.i(
+            "VideoCallPresenter.LocalDelegate2.onSurfaceDestroyed",
+            "activity is being destroyed due to configuration changes. Not closing the camera.");
+      }
+    }
+
+    // not supporting zoom for second local surface
+    @Override
+    public void onSurfaceClick(VideoSurfaceTexture videoCallSurface) {
+    }
+  }
+
+  private class Remote2Delegate implements VideoSurfaceDelegate {
+    @Override
+    public void onSurfaceCreated(VideoSurfaceTexture videoCallSurface) {
+      if (videoCallScreen == null) {
+        LogUtil.e("VideoCallPresenter.Remote2Delegate.onSurfaceCreated", "no UI");
+        return;
+      }
+      if (videoCall == null || mVideoCallProviderManager == null) {
+        LogUtil.e("VideoCallPresenter.Remote2Delegate.onSurfaceCreated", "no video call");
+        return;
+      }
+      try {
+        mVideoCallProviderManager.setDisplaySurface(videoCallSurface.getSavedSurface());
+      } catch (QtiImsException e) {
+        LogUtil.e("VideoCallPresenter.Remote2Delegate.setDisplaySurface", "exception " + e);
+      }
+    }
+
+    @Override
+    public void onSurfaceReleased(VideoSurfaceTexture videoCallSurface) {
+      if (videoCall == null || mVideoCallProviderManager == null) {
+        LogUtil.e("VideoCallPresenter.Remote2Delegate.onSurfaceReleased", "no video call");
+        return;
+      }
+      try {
+        mVideoCallProviderManager.setDisplaySurface(null);
+      } catch (QtiImsException e) {
+        LogUtil.e("VideoCallPresenter.Remote2Delegate.setDisplaySurface", "exception " + e);
+      }
+    }
+
+    @Override
+    public void onSurfaceDestroyed(VideoSurfaceTexture videoCallSurface) {}
+
+    @Override
+    public void onSurfaceClick(VideoSurfaceTexture videoCallSurface) {
+    }
+  }
+
   /** Defines the state of the preview surface negotiation with the telephony layer. */
   private static class PreviewSurfaceState {
 
@@ -2011,6 +2412,68 @@ public class VideoCallPresenter
   }
 
   /**
+   * Called when call session event is raised.
+   *
+   * @param event The call session event.
+   */
+  @Override
+  public void onCallSessionEvent2(int event) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("call session event = ");
+
+    switch (event) {
+      case VideoProvider.SESSION_EVENT_RX_PAUSE:
+      case VideoProvider.SESSION_EVENT_RX_RESUME:
+        mIsIncomingVideoAvailable2 =
+            event == VideoProvider.SESSION_EVENT_RX_RESUME;
+        if (primaryCall == null) {
+          return;
+        }
+        showVideoUi(
+          primaryCall.getVideoState(),
+          primaryCall.getState(),
+          primaryCall.getVideoTech().getSessionModificationState(),
+          primaryCall.isRemotelyHeld());
+        sb.append(mIsIncomingVideoAvailable2 ? "rx_resume" : "rx_pause");
+        break;
+      case VideoProvider.SESSION_EVENT_CAMERA_FAILURE:
+        sb.append("camera_failure");
+        break;
+      case VideoProvider.SESSION_EVENT_CAMERA_READY:
+        sb.append("camera_ready");
+        break;
+      default:
+        sb.append("unknown event = ");
+        sb.append(event);
+        break;
+    }
+    LogUtil.i("VideoCallPresenter.onCallSessionEvent2", sb.toString());
+  }
+
+  @Override
+  public void onDualVideoChanged(boolean isDualVt) {
+    if (isDualVt) {
+        Point source2VideoDimensions = getRemote2VideoSurfaceTexture().getSourceVideoDimensions();
+        if (source2VideoDimensions != null && primaryCall != null) {
+          int width = primaryCall.getPeer2DimensionWidth();
+          int height = primaryCall.getPeer2DimensionHeight();
+          boolean updated = DialerCall.UNKNOWN_PEER_DIMENSIONS != width
+              && DialerCall.UNKNOWN_PEER_DIMENSIONS != height;
+          if (updated && (source2VideoDimensions.x != width ||
+              source2VideoDimensions.y != height)) {
+            onUpdatePeerDimensions2(primaryCall, width, height);
+          }
+        }
+        if (primaryCall != null) {
+            updateSecondaryVideo(primaryCall);
+        }
+    } else {
+        LogUtil.i("VideoCallPresenter", "onDualVideoChanged exit dual video mode");
+        exitDualVideoMode();
+    }
+  }
+
+  /**
    * Reads the fixed preview size from global settings and caches it
    */
   private void setFixedPreviewSurfaceSize() {
@@ -2030,7 +2493,8 @@ public class VideoCallPresenter
     }
     setFixedPreviewSurfaceSize();
     if (mFixedPreviewSurfaceSize != null) {
-      changePreviewDimensions(mFixedPreviewSurfaceSize.x, mFixedPreviewSurfaceSize.y);
+      changePreviewDimensions(mFixedPreviewSurfaceSize.x, mFixedPreviewSurfaceSize.y,
+          QtiCallConstants.DUAL_VIDEO_MAIN_STREAM);
     }
     showVideoUi(
         primaryCall.getVideoState(),
@@ -2063,5 +2527,51 @@ public class VideoCallPresenter
     if (mPictureModeHelper != null) {
       mPictureModeHelper.createAndShowDialog();
     }
+  }
+
+  private void setVideoCallProviderListener() {
+    if (mQtiImsExtManager == null) {
+      LogUtil.i("VideoCallPresenter.setVideoCallProviderListener",
+           "mQtiImsExtManager is null");
+        return;
+    }
+    try {
+      mVideoCallProviderManager = mQtiImsExtManager.getVideoCallProviderManager(
+          BottomSheetHelper.getInstance().getPhoneId(), primaryCall.getToken());
+    } catch (QtiImsException e) {
+      LogUtil.e("VideoCallPresenter.setVideoCallProviderListener", "exception " + e);
+      return;
+    }
+    try {
+      LogUtil.i("VideoCallPresenter.setVideoCallProviderListener", "addListener");
+      mVideoCallProviderManager.addListener(primaryCall.getVideoCallProviderListener());
+    } catch (QtiImsException e) {
+      LogUtil.e("VideoCallPresenter.setVideoCallProviderListener", "exception " + e);
+    }
+    updateSecondaryVideo(primaryCall);
+  }
+
+  private void removeVideoCallProviderListener() {
+    if (mQtiImsExtManager == null) {
+      LogUtil.i("VideoCallPresenter.removeVideoCallProviderListener",
+          "mQtiImsExtManager is null");
+      return;
+    }
+
+    if (mVideoCallProviderManager == null) {
+      LogUtil.w("VideoCallPresenter.removeVideoCallProviderListener",
+          "mVideoCallProviderManager is null");
+      return;
+    }
+    try {
+      mVideoCallProviderManager.removeListener(primaryCall.getVideoCallProviderListener());
+    } catch (QtiImsException e) {
+      LogUtil.e("VideoCallPresenter.removeVideoCallProviderListener", "exception " + e);
+    }
+  }
+
+  private boolean isDualVideoCallEnabled() {
+    LogUtil.v("VideoCallPresenter.isDualVideoCallEnabled", "primaryCall: " + primaryCall);
+    return primaryCall != null ? primaryCall.isDualVtCall() : false;
   }
 }

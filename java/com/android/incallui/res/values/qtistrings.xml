@@ -166,6 +166,7 @@ SPDX-License-Identifier: BSD-3-Clause-Clear
     <string name="modify_call_option_vt_rx" translatable="false">Video Receive</string>
     <string name="modify_call_option_voice" translatable="false">Voice Only</string>
     <string name="modify_call_option_screen_share" translatable="false">Screen Sharing</string>
+    <string name="modify_call_option_dual_vt" translatable="false">Dual VT bidirectional</string>
     <string name="cancel_modify_call_title">Cancel modify call?</string>
     <string name="cancel_upgrade">Cancel Upgrade</string>
     <string name="not_cancel">Not Cancel</string>

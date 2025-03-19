@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.call;
@@ -45,6 +49,7 @@ public class InCallVideoCallCallbackNotifier {
    * are unregistered.
    */
   private int mCallSessionEvent = CALL_SESSION_INVALID_EVENT;
+  private int mCallSessionEvent2 = CALL_SESSION_INVALID_EVENT;
 
   /** Private constructor. Instance should only be acquired through getRunningInstance(). */
   private InCallVideoCallCallbackNotifier() {}
@@ -59,6 +64,7 @@ public class InCallVideoCallCallbackNotifier {
 
   public void tearDown() {
     mCallSessionEvent = CALL_SESSION_INVALID_EVENT;
+    mCallSessionEvent2 = CALL_SESSION_INVALID_EVENT;
     mVideoEventListeners.clear();
     surfaceChangeListeners.clear();
   }
@@ -98,6 +104,19 @@ public class InCallVideoCallCallbackNotifier {
   }
 
   /**
+   * Inform listeners of a change to second peer dimensions.
+   *
+   * @param call The call.
+   * @param width New peer width.
+   * @param height New peer height.
+   */
+  public void peerDimensionsChanged2(DialerCall call, int width, int height) {
+    for (SurfaceChangeListener listener : surfaceChangeListeners) {
+      listener.onUpdatePeerDimensions2(call, width, height);
+    }
+  }
+
+  /**
    * Inform listeners of a change to camera dimensions.
    *
    * @param call The call.
@@ -111,6 +130,19 @@ public class InCallVideoCallCallbackNotifier {
   }
 
   /**
+   * Inform listeners of a change to camera dimensions.
+   *
+   * @param call The call.
+   * @param width The new camera video width.
+   * @param height The new camera video height.
+   */
+  public void cameraDimensionsChanged2(DialerCall call, int width, int height) {
+    for (SurfaceChangeListener listener : surfaceChangeListeners) {
+      listener.onCameraDimensionsChange2(call, width, height);
+    }
+  }
+
+  /**
    * Inform listeners of a call session event.
    *
    * @param event The call session event.
@@ -119,6 +151,24 @@ public class InCallVideoCallCallbackNotifier {
     mCallSessionEvent = event;
     for (VideoEventListener listener : mVideoEventListeners) {
       listener.onCallSessionEvent(mCallSessionEvent);
+    }
+  }
+
+  /**
+   * Inform listeners of a call session event.
+   *
+   * @param event The call session event.
+   */
+  public void callSessionEvent2(int event) {
+    mCallSessionEvent2 = event;
+    for (VideoEventListener listener : mVideoEventListeners) {
+      listener.onCallSessionEvent2(mCallSessionEvent2);
+    }
+  }
+
+  public void onDualVideoChanged(boolean isDualVideo) {
+    for (VideoEventListener listener : mVideoEventListeners) {
+        listener.onDualVideoChanged(isDualVideo);
     }
   }
 
@@ -145,6 +195,9 @@ public class InCallVideoCallCallbackNotifier {
     // Notify registered listeners of cached call session event if it's a valid value
     if (notify && mCallSessionEvent != CALL_SESSION_INVALID_EVENT) {
        callSessionEvent(mCallSessionEvent);
+     }
+    if (notify && mCallSessionEvent2 != CALL_SESSION_INVALID_EVENT) {
+       callSessionEvent2(mCallSessionEvent2);
      }
   }
 
@@ -180,6 +233,25 @@ public class InCallVideoCallCallbackNotifier {
      * @param height The new camera video height.
      */
     void onCameraDimensionsChange(DialerCall call, int width, int height);
+
+    /**
+     * Called when the second peer video feed changes dimensions.
+     * This can occur when the peer rotates
+     * their device, changing the aspect ratio of the video signal.
+     *
+     * @param call The call which experienced a peer video
+     */
+    void onUpdatePeerDimensions2(DialerCall call, int width, int height);
+
+    /**
+     * Called when the second local camera changes dimensions.
+     * This occurs when a change in camera occurs.
+     *
+     * @param call The call which experienced the camera dimension change.
+     * @param width The new camera video width.
+     * @param height The new camera video height.
+     */
+    void onCameraDimensionsChange2(DialerCall call, int width, int height);
   }
 
   /**
@@ -193,5 +265,13 @@ public class InCallVideoCallCallbackNotifier {
      * @param event The call session event.
      */
     public void onCallSessionEvent(int event);
+    /**
+     * Called when call session event is raised for second video.
+     *
+     * @param event The call session event.
+     */
+    public void onCallSessionEvent2(int event);
+
+    public void onDualVideoChanged(boolean isDualVideo);
   }
 }

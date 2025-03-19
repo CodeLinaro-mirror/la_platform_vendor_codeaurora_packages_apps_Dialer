@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.videosurface.impl;
@@ -116,12 +120,17 @@ public class VideoSurfaceTextureImpl implements VideoSurfaceTexture {
     textureView.setOnClickListener(new OnClickListener());
 
     boolean areSameSurfaces = Objects.equals(savedSurfaceTexture, textureView.getSurfaceTexture());
-    LogUtil.i("VideoSurfaceTextureImpl.attachToTextureView", "areSameSurfaces: " + areSameSurfaces);
     if (savedSurfaceTexture != null && !areSameSurfaces) {
       textureView.setSurfaceTexture(savedSurfaceTexture);
       if (surfaceDimensions != null && createSurface(surfaceDimensions.x, surfaceDimensions.y)) {
         onSurfaceCreated();
       }
+    }
+    // ran into an issue where if the textureView was already available
+    // then the client wasn't notified that the surface texture was available
+    if (savedSurfaceTexture == null && textureView.isAvailable()) {
+      textureView.getSurfaceTextureListener().onSurfaceTextureAvailable(
+          textureView.getSurfaceTexture(), textureView.getWidth(), textureView.getHeight());
     }
     isDoneWithSurface = false;
   }

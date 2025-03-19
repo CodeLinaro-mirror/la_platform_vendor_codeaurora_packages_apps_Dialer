@@ -27,7 +27,7 @@
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
@@ -150,6 +150,19 @@ public class QtiCallUtils {
 
     public static boolean isVideoBidirectional(DialerCall call) {
         return call != null && VideoProfile.isBidirectional(call.getVideoState());
+    }
+
+    public static boolean isDualVideoSupported(DialerCall call) {
+        return call != null && call.isDualVideoSupported();
+    }
+
+    public static boolean isDualVideo(DialerCall call) {
+        return call != null ? isDualVideo(call.getVideoState()) : false;
+    }
+
+    public static boolean isDualVideo(int videoState) {
+        Log.v(LOG_TAG, "isDualVideo: " + videoState);
+        return videoState == QtiCallConstants.STATE_DUAL_BIDIRECTIONAL;
     }
 
     public static boolean isVideoTxOnly(DialerCall call) {
