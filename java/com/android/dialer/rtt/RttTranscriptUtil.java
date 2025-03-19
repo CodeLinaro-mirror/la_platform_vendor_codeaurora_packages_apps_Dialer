@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.rtt;
@@ -23,6 +27,7 @@ import android.support.annotation.WorkerThread;
 import com.android.dialer.common.Assert;
 import com.android.dialer.common.concurrent.DialerExecutorComponent;
 import com.android.dialer.common.database.Selection;
+import com.android.dialer.common.LogUtil;
 import com.android.dialer.rtt.RttTranscriptContract.RttTranscriptColumn;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -123,11 +128,15 @@ public final class RttTranscriptUtil {
     ContentValues value = new ContentValues();
     value.put(RttTranscriptColumn.TRANSCRIPT_ID, rttTranscript.getId());
     value.put(RttTranscriptColumn.TRANSCRIPT_DATA, rttTranscript.toByteArray());
-    long id =
-        databaseHelper.getWritableDatabase().insert(RttTranscriptDatabaseHelper.TABLE, null, value);
-    databaseHelper.close();
-    if (id < 0) {
-      throw new RuntimeException("Failed to save RTT transcript");
+    try {
+        long id = databaseHelper.getWritableDatabase().insert(
+            RttTranscriptDatabaseHelper.TABLE, null, value);
+        databaseHelper.close();
+        if (id < 0) {
+            throw new RuntimeException("Failed to save RTT transcript");
+        }
+    } catch (Exception e) {
+          LogUtil.e("RttTranscriptUtil.save",e.getMessage());
     }
   }
 }

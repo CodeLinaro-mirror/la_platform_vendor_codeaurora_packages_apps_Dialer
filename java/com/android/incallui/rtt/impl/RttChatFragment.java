@@ -571,8 +571,12 @@ public class RttChatFragment extends Fragment
         return;
       case InCallButtonIds.BUTTON_HOLD:
         overflowMenu.enableHoldButton(show);
+        return;
       case InCallButtonIds.BUTTON_SHOW_SATELLITE_PROMPT:
         overflowMenu.enableSatelliteButton(show);
+        return;
+      case InCallButtonIds.BUTTON_ADD_CALL:
+        overflowMenu.enableAddCallButton(show);
         return;
     }
   }
