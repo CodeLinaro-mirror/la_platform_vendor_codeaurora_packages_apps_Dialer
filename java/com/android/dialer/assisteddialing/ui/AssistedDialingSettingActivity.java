@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.assisteddialing.ui;
@@ -19,6 +23,7 @@ package com.android.dialer.assisteddialing.ui;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
+import com.android.dialer.util.DialerUtils;
 
 /** The Settings Activity for Assisted Dialing. */
 public class AssistedDialingSettingActivity extends AppCompatActivity {
@@ -26,7 +31,7 @@ public class AssistedDialingSettingActivity extends AppCompatActivity {
   @Override
   protected void onCreate(Bundle bundle) {
     super.onCreate(bundle);
-
+    DialerUtils.setupEdgeToEdge(this);
     getFragmentManager()
         .beginTransaction()
         .replace(android.R.id.content, new AssistedDialingSettingFragment())
