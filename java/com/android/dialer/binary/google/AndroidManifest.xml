@@ -11,6 +11,10 @@
      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
      See the License for the specific language governing permissions and
      limitations under the License.
+
+     Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+     Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+     SPDX-License-Identifier: BSD-3-Clause-Clear
 -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -21,7 +25,7 @@
 
   <uses-sdk
     android:minSdkVersion="24"
-    android:targetSdkVersion="34"/>
+    android:targetSdkVersion="35"/>
 
   <uses-permission android:name="android.permission.CALL_PHONE"/>
   <uses-permission android:name="android.permission.READ_CONTACTS"/>
