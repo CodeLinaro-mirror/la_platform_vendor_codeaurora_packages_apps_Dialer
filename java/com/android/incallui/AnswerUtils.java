@@ -28,6 +28,8 @@
 
 package com.android.incallui;
 
+import android.telecom.Call.Details;
+import android.telecom.PhoneAccount;
 import com.android.dialer.common.LogUtil;
 import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
@@ -38,16 +40,30 @@ public class AnswerUtils {
 
   private AnswerUtils() {}
 
-  public static void disconnectAllAndAnswer(int videoState, boolean needLaunchUi) {
+  public static void disconnectCallsAndAnswer(int videoState, boolean needLaunchUi) {
     boolean isCallAvailableToDisconnect = false;
     CallList callList = InCallPresenter.getInstance().getCallList();
-    if (callList == null || callList.getIncomingCall() == null) {
-      LogUtil.i("AnswerUtils.diconnectAllAndAnswer", "no valid call found");
+    if (callList == null) {
+      LogUtil.i("AnswerUtils.disconnectCallsAndAnswer", "CallList is null.");
       return;
     }
+    DialerCall incomingCall = callList.getIncomingCall();
+    if (incomingCall == null) {
+      LogUtil.i("AnswerUtils.disconnectCallsAndAnswer", "No valid call found.");
+      return;
+    }
+    PhoneAccount incomingPa = incomingCall.getPhoneAccount();
+    boolean isDsda = incomingPa != null && incomingPa.hasSimultaneousCallingRestriction() &&
+        incomingPa.getSimultaneousCallingRestriction().size() > 0;
     for (DialerCall currentCall : callList.getAllCalls()) {
+      boolean isCurrentCallHoldable = currentCall.can(Details.CAPABILITY_SUPPORT_HOLD);
       if (DialerCallState.isConnectingOrConnected(currentCall.getState()) &&
           !(currentCall.getState() == DialerCallState.INCOMING)) {
+        // We want to allow Telecom to decide whether to keep or disconnect
+        // the held call if we're in DSDA.
+        if (isCurrentCallHoldable && isDsda) {
+            continue;
+        }
         isCallAvailableToDisconnect = true;
         currentCall.setReleasedByAnsweringSecondCall(true);
         currentCall.addListener(
@@ -64,7 +80,7 @@ public class AnswerUtils {
      * If there are no calls to disconnect then answer MT call immediately.
      */
     if (!isCallAvailableToDisconnect) {
-      LogUtil.i("AnswerUtils.diconnectAllAndAnswer", "There are no calls to release," +
+      LogUtil.i("AnswerUtils.disconnectCallsAndAnswer", "There are no calls to release," +
           " answer incoming call");
       callList.getIncomingCall().answer(videoState);
       if (needLaunchUi) {
@@ -74,8 +90,8 @@ public class AnswerUtils {
     }
   }
 
-  public static void disconnectAllAndAnswer(int videoState) {
-    disconnectAllAndAnswer(videoState, false);
+  public static void disconnectCallsAndAnswer(int videoState) {
+    disconnectCallsAndAnswer(videoState, false);
   }
 
   public static void disconnectAndAnswer(DialerCall callToDisconnect, DialerCall callToAnswer) {

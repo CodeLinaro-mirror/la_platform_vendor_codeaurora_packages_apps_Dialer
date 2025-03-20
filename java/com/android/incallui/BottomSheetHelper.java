@@ -796,7 +796,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      }
 
      if (mCall.answeringDisconnectsOtherCall()) {
-       AnswerUtils.disconnectAllAndAnswer(videoState);
+       AnswerUtils.disconnectCallsAndAnswer(videoState);
        return;
      }
 
