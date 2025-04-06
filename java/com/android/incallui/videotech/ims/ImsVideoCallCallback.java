@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.videotech.ims;
@@ -35,6 +39,8 @@ import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.DialerCall.CameraDirection;
 import com.android.incallui.videotech.VideoTech.VideoTechListener;
 import com.android.incallui.videotech.utils.SessionModificationState;
+
+import org.codeaurora.ims.QtiCallConstants;
 
 /** Receives IMS video call state updates. */
 public class ImsVideoCallCallback extends VideoCall.Callback {
@@ -80,11 +86,18 @@ public class ImsVideoCallCallback extends VideoCall.Callback {
                 "ImsVideoTech.onSessionModifyRequestReceived", "Auto accept to %d", newVideoState);
         videoTech.acceptVideoRequest(newVideoState);
     } else if (previousVideoState != newVideoState) {
-      requestedVideoState = newVideoState;
-      videoTech.setSessionModificationState(
-          SessionModificationState.RECEIVED_UPGRADE_TO_VIDEO_REQUEST);
-      listener.onVideoUpgradeRequestReceived();
-      logger.logImpression(DialerImpression.Type.IMS_VIDEO_REQUEST_RECEIVED);
+      if (previousVideoState == QtiCallConstants.STATE_DUAL_BIDIRECTIONAL) {
+        LogUtil.i("ImsVideoTech.onSessionModifyRequestReceived",
+                "call downgraded from dual vt to bi-directional vt");
+        videoTech.acceptVideoRequest(newVideoState);
+        listener.onDualVideoChanged(false);
+      } else {
+          requestedVideoState = newVideoState;
+          videoTech.setSessionModificationState(
+              SessionModificationState.RECEIVED_UPGRADE_TO_VIDEO_REQUEST);
+          listener.onVideoUpgradeRequestReceived();
+          logger.logImpression(DialerImpression.Type.IMS_VIDEO_REQUEST_RECEIVED);
+      }
     }
   }
 
@@ -108,6 +121,8 @@ public class ImsVideoCallCallback extends VideoCall.Callback {
     if (videoTech.getSessionModificationState()
         == SessionModificationState.WAITING_FOR_UPGRADE_TO_VIDEO_RESPONSE) {
       final int newSessionModificationState = getSessionModificationStateFromTelecomStatus(status);
+      LogUtil.i("ImsVideoCallCallback.onSessionModifyResponseReceived",
+            "newSessionModificationState: %d", newSessionModificationState);
       if (status == VideoProvider.SESSION_MODIFY_REQUEST_SUCCESS) {
         // Telecom manages audio route for us
         listener.onUpgradedToVideo(false /* switchToSpeaker */);
@@ -115,25 +130,37 @@ public class ImsVideoCallCallback extends VideoCall.Callback {
         // Hence, resetting camera direction as -1 when modify call response to
         // Vt-Tx only is received. Camera direction is set to a proper value
         // based on the call type in VideoCallPresenter after call is modified.
-        if (requestedProfile != null
-            && QtiCallUtils.isVideoTxOnly(requestedProfile.getVideoState())
-            && responseProfile != null
-            && QtiCallUtils.isVideoTxOnly(responseProfile.getVideoState())) {
-          final PrimaryCallTracker primaryCallTracker =
-              BottomSheetHelper.getInstance().getPrimaryCallTracker();
-          if (primaryCallTracker != null) {
+        final PrimaryCallTracker primaryCallTracker =
+            BottomSheetHelper.getInstance().getPrimaryCallTracker();
+        if (primaryCallTracker != null) {
             final DialerCall dialerCall = primaryCallTracker.getPrimaryCall();
-            if (dialerCall != null) {
-              dialerCall.setCameraDir(CameraDirection.CAMERA_DIRECTION_UNKNOWN);
-            } else {
-              LogUtil.e("ImsVideoCallCallback.onSessionModifyResponseReceived",
-                  "error setting cam dir Call is null");
+            if (requestedProfile != null
+                && QtiCallUtils.isVideoTxOnly(requestedProfile.getVideoState())
+                && responseProfile != null
+                && QtiCallUtils.isVideoTxOnly(responseProfile.getVideoState())) {
+              if (dialerCall != null) {
+                dialerCall.setCameraDir(CameraDirection.CAMERA_DIRECTION_UNKNOWN);
+              } else {
+                LogUtil.e("ImsVideoCallCallback.onSessionModifyResponseReceived",
+                    "error setting cam dir as call is null");
+              }
             }
-          } else {
+
+            // dual vt upgrade
+            if (requestedProfile != null &&
+                QtiCallUtils.isDualVideo(requestedProfile.getVideoState())
+                && responseProfile != null &&
+                QtiCallUtils.isDualVideo(responseProfile.getVideoState())) {
+              listener.onDualVideoChanged(true);
+            } else if (dialerCall != null && dialerCall.isDualVtCall()) {
+                // assume this is a dual vt downgrade if successful
+                listener.onDualVideoChanged(false);
+            }
+        } else {
             LogUtil.e("ImsVideoCallCallback.onSessionModifyResponseReceived",
-                "error setting cam dir as primaryCallTracker is null");
-          }
+                "error as primaryCallTracker is null");
         }
+
       } else {
         // This will update the video UI to display the error message.
         videoTech.setSessionModificationState(newSessionModificationState);
@@ -147,6 +174,13 @@ public class ImsVideoCallCallback extends VideoCall.Callback {
         == SessionModificationState.RECEIVED_UPGRADE_TO_VIDEO_REQUEST) {
       requestedVideoState = VideoProfile.STATE_AUDIO_ONLY;
       videoTech.setSessionModificationState(SessionModificationState.NO_REQUEST);
+      // accepted dual vt request
+      if (requestedProfile != null && QtiCallUtils.isDualVideo(requestedProfile.getVideoState())
+          && responseProfile != null && QtiCallUtils.isDualVideo(responseProfile.getVideoState())) {
+        LogUtil.i("ImsVideoCallCallback.onSessionModifyResponseReceived",
+            "accepted dual vt request");
+        listener.onDualVideoChanged(true);
+      }
     } else if (videoTech.getSessionModificationState()
         == SessionModificationState.WAITING_FOR_RESPONSE) {
       final int newSessionModificationState = getSessionModificationStateFromTelecomStatus(status);

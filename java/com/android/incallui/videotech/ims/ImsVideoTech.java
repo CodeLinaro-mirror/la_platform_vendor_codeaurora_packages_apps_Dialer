@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.videotech.ims;
@@ -35,6 +39,8 @@ import com.android.incallui.video.protocol.VideoCallScreen;
 import com.android.incallui.video.protocol.VideoCallScreenDelegate;
 import com.android.incallui.videotech.VideoTech;
 import com.android.incallui.videotech.utils.SessionModificationState;
+
+import org.codeaurora.ims.QtiCallConstants;
 
 /** ViLTE implementation */
 public class ImsVideoTech implements VideoTech {
@@ -161,8 +167,14 @@ public class ImsVideoTech implements VideoTech {
     int newVideoState = call.getDetails().getVideoState();
     if (newVideoState != previousVideoState
         && sessionModificationState == SessionModificationState.RECEIVED_UPGRADE_TO_VIDEO_REQUEST) {
-      LogUtil.i("ImsVideoTech.onCallStateChanged", "cancelling upgrade notification");
-      setSessionModificationState(SessionModificationState.NO_REQUEST);
+        // if received an upgrade to dual VT request
+        // allow the response to clear the notification request
+        // if cleared here, the UI isn't notified of the change to dual VT
+        if (previousVideoState != VideoProfile.STATE_BIDIRECTIONAL &&
+            newVideoState != QtiCallConstants.STATE_DUAL_BIDIRECTIONAL) {
+          LogUtil.i("ImsVideoTech.onCallStateChanged", "cancelling upgrade notification");
+          setSessionModificationState(SessionModificationState.NO_REQUEST);
+        }
     }
     previousVideoState = newVideoState;
   }

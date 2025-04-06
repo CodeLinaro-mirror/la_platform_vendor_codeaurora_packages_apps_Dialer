@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.video.protocol;
@@ -25,13 +29,14 @@ public interface VideoCallScreen {
 
   void onVideoScreenStop();
 
-  void showVideoViews(boolean shouldShowPreview, boolean shouldShowRemote, boolean isRemotelyHeld);
+  void showVideoViews(boolean shouldShowPreview, boolean shouldShowRemote, boolean isRemotelyHeld,
+        boolean showShowPreview2, boolean showShowRemote2);
 
-  void onLocalVideoDimensionsChanged();
+  void onLocalVideoDimensionsChanged(int stream);
 
-  void onLocalVideoOrientationChanged();
+  void onLocalVideoOrientationChanged(int stream);
 
-  void onRemoteVideoDimensionsChanged();
+  void onRemoteVideoDimensionsChanged(int stream);
 
   void updateFullscreenAndGreenScreenMode(
       boolean shouldShowFullscreen, boolean shouldShowGreenScreen);

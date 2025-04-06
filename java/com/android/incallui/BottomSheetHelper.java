@@ -234,8 +234,11 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    private boolean isCancelModifyCallOptionsVisible() {
      if (QtiImsExtUtils.isCancelModifyCallSupported(getPhoneId(), mContext)) {
        DialerCall call = mPrimaryCallTracker.getPrimaryCall();
+       boolean isDualVtUpgradeRequest = call.getVideoTech().getUpgradeToVideoState() ==
+           QtiCallConstants.STATE_DUAL_BIDIRECTIONAL;
        return !mHasSentCancelUpgradeRequest && (call.getVideoTech().getSessionModificationState()
-         == SessionModificationState.WAITING_FOR_UPGRADE_TO_VIDEO_RESPONSE);
+         == SessionModificationState.WAITING_FOR_UPGRADE_TO_VIDEO_RESPONSE) &&
+         !isDualVtUpgradeRequest;
      }
      return false;
    }
@@ -829,19 +832,22 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
       final ArrayList<Integer> itemToCallType = new ArrayList<Integer>();
 
       // Prepare the string array and mapping.
-      if (QtiCallUtils.hasVoiceCapabilities(mCall) && mCall.isVideoCall()) {
+      if (QtiCallUtils.hasVoiceCapabilities(mCall) && mCall.isVideoCall()
+          && !QtiCallUtils.isDualVideo(mCall)) {
         items.add(mResources.getText(R.string.modify_call_option_voice));
         itemToCallType.add(VideoProfile.STATE_AUDIO_ONLY);
       }
 
-      if (isVideoEnabled && QtiCallUtils.hasReceiveVideoCapabilities(mCall)
+      if (!QtiCallUtils.isDualVideo(mCall) && isVideoEnabled
+          && QtiCallUtils.hasReceiveVideoCapabilities(mCall)
           && !QtiCallUtils.isVideoRxOnly(mCall)
           && !QtiCallUtils.hasVisualizedVoiceAttribute(mCall)) {
         items.add(mResources.getText(R.string.modify_call_option_vt_rx));
         itemToCallType.add(VideoProfile.STATE_RX_ENABLED);
       }
 
-      if (isVideoEnabled && QtiCallUtils.hasTransmitVideoCapabilities(mCall)
+      if (!QtiCallUtils.isDualVideo(mCall) && isVideoEnabled
+          && QtiCallUtils.hasTransmitVideoCapabilities(mCall)
           && (!QtiCallUtils.isVideoTxOnly(mCall)
           || ScreenShareHelper.screenShareRequested())
           && !QtiCallUtils.hasVisualizedVoiceAttribute(mCall)) {
@@ -852,7 +858,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
       if (isVideoEnabled && QtiCallUtils.hasReceiveVideoCapabilities(mCall)
           && QtiCallUtils.hasTransmitVideoCapabilities(mCall)
           && (!QtiCallUtils.isVideoBidirectional(mCall)
-          || ScreenShareHelper.screenShareRequested())) {
+          || ScreenShareHelper.screenShareRequested()
+          || QtiCallUtils.isDualVideo(mCall))) {
         items.add(mResources.getText(R.string.modify_call_option_vt));
         itemToCallType.add(VideoProfile.STATE_BIDIRECTIONAL);
       }
@@ -864,6 +871,15 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
           && !QtiCallUtils.isVideoRxOnly(mCall)) {
         items.add(mResources.getText(R.string.modify_call_option_screen_share));
         itemToCallType.add(ScreenShareHelper.VIDEO_SCREEN_SHARE);
+      }
+
+      if (isVideoEnabled && QtiCallUtils.isVideoBidirectional(mCall) &&
+          !QtiCallUtils.isDualVideo(mCall) && QtiCallUtils.isDualVideoSupported(mCall) &&
+          (!mCall.isRemotelyHeld() && mCall.getNonConferenceState() != DialerCallState.ONHOLD)) {
+        if (mCall.getDualVtCapability() == QtiCallConstants.DUAL_VIDEO_TX_RX_ENABLED) {
+            items.add(mResources.getText(R.string.modify_call_option_dual_vt));
+            itemToCallType.add(QtiCallConstants.STATE_DUAL_BIDIRECTIONAL);
+        }
       }
 
       AlertDialog.Builder builder = new AlertDialog.Builder(inCallActivity);

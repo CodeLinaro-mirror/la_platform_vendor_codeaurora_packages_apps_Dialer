@@ -14,7 +14,7 @@
      limitations under the License.
 
      Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
-     Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+     Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
      SPDX-License-Identifier: BSD-3-Clause-Clear
 -->
 <RelativeLayout
@@ -97,7 +97,7 @@
     android:id="@+id/videocall_switch_controls"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="36dp"
+    android:layout_marginBottom="120dp"
     android:layout_marginEnd="24dp"
     android:orientation="vertical"
     android:layout_alignParentBottom="true"
