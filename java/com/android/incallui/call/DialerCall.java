@@ -56,6 +56,7 @@ import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telecom.VideoProfile.CameraCapabilities;
+import android.telephony.CarrierConfigManager;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
@@ -2414,5 +2415,19 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
 
   public VideoCallProviderListenerBase getVideoCallProviderListener() {
     return mVideoCallProviderListener;
+  }
+
+  public boolean shouldIgnoreExtraForDroppingFgCall() {
+    SubscriptionManager subManager =
+        context.getSystemService(SubscriptionManager.class);
+    if (subManager == null || telephonyManager == null) return false;
+    SubscriptionInfo subInfo = subManager.getActiveSubscriptionInfo(
+        telephonyManager.getSubIdForPhoneAccount(getPhoneAccount()));
+    if (subInfo == null) return false;
+
+    // In case of carriers which are not supporting held, we should
+    // ignore the foreground call extra being set from Telecom.
+    return !QtiImsExtUtils.isCarrierConfigEnabled(
+        subInfo.getSimSlotIndex(), context, CarrierConfigManager.KEY_ALLOW_HOLD_IN_IMS_CALL_BOOL);
   }
 }
