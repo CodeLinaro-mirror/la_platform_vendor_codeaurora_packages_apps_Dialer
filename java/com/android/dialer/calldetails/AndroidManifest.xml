@@ -13,6 +13,12 @@
  ~ See the License for the specific language governing permissions and
  ~ limitations under the License
  -->
+
+<!--
+    Changes from Qualcomm Technologies, Inc. are provided under the following license:
+    Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+    SPDX-License-Identifier: BSD-3-Clause-Clear
+-->
 <manifest
   xmlns:android="http://schemas.android.com/apk/res/android"
   package="com.android.dialer.calldetails">
@@ -20,12 +26,14 @@
     <activity
       android:label="@string/call_details"
       android:exported="false"
-      android:name="com.android.dialer.calldetails.OldCallDetailsActivity">
+      android:name="com.android.dialer.calldetails.OldCallDetailsActivity"
+      android:theme="@style/QtiCallDetailsTheme">
     </activity>
     <activity
-        android:label="@string/call_details"
-        android:exported="false"
-        android:name="com.android.dialer.calldetails.CallDetailsActivity">
+      android:label="@string/call_details"
+      android:exported="false"
+      android:name="com.android.dialer.calldetails.CallDetailsActivity"
+      android:theme="@style/QtiCallDetailsTheme">
     </activity>
   </application>
 </manifest>

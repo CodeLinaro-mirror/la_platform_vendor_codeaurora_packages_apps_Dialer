@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.calldetails;
@@ -58,7 +62,7 @@ import com.android.dialer.postcall.PostCall;
 import com.android.dialer.precall.PreCall;
 import com.android.dialer.rtt.RttTranscriptActivity;
 import com.android.dialer.rtt.RttTranscriptUtil;
-import com.android.dialer.theme.base.ThemeComponent;
+import com.android.dialer.util.DialerUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.i18n.phonenumbers.NumberParseException;
@@ -117,7 +121,7 @@ abstract class CallDetailsActivityCommon extends AppCompatActivity {
   @CallSuper
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    setTheme(ThemeComponent.get(this).theme().getApplicationThemeRes());
+    DialerUtils.setupEdgeToEdge(this);
     setContentView(R.layout.call_details_activity);
     Toolbar toolbar = findViewById(R.id.toolbar);
     toolbar.setTitle(R.string.call_details);
