@@ -864,7 +864,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
         itemToCallType.add(VideoProfile.STATE_BIDIRECTIONAL);
       }
 
-      if (isVideoEnabled && canDisplayScreenShareButton() &&
+      if (!QtiCallUtils.isDualVideo(mCall) && isVideoEnabled &&
+          canDisplayScreenShareButton() &&
           mCall.getState() == DialerCallState.ACTIVE &&
           QtiCallUtils.hasTransmitVideoCapabilities(mCall)
           && !ScreenShareHelper.screenShareRequested()

@@ -187,6 +187,10 @@ public class VideoCallPresenter
    */
   private static boolean mIsIncomingVideoAvailable2 = false;
 
+  // Side-car features
+  private static final int SCREEN_SHARE = 0;
+  private static final int DUAL_VIDEO = 1;
+
   /**
    * Runnable which is posted to schedule automatically entering fullscreen mode. Will not auto
    * enter fullscreen mode if the dialpad is visible (doing so would make it impossible to exit the
@@ -244,14 +248,14 @@ public class VideoCallPresenter
     }
   };
 
-  private void maybeCreateQtiImsExtConnector(Context context) {
+  private void maybeCreateQtiImsExtConnector(Context context, int feature) {
     try {
       mQtiImsExtConnector = new QtiImsExtConnector(context,
           new QtiImsExtConnector.IListener() {
             @Override
             public void onConnectionAvailable(QtiImsExtManager qtiImsExtManager) {
               mQtiImsExtManager = qtiImsExtManager;
-              if (isDualVideoCallEnabled()) {
+              if (feature == DUAL_VIDEO) {
                 setVideoCallProviderListener();
               } else {
                 setScreenShareListener();
@@ -968,7 +972,7 @@ public class VideoCallPresenter
   private void enterScreenShare() {
     LogUtil.i("VideoCallPresenter.enterScreenShare", "enter screen share");
     if (mQtiImsExtConnector == null) {
-      maybeCreateQtiImsExtConnector(context);
+      maybeCreateQtiImsExtConnector(context, SCREEN_SHARE);
     }
     enableCamera(primaryCall, false);
   }
@@ -1242,7 +1246,7 @@ public class VideoCallPresenter
                && call.getToken() != QtiCallConstants.INVALID_TOKEN_ID) {
       Log.i("VideoCallPresenter.onDetailsChanged", "maybeCreateConnector");
       if (mQtiImsExtConnector == null) {
-          maybeCreateQtiImsExtConnector(context);
+          maybeCreateQtiImsExtConnector(context, DUAL_VIDEO);
       } else {
         // mVideoCallProviderManager is not created, try to set the listener again
         setVideoCallProviderListener();
