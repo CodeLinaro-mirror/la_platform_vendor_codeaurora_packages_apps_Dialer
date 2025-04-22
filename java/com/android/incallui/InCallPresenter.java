@@ -71,6 +71,7 @@ import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telephony.PhoneStateListener;
 import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyCallback;
 import android.telephony.TelephonyManager;
 import android.util.ArraySet;
 import android.view.Window;
@@ -117,6 +118,7 @@ import com.android.incallui.videosurface.protocol.VideoSurfaceTexture;
 import com.android.incallui.videotech.utils.VideoUtils;
 import com.google.protobuf.InvalidProtocolBufferException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -173,6 +175,9 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   private final Set<InCallDisconnectedListener> inCallDisconnectedListeners =
       Collections.newSetFromMap(
           new ConcurrentHashMap<InCallDisconnectedListener, Boolean>(8, 0.9f, 1));
+  private final Set<SimultaneousCallingChangeListener> simultaneousCallingChangeListeners =
+      Collections.newSetFromMap(
+          new ConcurrentHashMap<SimultaneousCallingChangeListener, Boolean>(8, 0.9f, 1));
 
   private StatusBarNotifier statusBarNotifier;
   private ExternalCallNotifier externalCallNotifier;
@@ -269,6 +274,22 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
         }
       };
 
+  private class TelephonyCallbackListener extends TelephonyCallback implements
+      TelephonyCallback.SimultaneousCellularCallingSupportListener {
+
+    @Override
+    public void onSimultaneousCellularCallingSubscriptionsChanged(
+        @NonNull Set<Integer> subIds) {
+      if (!simultaneousCallingSubIds.equals(subIds)) {
+        simultaneousCallingSubIds.clear();
+        simultaneousCallingSubIds.addAll(subIds);
+        notifySimultaneousCallingChangeListener(simultaneousCallingSubIds);
+      }
+    }
+  }
+
+  private TelephonyCallbackListener telephonyCallback;
+  private Set<Integer> simultaneousCallingSubIds = new HashSet<Integer>();
   private ThemeColorManager themeColorManager;
   private VideoSurfaceTexture localVideoSurfaceTexture;
   private VideoSurfaceTexture remoteVideoSurfaceTexture;
@@ -460,6 +481,8 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     addDetailsListener(callDetailsListener);
     addDetailsListener(CallSubstateNotifier.getInstance());
     addInCallDisconnectedListener(CallSubstateNotifier.getInstance());
+
+    registerSimultaneousCallingCallback();
 
     LogUtil.d("InCallPresenter.setUp", "Finished InCallPresenter.setUp");
     Trace.endSection();
@@ -1511,6 +1534,51 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     }
   }
 
+  // In DSDA mode, the number of subids supporting simultaneous calling
+  // will be 2 or more.
+  public boolean isInDsdaMode() {
+    return simultaneousCallingSubIds.size() > 1;
+  }
+
+  public void addSimultaneousCallingChangeListener(SimultaneousCallingChangeListener listener) {
+    if (listener == null) {
+      return;
+    }
+    simultaneousCallingChangeListeners.add(listener);
+  }
+
+  public void removeSimultaneousCallingChangeListener(
+      SimultaneousCallingChangeListener listener) {
+    if (listener == null) {
+      return;
+    }
+    simultaneousCallingChangeListeners.remove(listener);
+  }
+
+  private void notifySimultaneousCallingChangeListener(Set<Integer> subIds) {
+    for (SimultaneousCallingChangeListener listener : simultaneousCallingChangeListeners) {
+      listener.onSimultaneousCallingChanged(subIds);
+    }
+  }
+
+  private void registerSimultaneousCallingCallback() {
+    if (context == null) return;
+    TelephonyManager tm = context.getSystemService(TelephonyManager.class);
+    if (tm == null) return;
+    if (telephonyCallback == null ) {
+      telephonyCallback = new TelephonyCallbackListener();
+    }
+    tm.registerTelephonyCallback(mExecutor, telephonyCallback);
+  }
+
+  private void unregisterSimultaneousCallingCallback() {
+    if (context == null || telephonyCallback == null) return;
+    TelephonyManager tm = context.getSystemService(TelephonyManager.class);
+    if (tm == null) return;
+    tm.unregisterTelephonyCallback(telephonyCallback);
+    telephonyCallback = null;
+  }
+
   public ProximitySensor getProximitySensor() {
     return proximitySensor;
   }
@@ -2067,6 +2135,8 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
         LogUtil.e("InCallPresenter.attemptCleanup", "held in call locks: " + inCallUiLocks);
         inCallUiLocks.clear();
       }
+      unregisterSimultaneousCallingCallback();
+      simultaneousCallingChangeListeners.clear();
       LogUtil.d("InCallPresenter.attemptCleanup", "finished");
     }
   }
@@ -2424,6 +2494,11 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   public interface InCallUiListener {
 
     void onUiShowing(boolean showing);
+  }
+
+  public interface SimultaneousCallingChangeListener {
+    void onSimultaneousCallingChanged(
+        @NonNull Set<Integer> simultaneousCallingSubscriptionIds);
   }
 
   private class InCallUiLockImpl implements InCallUiLock {
