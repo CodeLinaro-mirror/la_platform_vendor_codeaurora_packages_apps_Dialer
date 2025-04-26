@@ -52,6 +52,7 @@ import com.android.incallui.InCallPresenter.InCallEventListener;
 import com.android.incallui.InCallPresenter.InCallState;
 import com.android.incallui.InCallPresenter.InCallStateListener;
 import com.android.incallui.InCallPresenter.IncomingCallListener;
+import com.android.incallui.InCallPresenter.SimultaneousCallingChangeListener;
 import com.android.incallui.audiomode.AudioModeProvider;
 import com.android.incallui.audiomode.AudioModeProvider.AudioModeListener;
 import com.android.incallui.call.CallList;
@@ -66,6 +67,7 @@ import com.android.incallui.incall.protocol.InCallButtonUiDelegate;
 import com.android.incallui.multisim.SwapSimWorker;
 import com.android.incallui.videotech.utils.SessionModificationState;
 import com.android.incallui.videotech.utils.VideoUtils;
+import java.util.Set;
 import org.codeaurora.ims.utils.QtiImsExtUtils;
 
 /** Logic for call buttons. */
@@ -76,6 +78,7 @@ public class CallButtonPresenter
         InCallDetailsListener,
         InCallEventListener,
         CanAddCallListener,
+        SimultaneousCallingChangeListener,
         InCallCameraManager.Listener,
         InCallButtonUiDelegate {
 
@@ -108,6 +111,9 @@ public class CallButtonPresenter
     inCallPresenter.addInCallEventListener(this);
     inCallPresenter.addCanAddCallListener(this);
     inCallPresenter.getInCallCameraManager().addCameraSelectionListener(this);
+    if (!telephonyManager.isDsdsTransitionSupported()) {
+      InCallPresenter.getInstance().addSimultaneousCallingChangeListener(this);
+    }
 
     // Update the buttons state immediately for the current call
     onStateChange(InCallState.NO_CALLS, inCallPresenter.getInCallState(), CallList.getInstance());
@@ -126,6 +132,9 @@ public class CallButtonPresenter
     InCallPresenter.getInstance().removeInCallEventListener(this);
     InCallPresenter.getInstance().getInCallCameraManager().removeCameraSelectionListener(this);
     InCallPresenter.getInstance().removeCanAddCallListener(this);
+    if (!telephonyManager.isDsdsTransitionSupported()) {
+      InCallPresenter.getInstance().removeSimultaneousCallingChangeListener(this);
+    }
     phoneAccountChangedReceiver.unregister();
     isInCallButtonUiReady = false;
   }
@@ -565,8 +574,10 @@ public class CallButtonPresenter
       return false;
     }
 
-    if (telephonyManager.isDsdsTransitionSupported()) {
-        return true;
+    // Swap is supported irrespective of subs if UE is in DSDA or DSDS transition modes.
+    if (telephonyManager.isDsdsTransitionSupported() ||
+        InCallPresenter.getInstance().isInDsdaMode()) {
+      return true;
     }
     // if UE is in DSDS but the calls are on different phone accounts
     // don't allow swap if dsds transition mode is not supported
@@ -822,6 +833,16 @@ public class CallButtonPresenter
   @Override
   public Context getContext() {
     return context;
+  }
+
+  @Override
+  public void onSimultaneousCallingChanged(Set<Integer> subIds) {
+    LogUtil.i(
+        "CallButtonPresenter.onSimultaneousCallingChanged: ", "subIdSet: " + subIds);
+    if (inCallButtonUi == null || call == null) {
+      return;
+    }
+    updateButtonsState(call);
   }
 
   private InCallActivity getActivity() {
