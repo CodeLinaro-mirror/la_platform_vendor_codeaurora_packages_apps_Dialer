@@ -1348,14 +1348,20 @@ public class VideoCallPresenter
 
   @Override
   public void maybeSwitchSecondCamera() {
-    if (isDualVideoCallEnabled()) {
-      InCallCameraManager cameraManager = InCallPresenter.getInstance().getInCallCameraManager();
-      try {
-        mVideoCallProviderManager.setCamera(cameraManager.getSecondaryCameraId());
-      } catch (QtiImsException ex) {
-        LogUtil.e("VideoCallPresenter.maybeSwitchSecondCamera",
-            "exception attempting to setCamera");
-      }
+    if (!isDualVideoCallEnabled()) {
+      return;
+    }
+    if (mVideoCallProviderManager == null) {
+      LogUtil.e("VideoCallPresenter.maybeSwitchSecondCamera",
+                "mVideoCallProviderManager is null.");
+      return;
+    }
+    InCallCameraManager cameraManager = InCallPresenter.getInstance().getInCallCameraManager();
+    try {
+      mVideoCallProviderManager.setCamera(cameraManager.getSecondaryCameraId());
+    } catch (QtiImsException ex) {
+      LogUtil.e("VideoCallPresenter.maybeSwitchSecondCamera",
+                "exception attempting to setCamera");
     }
   }
 
