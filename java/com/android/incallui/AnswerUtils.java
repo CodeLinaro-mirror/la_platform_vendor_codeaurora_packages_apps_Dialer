@@ -24,6 +24,10 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui;
@@ -64,6 +68,14 @@ public class AnswerUtils {
         if (isCurrentCallHoldable && isDsda) {
             continue;
         }
+
+        // This check is added for carriers not supporting hold, however implicit hold
+        // is supported, in such cases when this API is called it should be Telecom
+        // which determines the correct sequence of operations. However if device is
+        // in Pseudo DSDA then disconnect should be initiated from Dialer.
+        boolean isPseudoDsda = !isDsda && !incomingPa.equals(currentCall.getPhoneAccount());
+        if (currentCall.shouldIgnoreExtraForDroppingFgCall() && !isPseudoDsda) continue;
+
         isCallAvailableToDisconnect = true;
         currentCall.setReleasedByAnsweringSecondCall(true);
         currentCall.addListener(
