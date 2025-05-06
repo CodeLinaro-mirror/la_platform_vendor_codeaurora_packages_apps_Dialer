@@ -67,6 +67,7 @@ import com.android.dialer.logging.DialerImpression;
 import com.android.dialer.logging.Logger;
 import com.android.dialer.multimedia.MultimediaData;
 import com.android.dialer.telecom.TelecomUtil;
+import com.android.dialer.util.PermissionsUtil;
 import com.android.dialer.util.ViewUtil;
 import com.android.incallui.BottomSheetHelper;
 import com.android.incallui.ExtBottomSheetFragment.ExtBottomSheetActionCallback;
@@ -962,6 +963,16 @@ public class AnswerFragment extends Fragment
       int requestedVideoState = VideoProfile.STATE_AUDIO_ONLY;
       if (call != null) {
         requestedVideoState = call.getVideoTech().getRequestedVideoState();
+      }
+
+      // if toast is not shown but camera permission is already granted, then toast
+      // can be shown here
+      if ((VideoCallPresenter.isTransmissionEnabled(call)
+          || VideoProfile.isTransmissionEnabled(requestedVideoState))
+          && VideoUtils.hasCameraPermission(getContext())
+          && !PermissionsUtil.hasCameraPrivacyToastShown(getContext())) {
+        LogUtil.i("AnswerFragment.onCreateView", "camera permission is granted, show toast");
+        PermissionsUtil.showCameraPermissionToast(getContext());
       }
 
       if (VideoUtils.hasCameraPermissionAndShownPrivacyToast(getContext()) &&
