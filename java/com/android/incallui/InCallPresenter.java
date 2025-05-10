@@ -1546,8 +1546,8 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     if (tm == null) return;
     if (telephonyCallback == null ) {
       telephonyCallback = new TelephonyCallbackListener();
+      tm.registerTelephonyCallback(mExecutor, telephonyCallback);
     }
-    tm.registerTelephonyCallback(mExecutor, telephonyCallback);
   }
 
   private void unregisterSimultaneousCallingCallback() {
@@ -2098,6 +2098,10 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
         callList = null;
       }
 
+      unregisterSimultaneousCallingCallback();
+
+      // All unregister telephony callback operations should be called before
+      // context is set to null.
       context = null;
       inCallActivity = null;
       manageConferenceActivity = null;
@@ -2114,7 +2118,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
         LogUtil.e("InCallPresenter.attemptCleanup", "held in call locks: " + inCallUiLocks);
         inCallUiLocks.clear();
       }
-      unregisterSimultaneousCallingCallback();
+
       simultaneousCallingChangeListeners.clear();
       LogUtil.d("InCallPresenter.attemptCleanup", "finished");
     }
