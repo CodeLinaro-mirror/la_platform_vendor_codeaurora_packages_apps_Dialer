@@ -16,7 +16,7 @@
 
 /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -46,6 +46,7 @@ import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
+import android.telephony.UiccSlotInfo;
 import android.text.TextUtils;
 import android.util.Pair;
 import android.view.LayoutInflater;
@@ -99,8 +100,11 @@ public class SpecialCharSequenceMgr {
   private static final String ADN_NAME_COLUMN_NAME = "name";
   private static final int ADN_QUERY_TOKEN = -1;
 
+  private static final String PROPERTY_DSDS_TO_SS = "persist.vendor.radio.dsds_to_ss";
   private static ExtTelephonyManager mExtTelephonyManager = null;
   private static boolean mIsServiceBound;
+
+  private static int sDsdsToSsConfigStatus = -1;
 
   /**
    * Remembers the previous {@link QueryHandler} and cancel the operation when needed, to prevent
@@ -342,6 +346,7 @@ public class SpecialCharSequenceMgr {
       public void onConnected() {
           LogUtil.d("SpecialCharSequenceMgr", "ExtTelephony Service connected");
           mIsServiceBound = true;
+          queryDsdsToSsConfig();
       }
       @Override
       public void onDisconnected() {
@@ -354,6 +359,29 @@ public class SpecialCharSequenceMgr {
       return mIsServiceBound;
   }
 
+  private static UiccSlotInfo[] getUiccSlotsInfo(Context context) {
+      UiccSlotInfo[] slotsInfo = null;
+      TelephonyManager telephonyManager = (TelephonyManager)
+              context.getSystemService(Context.TELEPHONY_SERVICE);
+
+      if (telephonyManager != null) {
+          slotsInfo = telephonyManager.getUiccSlotsInfo();
+      }
+      return slotsInfo;
+   }
+
+  /**
+    * Querying the DSDS to SSSS configuration status.
+    *
+    * If sDsdsToSsConfigStatus is 1, it means the dsds_to_ss property is enabled.
+    * If sDsdsToSsConfigStatus is 0, it means the dsds_to_ss property is not enabled.
+    */
+  private static void queryDsdsToSsConfig() {
+      if (sDsdsToSsConfigStatus == -1) {
+          sDsdsToSsConfigStatus = mExtTelephonyManager.getPropertyValueInt(PROPERTY_DSDS_TO_SS, 0);
+      }
+  }
+
   // TODO: Use TelephonyCapabilities.getDeviceIdLabel() to get the device id label instead of a
   // hard-coded string.
   @SuppressLint("HardwareIds")
@@ -364,8 +392,9 @@ public class SpecialCharSequenceMgr {
     TelephonyManager telephonyManager =
         (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
 
-    if (TelephonyManagerCompat.getPhoneCount(telephonyManager) > 1 &&
-            mExtTelephonyManager == null) {
+    UiccSlotInfo[] slotsInfo = getUiccSlotsInfo(context);
+    if ((TelephonyManagerCompat.getPhoneCount(telephonyManager) > 1 || slotsInfo != null
+            && slotsInfo.length > 1) && mExtTelephonyManager == null) {
         mExtTelephonyManager = ExtTelephonyManager.getInstance(context);
         mExtTelephonyManager.connectService(mServiceCallback);
         LogUtil.d("SpecialCharSequenceMgr", "Connect to ExtTelephony bound service...");
@@ -377,9 +406,10 @@ public class SpecialCharSequenceMgr {
       View customView = LayoutInflater.from(context).inflate(R.layout.dialog_deviceids, null);
       ViewGroup holder = customView.findViewById(R.id.deviceids_holder);
 
-      if (TelephonyManagerCompat.getPhoneCount(telephonyManager) > 1) {
+      if (TelephonyManagerCompat.getPhoneCount(telephonyManager) > 1 || (sDsdsToSsConfigStatus == 1
+              && slotsInfo != null && slotsInfo.length > 1)) {
         String deviceId = null;
-        for (int slot = 0; slot < telephonyManager.getPhoneCount(); slot++) {
+        for (int slot = 0; slotsInfo != null && slot < slotsInfo.length; slot++) {
           // Add MEID
           final String meid = telephonyManager.getMeid(slot);
           if ((deviceId == null && isValidMeid(meid))
@@ -401,7 +431,9 @@ public class SpecialCharSequenceMgr {
           Pair<Integer, Integer> radioVersion = telephonyManager.getHalVersion(
               TelephonyManager.HAL_SERVICE_MODEM);
           int halVersion = makeRadioVersion(radioVersion.first, radioVersion.second);
-          if (halVersion > makeRadioVersion(2, 0)) {
+          if (halVersion > makeRadioVersion(2, 0) && !(sDsdsToSsConfigStatus == 1
+                  && slotsInfo != null && slotsInfo.length > 1)) {
+
             imei = telephonyManager.getImei(slot);
             if (!TextUtils.isEmpty(imei)) {
               String primaryImei = null;
