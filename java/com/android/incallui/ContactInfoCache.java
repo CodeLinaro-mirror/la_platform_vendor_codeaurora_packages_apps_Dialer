@@ -780,6 +780,63 @@ public class ContactInfoCache implements OnImageLoadCompleteListener {
           + isVoicemailNumber
           + '}';
     }
+
+    @Override
+    public boolean equals (Object o) {
+      if (o instanceof ContactCacheEntry) {
+        ContactCacheEntry entry = (ContactCacheEntry) o;
+        return Objects.equals(namePrimary, entry.namePrimary)
+            && Objects.equals(nameAlternative, entry.nameAlternative)
+            && Objects.equals(number, entry.number)
+            && Objects.equals(location, entry.location)
+            && Objects.equals(label, entry.label)
+            && photo == entry.photo
+            && photoType == entry.photoType
+            && isSipCall == entry.isSipCall
+            && hasPendingQuery == entry.hasPendingQuery
+            && Objects.equals(displayPhotoUri, entry.displayPhotoUri)
+            && Objects.equals(lookupUri, entry.lookupUri)
+            && Objects.equals(lookupKey, entry.lookupKey)
+            && contactLookupResult == entry.contactLookupResult
+            && userType == entry.userType
+            && Objects.equals(contactRingtoneUri, entry.contactRingtoneUri)
+            && queryId == queryId
+            && Objects.equals(originalPhoneNumber, entry.originalPhoneNumber)
+            && shouldShowLocation == entry.shouldShowLocation
+            && isBusiness == entry.isBusiness
+            && isEmergencyNumber == entry.isEmergencyNumber
+            && isVoicemailNumber == entry.isVoicemailNumber;
+      }
+      return false;
+    }
+
+    public void update(ContactCacheEntry entry) {
+      if (entry == null) {
+        return;
+      }
+      namePrimary = entry.namePrimary;
+      nameAlternative = entry.nameAlternative;
+      number = entry.number;
+      location = entry.location;
+      label = entry.label;
+      photo = entry.photo;
+      photoType = entry.photoType;
+      isSipCall = entry.isSipCall;
+      hasPendingQuery = entry.hasPendingQuery;
+      displayPhotoUri = entry.displayPhotoUri;
+      lookupUri = entry.lookupUri;
+      lookupKey = entry.lookupKey;
+      contactLookupResult = entry.contactLookupResult;
+      userType = entry.userType;
+      contactRingtoneUri = entry.contactRingtoneUri;
+      queryId = entry.queryId;
+      originalPhoneNumber = entry.originalPhoneNumber;
+      shouldShowLocation = entry.shouldShowLocation;
+      isBusiness = entry.isBusiness;
+      isEmergencyNumber = entry.isEmergencyNumber;
+      isVoicemailNumber = entry.isVoicemailNumber;
+    }
+
   }
 
   private static final class DialerCallCookieWrapper {

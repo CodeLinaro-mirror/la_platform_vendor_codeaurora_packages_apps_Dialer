@@ -677,11 +677,17 @@ public class CallCardPresenter
   private void updateContactEntry(ContactCacheEntry entry, boolean isPrimary) {
     if (isPrimary) {
       if (Objects.equals(primaryContactInfo, entry)) return;
-      primaryContactInfo = entry;
+      if (primaryContactInfo == null){
+        primaryContactInfo =  new ContactCacheEntry();
+      }
+      primaryContactInfo.update(entry);
       updatePrimaryDisplayInfo();
     } else {
       if (Objects.equals(secondaryContactInfo, entry)) return;
-      secondaryContactInfo = entry;
+      if (secondaryContactInfo == null){
+        secondaryContactInfo =  new ContactCacheEntry();
+      }
+      secondaryContactInfo.update(entry);
       updateSecondaryDisplayInfo();
     }
   }

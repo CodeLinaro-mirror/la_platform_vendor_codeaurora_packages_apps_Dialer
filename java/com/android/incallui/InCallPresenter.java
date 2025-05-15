@@ -13,39 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- *
- * Copyright (c) 2021, 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted (subject to the limitations in the
- * disclaimer below) provided that the following conditions are met:
- *
- *  * Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- *  * Redistributions in binary form must reproduce the above
- *    copyright notice, this list of conditions and the following
- *    disclaimer in the documentation and/or other materials provided
- *    with the distribution.
- *
- *  * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
- * GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
- * HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
- * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
- * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
- * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ​​​​​Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  *
  */
 
@@ -71,6 +41,7 @@ import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telephony.PhoneStateListener;
 import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyCallback;
 import android.telephony.TelephonyManager;
 import android.util.ArraySet;
 import android.view.Window;
@@ -117,6 +88,7 @@ import com.android.incallui.videosurface.protocol.VideoSurfaceTexture;
 import com.android.incallui.videotech.utils.VideoUtils;
 import com.google.protobuf.InvalidProtocolBufferException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -173,6 +145,9 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   private final Set<InCallDisconnectedListener> inCallDisconnectedListeners =
       Collections.newSetFromMap(
           new ConcurrentHashMap<InCallDisconnectedListener, Boolean>(8, 0.9f, 1));
+  private final Set<SimultaneousCallingChangeListener> simultaneousCallingChangeListeners =
+      Collections.newSetFromMap(
+          new ConcurrentHashMap<SimultaneousCallingChangeListener, Boolean>(8, 0.9f, 1));
 
   private StatusBarNotifier statusBarNotifier;
   private ExternalCallNotifier externalCallNotifier;
@@ -269,6 +244,22 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
         }
       };
 
+  private class TelephonyCallbackListener extends TelephonyCallback implements
+      TelephonyCallback.SimultaneousCellularCallingSupportListener {
+
+    @Override
+    public void onSimultaneousCellularCallingSubscriptionsChanged(
+        @NonNull Set<Integer> subIds) {
+      if (!simultaneousCallingSubIds.equals(subIds)) {
+        simultaneousCallingSubIds.clear();
+        simultaneousCallingSubIds.addAll(subIds);
+        notifySimultaneousCallingChangeListener(simultaneousCallingSubIds);
+      }
+    }
+  }
+
+  private TelephonyCallbackListener telephonyCallback;
+  private Set<Integer> simultaneousCallingSubIds = new HashSet<Integer>();
   private ThemeColorManager themeColorManager;
   private VideoSurfaceTexture localVideoSurfaceTexture;
   private VideoSurfaceTexture remoteVideoSurfaceTexture;
@@ -460,6 +451,8 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     addDetailsListener(callDetailsListener);
     addDetailsListener(CallSubstateNotifier.getInstance());
     addInCallDisconnectedListener(CallSubstateNotifier.getInstance());
+
+    registerSimultaneousCallingCallback();
 
     LogUtil.d("InCallPresenter.setUp", "Finished InCallPresenter.setUp");
     Trace.endSection();
@@ -1146,14 +1139,20 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       }
     }
 
-    // Then we go to background call (calls on hold)
+    // If we have active + held call and then swap, the call in foreground will be
+    // the last call which went into held state.
+    if (ignore == null && callList.getSecondBackgroundCall() != null) {
+      retval = callList.getLastHeldCall();
+      if (retval != null) {
+        return retval;
+      }
+    }
+
+    // Lastly, we go to background call (calls on hold)
     retval = callList.getBackgroundCall();
     if (retval != null && retval != ignore) {
       return retval;
     }
-
-    // Lastly, we go to a second background call.
-    retval = callList.getSecondBackgroundCall();
 
     return retval;
   }
@@ -1509,6 +1508,51 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     for (InCallDisconnectedListener listener : inCallDisconnectedListeners) {
       listener.onCallDisconnected(call);
     }
+  }
+
+  // In DSDA mode, the number of subids supporting simultaneous calling
+  // will be 2 or more.
+  public boolean isInDsdaMode() {
+    return simultaneousCallingSubIds.size() > 1;
+  }
+
+  public void addSimultaneousCallingChangeListener(SimultaneousCallingChangeListener listener) {
+    if (listener == null) {
+      return;
+    }
+    simultaneousCallingChangeListeners.add(listener);
+  }
+
+  public void removeSimultaneousCallingChangeListener(
+      SimultaneousCallingChangeListener listener) {
+    if (listener == null) {
+      return;
+    }
+    simultaneousCallingChangeListeners.remove(listener);
+  }
+
+  private void notifySimultaneousCallingChangeListener(Set<Integer> subIds) {
+    for (SimultaneousCallingChangeListener listener : simultaneousCallingChangeListeners) {
+      listener.onSimultaneousCallingChanged(subIds);
+    }
+  }
+
+  private void registerSimultaneousCallingCallback() {
+    if (context == null) return;
+    TelephonyManager tm = context.getSystemService(TelephonyManager.class);
+    if (tm == null) return;
+    if (telephonyCallback == null ) {
+      telephonyCallback = new TelephonyCallbackListener();
+    }
+    tm.registerTelephonyCallback(mExecutor, telephonyCallback);
+  }
+
+  private void unregisterSimultaneousCallingCallback() {
+    if (context == null || telephonyCallback == null) return;
+    TelephonyManager tm = context.getSystemService(TelephonyManager.class);
+    if (tm == null) return;
+    tm.unregisterTelephonyCallback(telephonyCallback);
+    telephonyCallback = null;
   }
 
   public ProximitySensor getProximitySensor() {
@@ -2067,6 +2111,8 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
         LogUtil.e("InCallPresenter.attemptCleanup", "held in call locks: " + inCallUiLocks);
         inCallUiLocks.clear();
       }
+      unregisterSimultaneousCallingCallback();
+      simultaneousCallingChangeListeners.clear();
       LogUtil.d("InCallPresenter.attemptCleanup", "finished");
     }
   }
@@ -2424,6 +2470,11 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   public interface InCallUiListener {
 
     void onUiShowing(boolean showing);
+  }
+
+  public interface SimultaneousCallingChangeListener {
+    void onSimultaneousCallingChanged(
+        @NonNull Set<Integer> simultaneousCallingSubscriptionIds);
   }
 
   private class InCallUiLockImpl implements InCallUiLock {

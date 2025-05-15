@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * ​​​​​Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -56,6 +56,7 @@ import com.android.incallui.videotech.utils.SessionModificationState;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -79,6 +80,8 @@ public class CallList implements DialerCallDelegate {
 
   private final Map<String, DialerCall> callById = new ArrayMap<>();
   private final Map<android.telecom.Call, DialerCall> callByTelecomCall = new ArrayMap<>();
+
+  private ArrayList<DialerCall> heldCallList = new ArrayList<>();
 
   /**
    * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is load factor before
@@ -501,6 +504,27 @@ public class CallList implements DialerCallDelegate {
     return true;
   }
 
+  public DialerCall getLastHeldCall() {
+    for (int i = heldCallList.size() - 1; i >= 0; i--) {
+        DialerCall call = heldCallList.get(i);
+        if (call != null && !isCallDead(call) && call.getState() != DialerCallState.DISCONNECTED) {
+            return call;
+        }
+    }
+    return null;
+  }
+
+  // Add calls that move into the held state to the end of the list. Remove calls that move out
+  // of the held state from the list.
+  private void updateLastHeldCall(DialerCall call) {
+     if (call.getState() == DialerCallState.ONHOLD && !heldCallList.contains(call)) {
+       heldCallList.add(call);
+     } else if (call.getState() != DialerCallState.ONHOLD && heldCallList.contains(call)) {
+       heldCallList.remove(call);
+     }
+    LogUtil.d("heldcallist", String.valueOf(heldCallList));
+  }
+
   /**
    * Returns the first call found in the call map with the upgrade to video modification state.
    *
@@ -629,6 +653,8 @@ public class CallList implements DialerCallDelegate {
       // calls doesn't contain the call which received the update.
       return;
     }
+
+    updateLastHeldCall(call);
 
     if (updateCallInMap(call)) {
       LogUtil.i("CallList.onUpdateCall", String.valueOf(call));
