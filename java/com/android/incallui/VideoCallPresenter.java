@@ -616,6 +616,9 @@ public class VideoCallPresenter
       }
     }
     if (isDualVideoCallEnabled()) {
+      if (mQtiImsExtConnector == null) {
+        maybeCreateQtiImsExtConnector(context, DUAL_VIDEO);
+      }
       Point source2VideoDimensions = getRemote2VideoSurfaceTexture().getSourceVideoDimensions();
       if (source2VideoDimensions != null && primaryCall != null) {
         int width = primaryCall.getPeer2DimensionWidth();
@@ -667,6 +670,8 @@ public class VideoCallPresenter
       maybeUnsetPauseImage();
       updateCameraSelection(primaryCall);
     }
+    // clear side-car connector if connector is not null, exitVideoMode is not always called
+    clearVideoCallProvider();
     InCallPresenter.getInstance().enableScreenTimeout(true);
 
     videoCallScreen = null;
@@ -1244,8 +1249,8 @@ public class VideoCallPresenter
     Log.i("VideoCallPresenter.onDetailsChanged", "getToken: " + call.getToken());
     if(isDualVideoCallEnabled() && mVideoCallProviderManager == null
                && call.getToken() != QtiCallConstants.INVALID_TOKEN_ID) {
-      Log.i("VideoCallPresenter.onDetailsChanged", "maybeCreateConnector");
       if (mQtiImsExtConnector == null) {
+          Log.i("VideoCallPresenter.onDetailsChanged", "maybeCreateConnector");
           maybeCreateQtiImsExtConnector(context, DUAL_VIDEO);
       } else {
         // mVideoCallProviderManager is not created, try to set the listener again
@@ -1604,8 +1609,8 @@ public class VideoCallPresenter
               "unable to disable camera2");
         }
         removeVideoCallProviderListener();
-        clearVideoCallProvider();
     }
+    clearVideoCallProvider();
 
     if (primaryCall != null &&
         videoCall != null &&
