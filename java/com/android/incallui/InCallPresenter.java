@@ -1148,11 +1148,14 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       }
     }
 
-    // Lastly, we go to background call (calls on hold)
+    // Then we go to background call (calls on hold)
     retval = callList.getBackgroundCall();
     if (retval != null && retval != ignore) {
       return retval;
     }
+
+    // Lastly, we go to a second background call.
+    retval = callList.getSecondBackgroundCall();
 
     return retval;
   }

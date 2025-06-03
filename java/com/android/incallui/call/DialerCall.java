@@ -1856,27 +1856,14 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     //    number.
     boolean showCallbackNumber = hasProperty(Details.PROPERTY_EMERGENCY_CALLBACK_MODE);
     if (TextUtils.isEmpty(callbackNumber)) {
-      callbackNumber = "";
-      if ((isEmergencyCall() || showCallbackNumber) && telecomManager != null) {
-        callbackNumber = telecomManager.getLine1Number(getAccountHandle());
-        if (TextUtils.isEmpty(callbackNumber)) {
-          callbackNumber = "";
-          TelephonyManager telephonyManager = context.getSystemService(TelephonyManager.class);
-          SubscriptionManager subscriptionManager = context.getSystemService(
-              SubscriptionManager.class);
-          if (telephonyManager == null || subscriptionManager == null) {
-            return callbackNumber;
-          }
-          SubscriptionInfo subInfo = subscriptionManager.getActiveSubscriptionInfo(
-              telephonyManager.getSubIdForPhoneAccount(getPhoneAccount()));
-          if (subInfo == null) {
-            return callbackNumber;
-          }
-          String number = subInfo.getNumber();
-          if (!TextUtils.isEmpty(number)) {
-            callbackNumber = number;
-          }
-        }
+      if (isEmergencyCall() || showCallbackNumber) {
+        callbackNumber =
+            telecomManager != null ? telecomManager.getLine1Number(getAccountHandle())
+            : null;
+      }
+
+      if (callbackNumber == null) {
+        callbackNumber = "";
       }
     } else if (!showCallbackNumber && !isEmergencyCall()) {
         callbackNumber = "";
