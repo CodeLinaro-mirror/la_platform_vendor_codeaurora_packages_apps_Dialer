@@ -1162,7 +1162,7 @@ public class VideoCallPresenter
   private void onPrimaryCallChanged(DialerCall newPrimaryCall) {
     final boolean shouldShowVideoUi = shouldShowVideoUiForCall(newPrimaryCall);
     final boolean isVideoMode = isVideoMode();
-    if (ScreenShareHelper.screenShareRequested()) {
+    if (ScreenShareHelper.screenShareRequested() && primaryCall != null) {
         exitScreenShare();
         clearScreenShareStates();
     }
