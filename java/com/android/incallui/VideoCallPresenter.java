@@ -1248,7 +1248,8 @@ public class VideoCallPresenter
     }
     Log.i("VideoCallPresenter.onDetailsChanged", "getToken: " + call.getToken());
     if(isDualVideoCallEnabled() && mVideoCallProviderManager == null
-               && call.getToken() != QtiCallConstants.INVALID_TOKEN_ID) {
+               && call.getToken() != QtiCallConstants.INVALID_TOKEN_ID
+               && isVideoCallScreenUiReady) {
       if (mQtiImsExtConnector == null) {
           Log.i("VideoCallPresenter.onDetailsChanged", "maybeCreateConnector");
           maybeCreateQtiImsExtConnector(context, DUAL_VIDEO);
