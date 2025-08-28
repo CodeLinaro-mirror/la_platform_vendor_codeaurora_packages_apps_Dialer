@@ -25,8 +25,8 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * ​​​​​Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -215,8 +215,7 @@ public class OrientationModeHandler implements InCallDetailsListener, InCallUiLi
                 && (call.getNonConferenceState() != DialerCallState.DISCONNECTED)
                 && !QtiCallUtils.isVideoCrs(call)
                 && !QtiCallUtils.hasVideoCrbtVoLteCall(call.getContext())
-                && !QtiCallUtils.isVisualizedVoiceCall(call)
-                && !call.isDualVtCall()) {
+                && !QtiCallUtils.isVisualizedVoiceCall(call)) {
             return (mOrientationMode == QtiCallConstants.ORIENTATION_MODE_UNSPECIFIED) ?
                     InCallOrientationEventListener.ACTIVITY_PREFERENCE_ALLOW_ROTATION :
                     QtiCallUtils.toScreenOrientation(mOrientationMode);
