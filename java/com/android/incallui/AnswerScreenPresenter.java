@@ -222,9 +222,8 @@ public class AnswerScreenPresenter
 
   private void performDisconnectAllAndAnswer(DialerCall incomingCall, boolean answerVideoAsAudio) {
     LogUtil.enterBlock("AnswerScreenPresenter.performDisconnectAllAndAnswer");
-    int videoState = (answerVideoAsAudio || (QtiCallUtils.isVideoCrs(incomingCall) &&
-        !QtiCallUtils.isVideoCallOriginally(incomingCall)))
-            ? VideoProfile.STATE_AUDIO_ONLY : incomingCall.getVideoState();
+    int videoState = answerVideoAsAudio ?
+        VideoProfile.STATE_AUDIO_ONLY : incomingCall.getVideoState();
     AnswerUtils.disconnectCallsAndAnswer(videoState);
   }
 

@@ -158,8 +158,6 @@ public class AnswerFragment extends Fragment
 
   static final String ARG_HAS_VIDEO_CRS = "has_video_crs";
 
-  static final String ARG_IS_VIDEO_ORIGINALLY = "is_video_call_originally";
-
   private static final String STATE_HAS_ANIMATED_ENTRY = "hasAnimated";
 
   private static final int HINT_SECONDARY_SHOW_DURATION_MILLIS = 5000;
@@ -418,8 +416,7 @@ public class AnswerFragment extends Fragment
       boolean allowAnswerAndRelease,
       boolean hasCallOnHold,
       boolean allowSpeakEasy,
-      boolean hasVideoCrs,
-      boolean isVideoCallOriginally) {
+      boolean hasVideoCrs) {
     Bundle bundle = new Bundle();
     bundle.putString(ARG_CALL_ID, Assert.isNotNull(callId));
     bundle.putBoolean(ARG_IS_RTT_CALL, isRttCall);
@@ -430,7 +427,6 @@ public class AnswerFragment extends Fragment
     bundle.putBoolean(ARG_HAS_CALL_ON_HOLD, hasCallOnHold);
     bundle.putBoolean(ARG_ALLOW_SPEAK_EASY, allowSpeakEasy);
     bundle.putBoolean(ARG_HAS_VIDEO_CRS, hasVideoCrs);
-    bundle.putBoolean(ARG_IS_VIDEO_ORIGINALLY, isVideoCallOriginally);
 
     AnswerFragment instance = new AnswerFragment();
     instance.setArguments(bundle);
@@ -1118,8 +1114,7 @@ public class AnswerFragment extends Fragment
 
   @Override
   public boolean isVideoCall() {
-    return getArguments().getBoolean(ARG_IS_VIDEO_CALL)
-        && getArguments().getBoolean(ARG_IS_VIDEO_ORIGINALLY);
+    return getArguments().getBoolean(ARG_IS_VIDEO_CALL);
   }
 
   @Override
@@ -1156,11 +1151,7 @@ public class AnswerFragment extends Fragment
 
   @Override
   public void answerFromMethod() {
-    if (isVideoUpgradeRequest() || getArguments().getBoolean(ARG_IS_VIDEO_ORIGINALLY)) {
-        acceptCallByUser(false /* answerVideoAsAudio */);
-    } else {
-        acceptCallByUser(true /* answerVideoAsAudio */);
-    }
+    acceptCallByUser(false /* answerVideoAsAudio */);
   }
 
   @Override

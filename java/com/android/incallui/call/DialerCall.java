@@ -1789,10 +1789,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   }
 
   public void answer() {
-    int videoState = (QtiCallUtils.isVideoCrs(this) &&
-        !QtiCallUtils.isVideoCallOriginally(this))
-        ? VideoProfile.STATE_AUDIO_ONLY : telecomCall.getDetails().getVideoState();
-    answer(videoState);
+    answer(telecomCall.getDetails().getVideoState());
   }
 
   public boolean isAnswered() {

@@ -25,10 +25,10 @@
 * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear
+*
+* Changes from Qualcomm Technologies, Inc. are provided under the following license:
+* Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
 package com.android.incallui;
@@ -603,35 +603,10 @@ public class QtiCallUtils {
         if (extras == null) {
             return false;
         }
-        int crsType = extras.getInt(QtiCallConstants.EXTRA_CRS_TYPE,
-                QtiCallConstants.CRS_TYPE_INVALID);
-        return  (crsType & QtiCallConstants.CRS_TYPE_VIDEO) == QtiCallConstants.CRS_TYPE_VIDEO;
-    }
-
-    //Checks what's original call type of video CRS
-    private static int getOriginalCallType(DialerCall call) {
-        if (!isVideoCrs(call)) {
-            return call.getVideoState();
-        }
-        //Ideally if call has video CRS, then original call type should be there.
-        Bundle extras = call.getExtras();
-        if (extras == null) {
-            return UNKNOWN_CALL_TYPE;
-        }
-        return extras.getInt(QtiCallConstants.EXTRA_ORIGINAL_CALL_TYPE,
-                UNKNOWN_CALL_TYPE);
-    }
-
-    //Checks if original call type is VT with or without video CRS
-    public static boolean isVideoCallOriginally(DialerCall call) {
-        if (!isVideoCrs(call)) {
-            return call == null ? false : call.isVideoCall();
-        }
-        int originalCallType = getOriginalCallType(call);
-        if (originalCallType == UNKNOWN_CALL_TYPE) {
-            Log.w(LOG_TAG, "Video CRS call has no original call type, it's not expected.");
-        }
-        return VideoProfile.STATE_BIDIRECTIONAL == originalCallType;
+        int crsType = extras.getInt(android.telecom.Call.EXTRA_CRS_MEDIA_TYPE,
+                android.telecom.Call.CRS_MEDIA_TYPE_NONE);
+        return  (crsType & android.telecom.Call.CRS_MEDIA_TYPE_VIDEO)
+            == android.telecom.Call.CRS_MEDIA_TYPE_VIDEO;
     }
 
     public static boolean isPreparatory(DialerCall call) {

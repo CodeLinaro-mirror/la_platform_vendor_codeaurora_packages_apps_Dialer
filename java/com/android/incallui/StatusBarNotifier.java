@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -517,7 +517,7 @@ public class StatusBarNotifier
       addHangupAction(builder, person);
       addSpeakerAction(builder, callAudioState);
     } else if (state == DialerCallState.INCOMING || state == DialerCallState.CALL_WAITING) {
-      if (call.isVideoCall() && QtiCallUtils.isVideoCallOriginally(call)) {
+      if (call.isVideoCall()) {
         addDismissAndVideoCallAction(builder, person);
       } else {
         addDismissAndAnswerAction(builder, person);
@@ -737,9 +737,9 @@ public class StatusBarNotifier
       return R.drawable.quantum_ic_phone_paused_vd_theme_24;
     } else if (call.getVideoTech().getSessionModificationState()
             == SessionModificationState.RECEIVED_UPGRADE_TO_VIDEO_REQUEST
-            || (call.isVideoCall() && QtiCallUtils.isVideoCallOriginally(call)
-            && !QtiCallUtils.hasVideoCrbtVoLteCall(context, call)
-            && !QtiCallUtils.isVisualizedVoiceCall(call))) {
+            || (call.isVideoCall()
+                && !QtiCallUtils.hasVideoCrbtVoLteCall(context, call)
+                && !QtiCallUtils.isVisualizedVoiceCall(call))) {
       return R.drawable.quantum_ic_videocam_vd_white_24;
     } else if (call.hasProperty(PROPERTY_HIGH_DEF_AUDIO)
         && MotorolaUtils.shouldShowHdIconInNotification(context)) {
@@ -798,7 +798,7 @@ public class StatusBarNotifier
         message = context.getString(R.string.notification_incoming_call_wifi_template, wifiBrand);
       } else if (call.getAccountHandle() != null && hasMultiplePhoneAccounts(call)) {
         return getMultiSimIncomingText(call);
-      } else if (call.isVideoCall() && QtiCallUtils.isVideoCallOriginally(call)) {
+      } else if (call.isVideoCall()) {
         message = context.getString(R.string.notification_incoming_video_call);
       } else {
         message = getIncomingCallNotificationMessage(isWorkCall);

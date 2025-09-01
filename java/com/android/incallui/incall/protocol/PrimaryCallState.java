@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.incall.protocol;
@@ -116,6 +120,7 @@ public abstract class PrimaryCallState {
   public abstract TransformationInfo assistedDialingExtras();
 
   public abstract boolean isCrbtReady();
+  public abstract boolean isCrs();
 
   public static Builder builder() {
     return new AutoValue_PrimaryCallState.Builder()
@@ -138,7 +143,9 @@ public abstract class PrimaryCallState {
         .setSwapToSecondaryButtonState(ButtonState.NOT_SUPPORT)
         .setIsAssistedDialed(false)
         .setPrimaryColor(0)
-        .setIsCrbtReady(false);
+        .setIsCrbtReady(false)
+        .setIsCrs(false);
+
   }
 
   /** Builder class for primary call state info. */
@@ -203,6 +210,7 @@ public abstract class PrimaryCallState {
     public abstract Builder setAssistedDialingExtras(TransformationInfo assistedDialingExtras);
 
     public abstract Builder setIsCrbtReady(boolean isCrbtReady);
+    public abstract Builder setIsCrs(boolean isCrs);
 
     abstract PrimaryCallState autoBuild();
 
@@ -259,7 +267,8 @@ public abstract class PrimaryCallState {
           && isAssistedDialed() == callState.isAssistedDialed()
           && Objects.equals(customLabel(), callState.customLabel())
           && Objects.equals(assistedDialingExtras(), callState.assistedDialingExtras())
-          && isCrbtReady() == callState.isCrbtReady();
+          && isCrbtReady() == callState.isCrbtReady()
+          && isCrs() == callState.isCrs();
     }
     return false;
   }

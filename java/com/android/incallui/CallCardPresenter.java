@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  *
- * ​​​​​Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -538,6 +538,7 @@ public class CallCardPresenter
             .setIsCrbtReady((primary.getState() == DialerCallState.DIALING
                 || primary.getState() == DialerCallState.CONNECTING)
                     && primary.isIncomingVideoAvailable())
+            .setIsCrs(QtiCallUtils.isVideoCrs(primary))
             .build();
         if (primaryCallState == null || primaryCallState != null
             && !primaryCallState.equals(callState)) {
