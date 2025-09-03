@@ -24,6 +24,10 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui;
@@ -32,6 +36,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.projection.MediaProjectionManager;
 import com.android.dialer.common.LogUtil;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ScreenShareHelper {
 
@@ -43,6 +50,8 @@ public class ScreenShareHelper {
   public static final int CAMERA = 1;
   public static final int SCREEN = 2;
 
+  private static final Set<ScreenShareListener> screenShareListeners =
+    Collections.newSetFromMap(new ConcurrentHashMap<ScreenShareListener, Boolean>(8, 0.9f, 1));
   private static Intent mPermission = null;
   private static MediaProjectionManager mProjectionManager = null;
 
@@ -78,6 +87,9 @@ public class ScreenShareHelper {
 
   public static void onPermissionChanged(Intent data) {
     mPermission = data;
+    for (ScreenShareListener listener: screenShareListeners) {
+      listener.onScreenSharePermissionChanged();
+    }
   }
 
   public static Intent getPermission() {
@@ -86,5 +98,21 @@ public class ScreenShareHelper {
 
   public static boolean screenShareRequested() {
     return mPermission != null;
+  }
+
+  public static void addScreenShareListener(ScreenShareListener listener) {
+    if (listener != null) {
+      screenShareListeners.add(listener);
+    }
+  }
+
+  public static void removeScreenShareListener(ScreenShareListener listener) {
+    if (listener != null) {
+      screenShareListeners.remove(listener);
+    }
+  }
+
+  public interface ScreenShareListener {
+    void onScreenSharePermissionChanged();
   }
 }
