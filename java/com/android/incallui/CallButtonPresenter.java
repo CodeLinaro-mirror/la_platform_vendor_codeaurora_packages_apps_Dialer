@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -32,6 +32,7 @@ import android.support.v4.os.UserManagerCompat;
 import android.telecom.CallAudioState;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.telecom.VideoProfile;
 import android.telephony.TelephonyManager;
 import android.widget.Toast;
 import com.android.contacts.common.compat.CallCompat;
@@ -528,6 +529,56 @@ public class CallButtonPresenter
         "disconnecting call on launch satellite app button clicked", call);
     info.updateShowDisconnectDialog(false);
     call.disconnect();
+  }
+
+  @Override
+  public void onRttToVideoClicked() {
+    InCallPresenter.getInstance().onRttToVideoClicked();
+  }
+
+  @Override
+  public void downgradeToVoice() {
+    LogUtil.enterBlock("CallButtonPresenter.downgradeToVoice");
+    Assert.isNotNull(call);
+
+    final boolean isRtt = call.isActiveRttCall();
+    final boolean isVideo = call.isVideoCall();
+
+    if (isRtt && isVideo) {
+      BottomSheetHelper.getInstance().requestMoDualTransitionDropBoth();
+      return;
+    }
+    call.sendRttDowngradeRequest();
+  }
+
+  @Override
+  public void downgradeToVideo() {
+    LogUtil.enterBlock("CallButtonPresenter.downgradeToVideo");
+    Assert.isNotNull(call);
+
+    final boolean isRtt = call.isActiveRttCall();
+    final boolean isVideo = call.isVideoCall();
+
+    if (isRtt && !isVideo) {
+      BottomSheetHelper.getInstance().requestMoDualTransitionRttToVt();
+      return;
+    }
+    call.sendRttDowngradeRequest();
+  }
+
+  @Override
+  public void downgradeToRtt() {
+    Assert.isNotNull(call);
+    call.getVideoTech().upgradeToVideo(VideoProfile.STATE_AUDIO_ONLY);
+  }
+
+  /** This API is used to only display the downgrade options
+   *  popup dialog from an RTT overflow menu
+   */
+  @Override
+  public void downgradeCall() {
+    Assert.isNotNull(inCallButtonUi);
+    inCallButtonUi.showDowngradeOptions();
   }
 
   private void updateUi(InCallState state, DialerCall call) {

@@ -13,8 +13,8 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 
-     Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
-     Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+     Changes from Qualcomm Technologies, Inc. are provided under the following license:
+     Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
      SPDX-License-Identifier: BSD-3-Clause-Clear
 -->
 <RelativeLayout
@@ -61,6 +61,15 @@
     android:orientation="vertical"
     android:visibility="invisible"
     tools:visibility="visible">
+    <ImageButton
+      android:id="@+id/videocall_rtt_upgrade"
+      style="@style/Incall.Button.VideoCall"
+      android:layout_marginBottom="@dimen/videocall_button_spacing"
+      android:checked="true"
+      android:src="@drawable/quantum_ic_rtt_vd_theme_24"
+      app:contentDescriptionChecked="@string/incall_content_description_speaker"
+      app:contentDescriptionUnchecked="@string/incall_content_description_earpiece"
+      />
     <com.android.incallui.video.impl.CheckableImageButton
       android:id="@+id/videocall_speaker_button"
       style="@style/Incall.Button.VideoCall"

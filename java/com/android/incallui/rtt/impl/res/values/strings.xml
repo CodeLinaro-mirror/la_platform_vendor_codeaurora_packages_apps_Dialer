@@ -13,6 +13,10 @@
   ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License
+  ~
+  ~ Changes from Qualcomm Technologies, Inc. are provided under the following license:
+  ~ Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+  ~ SPDX-License-Identifier: BSD-3-Clause-Clear
   -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
   <!-- Content description for submit chat input button. [CHAR LIMIT=NONE] -->
@@ -33,4 +37,19 @@
   <!-- Text for RTT transcript advisory. [CHAR LIMIT=NONE] -->
   <string name="rtt_transcript_advisory">The other party can see you typing. Transcripts are stored on your device in the call history.</string>
 
+  <string name="downgrade_call_menu_title">RTT Downgrade menu</string>
+
+  <string name="downgrade_menu">Downgrade options</string>
+
+  <string name="downgrade_to_voice_call">Downgrade to voice</string>
+
+  <string name="downgrade_to_rtt_call">Downgrade to RTT only</string>
+
+  <string name="downgrade_to_video_call">Downgrade to VT only</string>
+
+  <string name="rtt_vt_banner_text">This call also includes video</string>
+
+  <string name="menu_transfer">Transfer options</string>
+
+  <string name="switch_to_video">Switch to Video</string>
 </resources>

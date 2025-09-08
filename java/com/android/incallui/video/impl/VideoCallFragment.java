@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -84,6 +84,8 @@ import com.android.dialer.common.LogUtil;
 import com.android.dialer.satellite.SatelliteInfo;
 import com.android.dialer.util.PermissionsUtil;
 import com.android.incallui.BottomSheetHelper;
+import com.android.incallui.call.CallList;
+import com.android.incallui.call.DialerCall;
 import com.android.incallui.ExtBottomSheetFragment.ExtBottomSheetActionCallback;
 import com.android.incallui.QtiCallUtils;
 import com.android.incallui.audioroute.AudioRouteSelectorDialogFragment;
@@ -128,7 +130,8 @@ public class VideoCallFragment extends Fragment
         OnCheckedChangeListener,
         ExtBottomSheetActionCallback,
         AudioRouteSelectorPresenter,
-        OnApplyWindowInsetsListener {
+        OnApplyWindowInsetsListener,
+        InCallPresenter.InCallEventListener {
 
   @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
   static final String ARG_CALL_ID = "call_id";
@@ -215,6 +218,7 @@ public class VideoCallFragment extends Fragment
   private CheckableImageButton muteButton;
   private CheckableImageButton cameraOffButton;
   private CheckableImageButton holdButton;
+  private ImageButton rttButton;
   private ImageButton swapCameraButton;
   private ImageButton addCallButton;
   private ImageButton mergeCallButton;
@@ -412,6 +416,9 @@ public class VideoCallFragment extends Fragment
     launchSatelliteAppButton = (Button) view.findViewById(R.id.launch_satellite_app);
     launchSatelliteAppButton.setOnClickListener(this);
 
+    rttButton = (ImageButton) view.findViewById(R.id.videocall_rtt_upgrade);
+    rttButton.setOnClickListener(this);
+
     satellitePromptText = (TextView) view.findViewById(R.id.satellite_text);
     moreOptionsMenuButton = view.findViewById(R.id.videocall_more_button);
     moreOptionsMenuButton.setOnClickListener(this);
@@ -573,6 +580,8 @@ public class VideoCallFragment extends Fragment
         contactGridManager.getContainerView().setVisibility(View.INVISIBLE);
         endCallButton.setVisibility(View.INVISIBLE);
     }
+    updateRttButtonVisibility();
+    InCallPresenter.getInstance().addInCallEventListener(this);
   }
 
   @Override
@@ -587,6 +596,7 @@ public class VideoCallFragment extends Fragment
     LogUtil.i("VideoCallFragment.onDestroyView", null);
     inCallButtonUiDelegate.onInCallButtonUiUnready();
     inCallScreenDelegate.onInCallScreenUnready();
+    InCallPresenter.getInstance().removeInCallEventListener(this);
   }
 
   @Override
@@ -617,6 +627,7 @@ public class VideoCallFragment extends Fragment
     super.onResume();
     LogUtil.i("VideoCallFragment.onResume", null);
     inCallScreenDelegate.onInCallScreenResumed();
+    updateRttButtonVisibility();
   }
 
   @Override
@@ -954,6 +965,10 @@ public class VideoCallFragment extends Fragment
     } else if (v == launchSatelliteAppButton) {
       LogUtil.i("VideoCallFragment.onClick", "launch satellite app button clicked");
       inCallButtonUiDelegate.onLaunchSatelliteAppButtonClicked();
+    } else if (v == rttButton) {
+      LogUtil.i("VideoCallFragment.onClick", "rtt button clicked");
+      videoCallScreenDelegate.rttButtonClicked();
+      videoCallScreenDelegate.resetAutoFullscreenTimer();
     }
   }
 
@@ -962,8 +977,19 @@ public class VideoCallFragment extends Fragment
     //Handle bottomsheet clicks here.
     BottomSheetHelper.getInstance().optionSelected(text);
 
-    if (text.equals(getResources().getString(R.string.dialpad_label))) {
-      View container = getView().findViewById(R.id.videocall_dialpad_container);
+    //For RTT switch from bottom sheet fragment may not be attached yet.
+    InCallActivity activity = InCallPresenter.getInstance().getActivity();
+    if (activity == null || text == null) {
+      return;
+    }
+
+    String dialpadLabel = activity.getResources().getString(R.string.dialpad_label);
+    if (text.equals(dialpadLabel)) {
+      View root = getView();
+      if (root == null) {
+        return;
+      }
+      View container = root.findViewById(R.id.videocall_dialpad_container);
       Point previewOffsetStartShown = getPreviewOffsetStartShown();
       container
           .animate()
@@ -2008,6 +2034,28 @@ public class VideoCallFragment extends Fragment
         PermissionsUtil.showCameraPermissionToast(getContext());
         videoCallScreenDelegate.onCameraPermissionGranted();
       }
+    }
+  }
+
+  private void updateRttButtonVisibility() {
+    try {
+      DialerCall call = CallList.getInstance().getCallById(getCallId());
+      boolean hasCall = call != null;
+      if (!hasCall) {
+        return;
+      }
+      boolean featureSupported = BottomSheetHelper.getInstance().isRttVtFeatureSupported();
+
+      boolean isVideo = hasCall && call.isVideoCall();
+      boolean isRttActive = hasCall && call.isActiveRttCall();
+
+      boolean showRttButton =
+          hasCall && isVideo && !isRttActive && featureSupported;
+
+      rttButton.setVisibility(showRttButton ? View.VISIBLE : View.GONE);
+    } catch (Exception e) {
+      LogUtil.e("VideoCallFragment.updateRttButtonVisibility", "error: " + e);
+      rttButton.setVisibility(View.GONE);
     }
   }
 }

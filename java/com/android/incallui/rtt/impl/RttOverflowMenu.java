@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -24,6 +24,9 @@ import android.content.Context;
 import android.telecom.CallAudioState;
 import android.view.View;
 import android.widget.PopupWindow;
+import com.android.dialer.common.LogUtil;
+import com.android.incallui.BottomSheetHelper;
+import com.android.incallui.call.DialerCall;
 import com.android.incallui.incall.protocol.InCallButtonUiDelegate;
 import com.android.incallui.incall.protocol.InCallScreenDelegate;
 import com.android.incallui.rtt.impl.RttCheckableButton.OnCheckedChangeListener;
@@ -37,10 +40,12 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
   private final RttCheckableButton dialpadButton;
   private final RttCheckableButton addCallButton;
   private final RttCheckableButton swapCallButton;
-  private final RttCheckableButton downgradeButton;
+  private final RttCheckableButton downgradeCallButton;
+  private final RttCheckableButton transferButton;
   private final RttCheckableButton mergeCallButton;
   private final RttCheckableButton holdButton;
   private final RttCheckableButton satelliteButton;
+  private final RttCheckableButton videoToggleButton;
   private final InCallButtonUiDelegate inCallButtonUiDelegate;
   private final InCallScreenDelegate inCallScreenDelegate;
   private boolean isSwitchToSecondaryButtonEnabled;
@@ -80,12 +85,11 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
             this.inCallScreenDelegate.onSecondaryInfoClicked();
           }
         });
-    downgradeButton = view.findViewById(R.id.menu_downgrade);
-    downgradeButton.setOnClickListener(
+    downgradeCallButton = view.findViewById(R.id.menu_downgrade_call);
+    downgradeCallButton.setOnClickListener(
         v -> {
-          if (isDowngradeRttButtonEnabled) {
-            this.inCallButtonUiDelegate.downgradeRttCall();
-          }
+          inCallButtonUiDelegate.downgradeCall();
+          dismiss();
         });
     mergeCallButton = view.findViewById(R.id.menu_merge_call);
     mergeCallButton.setOnClickListener(
@@ -96,8 +100,23 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
         });
     satelliteButton = view.findViewById(R.id.menu_satellite);
     satelliteButton.setOnCheckedChangeListener(this);
-  }
-
+    videoToggleButton = view.findViewById(R.id.menu_vt);
+    videoToggleButton.setOnClickListener(
+        v -> {
+          inCallButtonUiDelegate.onRttToVideoClicked();
+          dismiss();
+        });
+    transferButton = view.findViewById(R.id.menu_transfer);
+      transferButton.setOnClickListener(
+          v -> {
+            try {
+              BottomSheetHelper.getInstance().displayCallTransferOptions();
+            } catch (Exception e) {
+              LogUtil.e("RttOverflowMenu", "Failed to display transfer options: " + e);
+            }
+            dismiss();
+          });
+    }
   @Override
   public void onCheckedChanged(RttCheckableButton button, boolean isChecked) {
     if (button == muteButton) {
@@ -145,6 +164,16 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
     }
   }
 
+  void setSwitchToVideoLabel(boolean isRttVt) {
+    if (videoToggleButton == null) {
+      return;
+    }
+    videoToggleButton.setText(
+        isRttVt
+            ? videoToggleButton.getContext().getString(R.string.switch_to_video)
+            : videoToggleButton.getContext().getString(R.string.incall_label_videocall));
+  }
+
   void setDialpadButtonChecked(boolean isChecked) {
     dialpadButton.setChecked(isChecked);
   }
@@ -168,7 +197,8 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
 
   void enableDowngradeRttButton(boolean enabled) {
     isDowngradeRttButtonEnabled = enabled;
-    downgradeButton.setVisibility(isDowngradeRttButtonEnabled ? View.VISIBLE : View.GONE);
+    downgradeCallButton.setVisibility(
+        isDowngradeRttButtonEnabled ? View.VISIBLE : View.GONE);
   }
 
   void enableHoldButton(boolean enabled) {
@@ -181,5 +211,15 @@ public class RttOverflowMenu extends PopupWindow implements OnCheckedChangeListe
 
   void enableAddCallButton(boolean enabled) {
     addCallButton.setVisibility(enabled ? View.VISIBLE : View.GONE);
+  }
+
+  void enableTransferButton(boolean enabled) {
+    transferButton.setVisibility(enabled ? View.VISIBLE : View.GONE);
+  }
+
+  void enableVideoToggleButton(boolean enabled) {
+    if (videoToggleButton != null) {
+      videoToggleButton.setVisibility(enabled ? View.VISIBLE : View.GONE);
+    }
   }
 }
