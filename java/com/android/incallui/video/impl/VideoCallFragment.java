@@ -20,9 +20,9 @@
 
 package com.android.incallui.video.impl;
 
+import android.Manifest.permission;
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
-import android.Manifest.permission;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
@@ -85,13 +85,16 @@ import com.android.dialer.satellite.SatelliteInfo;
 import com.android.dialer.util.PermissionsUtil;
 import com.android.incallui.BottomSheetHelper;
 import com.android.incallui.ExtBottomSheetFragment.ExtBottomSheetActionCallback;
-import com.android.incallui.QtiCallUtils;
-import com.android.incallui.audioroute.AudioRouteSelectorDialogFragment;
-import com.android.incallui.audioroute.AudioRouteSelectorDialogFragment.AudioRouteSelectorPresenter;
-import com.android.incallui.contactgrid.ContactGridManager;
-import com.android.incallui.hold.OnHoldFragment;
 import com.android.incallui.InCallActivity;
 import com.android.incallui.InCallPresenter;
+import com.android.incallui.PictureModeHelper;
+import com.android.incallui.QtiCallUtils;
+import com.android.incallui.VideoCallPresenter;
+import com.android.incallui.audioroute.AudioRouteSelectorDialogFragment;
+import com.android.incallui.audioroute.AudioRouteSelectorDialogFragment.AudioRouteSelectorPresenter;
+import com.android.incallui.call.state.DialerCallState;
+import com.android.incallui.contactgrid.ContactGridManager;
+import com.android.incallui.hold.OnHoldFragment;
 import com.android.incallui.incall.protocol.InCallButtonIds;
 import com.android.incallui.incall.protocol.InCallButtonIdsExtension;
 import com.android.incallui.incall.protocol.InCallButtonUi;
@@ -104,8 +107,6 @@ import com.android.incallui.incall.protocol.PrimaryCallState;
 import com.android.incallui.incall.protocol.PrimaryCallState.ButtonState;
 import com.android.incallui.incall.protocol.PrimaryInfo;
 import com.android.incallui.incall.protocol.SecondaryInfo;
-import com.android.incallui.PictureModeHelper;
-import com.android.incallui.VideoCallPresenter;
 import com.android.incallui.video.impl.CheckableImageButton.OnCheckedChangeListener;
 import com.android.incallui.video.protocol.VideoCallScreen;
 import com.android.incallui.video.protocol.VideoCallScreenDelegate;
@@ -1493,6 +1494,27 @@ public class VideoCallFragment extends Fragment
         && !VideoUtils.hasSentVideoUpgradeRequest(primaryCallState.sessionModificationState()));
 
     contactGridManager.setCallState(primaryCallState);
+
+    // At the moment that call is answered to active call, it is possible that exitFullscreenMode
+    // is called earlier than setEnabled(true) for switchOnHoldCallController. It leads the swap
+    // button is transparent even when this button is enabled and clickable actually.
+    if (!isInFullscreenMode && primaryCallState.state() == DialerCallState.ACTIVE) {
+      LinearOutSlowInInterpolator linearOutSlowInInterpolator = new LinearOutSlowInInterpolator();
+      LogUtil.v("VideoCallFragment.setCallState", " animate the swap button");
+      switchOnHoldButton
+          .animate()
+          .translationX(0)
+          .translationY(0)
+          .setInterpolator(linearOutSlowInInterpolator)
+          .alpha(switchOnHoldButton.isEnabled() ? 1 : .5f)
+          .withStartAction(
+              new Runnable() {
+                @Override
+                public void run() {
+                  switchOnHoldCallController.setOnScreen();
+                }
+              });
+    }
   }
 
   @Override
