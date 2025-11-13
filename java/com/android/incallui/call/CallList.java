@@ -862,6 +862,8 @@ public class CallList implements DialerCallDelegate {
     default void onMergeProgressing(DialerCall call, boolean isMerging) {}
 
     default void onSatelliteHandoverEvent(DialerCall call) {}
+
+    default void onRttInitiationFailure(DialerCall call, int reason) {}
   }
 
   /** UiListener interface for measuring incall latency.(used by testing only) */
@@ -923,6 +925,13 @@ public class CallList implements DialerCallDelegate {
     public void onDialerCallSpeakEasyStateChange() {
       for (Listener listener : listeners) {
         listener.onSpeakEasyStateChange();
+      }
+    }
+
+    @Override
+    public void onRttInitiationFailure(int reason) {
+      for (Listener listener : listeners) {
+        listener.onRttInitiationFailure(call, reason);
       }
     }
 

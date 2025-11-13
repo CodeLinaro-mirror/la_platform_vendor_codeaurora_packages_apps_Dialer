@@ -25,8 +25,8 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -98,7 +98,22 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    private QtiImsExtListenerBaseImpl mImsInterfaceListener;
    private AlertDialog modifyCallDialog;
    private static final int INVALID_INDEX = -1;
-
+   // BottomSheet internal call types, start from higher values to avoid conflict.
+   private static final int CALL_TYPE_INACTIVE= 1000;
+   // Call transition to indicate VoLTE -> VT + RTT
+   private static final int CALL_TYPE_VT_RTT = 1001;
+   // Call transition to indicate VT -> RTT VoLTE
+   private static final int CALL_TYPE_VT_TO_RTT = 1002;
+   // Call transition to indicate RTT VoLTE -> VT call with RTT disabled
+   private static final int CALL_TYPE_RTT_TO_VT = 1003;
+   // Call transition to indicate VT + RTT -> VoLTE
+   private static final int CALL_TYPE_DROP_BOTH = 1004;
+   private int mPendingMoDualTransitionType = CALL_TYPE_INACTIVE;
+   private int INVALID_RTT_REQUEST_ID = -1;
+   private boolean mPendingMtVtRttUpgrade = false;
+   private int mPendingRttRequestId = INVALID_RTT_REQUEST_ID;
+   private boolean isRttVtFeatureSupported = false;
+   private int DEFAULT_PHONE_ID = 0;
    private BottomSheetHelper() {
      LogUtil.d("BottomSheetHelper"," ");
    }
@@ -117,6 +132,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
              @Override
              public void onConnectionAvailable(QtiImsExtManager qtiImsExtManager) {
                mQtiImsExtManager = qtiImsExtManager;
+               registerMtRttVtModifyListenerSafely();
+               updateIsRttVtFeatureSupported();
              }
              @Override
              public void onConnectionUnavailable() {
@@ -140,6 +157,11 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
             LogUtil.d("BottomSheetHelper.receiveCancelModifyCallResponse", "result: " + result);
             mHasSentCancelUpgradeRequest = false;
             maybeUpdateCancelModifyCallInMap();
+       }
+
+       //IMS indicates dual-upgrade, mark pending and send ack to forward the upgrade.
+       public void onIncomingRttVtUpgrade() {
+            mPendingMtVtRttUpgrade  = true;
        }
      };
 
@@ -197,6 +219,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
        maybeUpdateCancelModifyCallInMap();
        maybeUpdatePipModeInMap();
        maybeUpdateTirAcceptOptionsInMap();
+       maybeUpdateSwitchToRttInMap();
      }
    }
 
@@ -212,13 +235,21 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    private boolean isOneWayVideoOptionsVisible() {
      final int primaryCallState = mCall.getState();
      final int requestedVideoState = mCall.getVideoTech().getRequestedVideoState();
+     // Disable One dir options for RTT VT upgrades, below check handles these scenarios
+     // VoLTE -> RTT + VT and RTT -> RTT + VT
+     final boolean areUpgradesRelatedtoRttVt = ((!mCall.isActiveRttCall() &&
+         getPendingRttRequestId() != INVALID_RTT_REQUEST_ID) ||
+         (mCall.isActiveRttCall() && mCall.hasReceivedVideoUpgradeRequest() &&
+         VideoProfile.isBidirectional(requestedVideoState)));
      return (QtiCallUtils.useExt(mContext) && mCall.hasReceivedVideoUpgradeRequest()
        && VideoProfile.isAudioOnly(mCall.getVideoState())
-       && VideoProfile.isBidirectional(requestedVideoState))
+       && VideoProfile.isBidirectional(requestedVideoState)
+       && !areUpgradesRelatedtoRttVt)
        || ((DialerCallState.INCOMING == primaryCallState
        || DialerCallState.CALL_WAITING == primaryCallState)
        && (QtiCallUtils.isVideoBidirectional(mCall)
-       && QtiImsExtUtils.canAcceptAsOneWayVideo(getPhoneId(), mContext)));
+       && QtiImsExtUtils.canAcceptAsOneWayVideo(getPhoneId(), mContext))
+       && !mCall.isActiveRttCall());
    }
 
    private boolean isModifyCallOptionsVisible() {
@@ -241,6 +272,68 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
          !isDualVtUpgradeRequest;
      }
      return false;
+   }
+
+   private void registerMtRttVtModifyListenerSafely() {
+     if (mQtiImsExtManager == null) {
+       LogUtil.w("BottomSheetHelper.registerMtRttVtModifyListenerSafely",
+           "QtiImsExtManager is null");
+       return;
+     }
+     final int phoneId = getPhoneId();
+     if (phoneId == QtiCallConstants.INVALID_PHONE_ID) {
+       LogUtil.w("BottomSheetHelper.registerMtRttVtModifyListenerSafely",
+           "Invalid phoneId; will retry later when call is present.");
+       return;
+     }
+     try {
+       mQtiImsExtManager.setIncomingRttVtUpgradeListener(phoneId, mImsInterfaceListener);
+       LogUtil.i("BottomSheetHelper.registerMtRttVtModifyListenerSafely",
+           "Registered MT dual-upgrade listener for phoneId=" + phoneId);
+     } catch (QtiImsException e) {
+       LogUtil.e("BottomSheetHelper.registerMtRttVtModifyListenerSafely",
+           "Failed to register MT dual-upgrade listener: " + e);
+     }
+   }
+
+   private void updateIsRttVtFeatureSupported() {
+     if (mQtiImsExtManager == null) {
+       LogUtil.w("BottomSheetHelper.updateIsRttVtFeatureSupported",
+           "QtiImsExtManager is null");
+       return;
+     }
+     int phoneId = getPhoneId();
+     if (phoneId == QtiCallConstants.INVALID_PHONE_ID) {
+       phoneId = DEFAULT_PHONE_ID;
+     }
+     try {
+       isRttVtFeatureSupported = mQtiImsExtManager.isRttVtFeatureSupported(phoneId);
+       LogUtil.i("BottomSheetHelper.updateIsRttVtFeatureSupported",
+           "Registered MT dual-upgrade listener for phoneId=" + phoneId +
+           "isRttVtFeatureSupported=" + isRttVtFeatureSupported);
+     } catch (QtiImsException e) {
+       LogUtil.e("BottomSheetHelper.updateIsRttVtFeatureSupported",
+           "Failed to register MT dual-upgrade listener: " + e +
+           "isRttVtFeatureSupported=" + isRttVtFeatureSupported);
+     }
+   }
+
+   // Accessors to read/clear pending MT VT+RTT state
+   public boolean isPendingMtVtRttUpgrade() {
+     return mPendingMtVtRttUpgrade;
+   }
+
+   public int getPendingRttRequestId() {
+     return mPendingRttRequestId;
+   }
+
+   public void clearPendingMtVtRttUpgrade() {
+     mPendingMtVtRttUpgrade = false;
+     mPendingRttRequestId = INVALID_RTT_REQUEST_ID;
+   }
+
+   public boolean isRttVtFeatureSupported() {
+     return isRttVtFeatureSupported;
    }
 
    private void maybeUpdateManageConferenceInMap() {
@@ -339,6 +432,13 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      } else if (text.equals(mResources.getString(
             R.string.accept_call_with_tir_unrestricted_label))) {
         acceptIncomingCallWithTir(QtiImsExtUtils.QTI_IMS_TIR_PRESENTATION_UNRESTRICTED);
+     } else if (text.equals(mResources.getString(R.string.switch_to_rtt_label))) {
+        InCallActivity activity = InCallPresenter.getInstance().getActivity();
+        if (activity != null) {
+            activity.toggleVideoRtt(true /* showRtt */);
+        } else {
+            LogUtil.w("BottomSheetHelper.optionSelected", "InCallActivity is null");
+        }
      }
      moreOptionsSheet = null;
    }
@@ -502,6 +602,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
     @Override
     public void onPrimaryCallChanged(DialerCall call) {
       LogUtil.d("BottomSheetHelper.onPrimaryCallChanged", "");
+      registerMtRttVtModifyListenerSafely();
       dismissBottomSheet();
       updateMap();
     }
@@ -580,7 +681,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
     * The function is called when Call Transfer button gets pressed. The function creates and
     * displays call transfer options.
     */
-   private void displayCallTransferOptions() {
+   public void displayCallTransferOptions() {
      final InCallActivity inCallActivity = InCallPresenter.getInstance().getActivity();
      if (inCallActivity == null) {
        LogUtil.e("BottomSheetHelper.displayCallTransferOptions", "inCallActivity is NULL");
@@ -830,10 +931,10 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
       boolean isVideoEnabled = CallUtil.isVideoEnabled(mContext);
       final ArrayList<CharSequence> items = new ArrayList<CharSequence>();
       final ArrayList<Integer> itemToCallType = new ArrayList<Integer>();
-
+      boolean isCallRttVt = QtiCallUtils.isVideoBidirectional(mCall) && mCall.isActiveRttCall();
       // Prepare the string array and mapping.
       if (QtiCallUtils.hasVoiceCapabilities(mCall) && mCall.isVideoCall()
-          && !QtiCallUtils.isDualVideo(mCall)) {
+          && !QtiCallUtils.isDualVideo(mCall) && !isCallRttVt) {
         items.add(mResources.getText(R.string.modify_call_option_voice));
         itemToCallType.add(VideoProfile.STATE_AUDIO_ONLY);
       }
@@ -841,7 +942,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
       if (!QtiCallUtils.isDualVideo(mCall) && isVideoEnabled
           && QtiCallUtils.hasReceiveVideoCapabilities(mCall)
           && !QtiCallUtils.isVideoRxOnly(mCall)
-          && !QtiCallUtils.hasVisualizedVoiceAttribute(mCall)) {
+          && !QtiCallUtils.hasVisualizedVoiceAttribute(mCall) && !isCallRttVt) {
         items.add(mResources.getText(R.string.modify_call_option_vt_rx));
         itemToCallType.add(VideoProfile.STATE_RX_ENABLED);
       }
@@ -850,7 +951,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
           && QtiCallUtils.hasTransmitVideoCapabilities(mCall)
           && (!QtiCallUtils.isVideoTxOnly(mCall)
           || ScreenShareHelper.screenShareRequested())
-          && !QtiCallUtils.hasVisualizedVoiceAttribute(mCall)) {
+          && !QtiCallUtils.hasVisualizedVoiceAttribute(mCall) && !isCallRttVt) {
         items.add(mResources.getText(R.string.modify_call_option_vt_tx));
         itemToCallType.add(VideoProfile.STATE_TX_ENABLED);
       }
@@ -869,18 +970,37 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
           mCall.getState() == DialerCallState.ACTIVE &&
           QtiCallUtils.hasTransmitVideoCapabilities(mCall)
           && !ScreenShareHelper.screenShareRequested()
-          && !QtiCallUtils.isVideoRxOnly(mCall)) {
+          && !QtiCallUtils.isVideoRxOnly(mCall) && !isCallRttVt) {
         items.add(mResources.getText(R.string.modify_call_option_screen_share));
         itemToCallType.add(ScreenShareHelper.VIDEO_SCREEN_SHARE);
       }
 
       if (isVideoEnabled && QtiCallUtils.isVideoBidirectional(mCall) &&
           !QtiCallUtils.isDualVideo(mCall) && QtiCallUtils.isDualVideoSupported(mCall) &&
-          (!mCall.isRemotelyHeld() && mCall.getNonConferenceState() != DialerCallState.ONHOLD)) {
+          (!mCall.isRemotelyHeld() && mCall.getNonConferenceState() != DialerCallState.ONHOLD) &&
+          !isCallRttVt) {
         if (mCall.getDualVtCapability() == QtiCallConstants.DUAL_VIDEO_TX_RX_ENABLED) {
             items.add(mResources.getText(R.string.modify_call_option_dual_vt));
             itemToCallType.add(QtiCallConstants.STATE_DUAL_BIDIRECTIONAL);
         }
+      }
+
+      if (!mCall.isVideoCall()
+          && isRttVtFeatureSupported
+          && mCall.canUpgradeToRttCall()
+          && canSupportBidirectionalVt(mCall)) {
+        LogUtil.i("BottomSheetHelper.displayModifyCallOptions", "enable VT+RTT (VoLTE->VT+RTT)");
+        items.add(mResources.getText(R.string.modify_call_option_vt_rtt));
+        itemToCallType.add(CALL_TYPE_VT_RTT);
+      }
+
+      if (isRttVtFeatureSupported
+          && QtiCallUtils.isVideoBidirectional(mCall)
+          && !QtiCallUtils.isDualVideo(mCall)
+          && mCall.canUpgradeToRttCall()) {
+        LogUtil.i("BottomSheetHelper.displayModifyCallOptions", "enable RTT-only (VT->RTT)");
+        items.add(mResources.getText(R.string.modify_call_option_rtt_only));
+        itemToCallType.add(CALL_TYPE_VT_TO_RTT);
       }
 
       AlertDialog.Builder builder = new AlertDialog.Builder(inCallActivity);
@@ -912,6 +1032,12 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
                 InCallPresenter.getInstance().notifyOutgoingVideoSourceChanged(
                     ScreenShareHelper.NONE);
               }
+            }
+            Log.i(this, "Videocall: ModifyCall: upgrade/downgrade to " + setCallType);
+            if (setCallType == CALL_TYPE_VT_RTT || setCallType == CALL_TYPE_VT_TO_RTT) {
+              requestMoDualTransitionInternal(setCallType);
+              dialog.dismiss();
+              return;
             }
 
             Log.v(this, "Videocall: ModifyCall: upgrade/downgrade to "
@@ -1054,4 +1180,113 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
     public QtiImsExtManager getQtiImsExtManager() {
         return mQtiImsExtManager;
     }
+
+    public void setRttRequestId(int rttReqId) {
+        LogUtil.i("BottomSheetHelper.setRttRequestId :","rttreqid" + rttReqId);
+        mPendingRttRequestId = rttReqId;
+    }
+
+    public void requestMoDualTransitionRttToVt() {
+        requestMoDualTransitionInternal(CALL_TYPE_RTT_TO_VT);
+    }
+
+    public void requestMoDualTransitionDropBoth() {
+        requestMoDualTransitionInternal(CALL_TYPE_DROP_BOTH);
+    }
+
+    private void requestMoDualTransitionInternal(int action) {
+        if (mQtiImsExtManager == null) {
+            LogUtil.w("BottomSheetHelper.requestMoDualTransitionInternal",
+                    "QtiImsExtManager is null");
+        }
+        final int phoneId = getPhoneId();
+        if (phoneId == org.codeaurora.ims.QtiCallConstants.INVALID_PHONE_ID) {
+             LogUtil.w("BottomSheetHelper.requestMoDualTransitionInternal",
+                     "Invalid phoneId");
+        }
+        mPendingMoDualTransitionType = action;
+        try {
+            LogUtil.d("BottomSheetHelper.requestMoDualTransitionInternal",
+                    "requestMoDualTransitionInternal, phoneId="
+                    + phoneId + " action=" + action);
+            boolean ret = mQtiImsExtManager.setPendingOutgoingRttVtModifyFlag(phoneId);
+            if(ret) {
+                onPendingMoRttVtModifyCompleted();
+            } else {
+                mPendingMoDualTransitionType = CALL_TYPE_INACTIVE;
+                LogUtil.d("BottomSheetHelper.requestMoDualTransitionInternal",
+                        "setPendingOutgoingRttVtModifyFlag failure, phoneId="
+                        + phoneId + " action=" + action);
+            }
+        } catch (QtiImsException e) {
+            LogUtil.e("BottomSheetHelper.requestMoDualTransitionInternal",
+                    "requestMoDualTransitionInternal exception " + e);
+            mPendingMoDualTransitionType = CALL_TYPE_INACTIVE;
+        }
+   }
+
+    public void onPendingMoRttVtModifyCompleted() {
+        LogUtil.i("BottomSheetHelper.onPendingMoRttVtModifyCompleted",
+                "onPendingMoRttVtModifyCompleted=" + mPendingMoDualTransitionType);
+        if (mCall == null) {
+            LogUtil.e("BottomSheetHelper.onPendingMoRttVtModifyCompleted",
+                    "No primary call");
+            mPendingMoDualTransitionType = CALL_TYPE_INACTIVE;
+            return;
+        }
+        try {
+            if (mPendingMoDualTransitionType == CALL_TYPE_VT_RTT) {
+                changeToVideoClicked(mCall, VideoProfile.STATE_BIDIRECTIONAL);
+                mCall.sendRttUpgradeRequest();
+            } else if (mPendingMoDualTransitionType == CALL_TYPE_VT_TO_RTT) {
+                changeToVideoClicked(mCall, VideoProfile.STATE_AUDIO_ONLY);
+                mCall.sendRttUpgradeRequest();
+            } else if (mPendingMoDualTransitionType == CALL_TYPE_RTT_TO_VT) {
+                // RTT-only -> VT-only
+                changeToVideoClicked(mCall, VideoProfile.STATE_BIDIRECTIONAL);
+                mCall.sendRttDowngradeRequest();
+            } else if (mPendingMoDualTransitionType == CALL_TYPE_DROP_BOTH) {
+                // RTT+VT -> VoLTE
+                changeToVideoClicked(mCall, VideoProfile.STATE_AUDIO_ONLY);
+                mCall.sendRttDowngradeRequest();
+            } else {
+                LogUtil.w("BottomSheetHelper.onPendingMoRttVtModifyCompleted",
+                        "Unknown pending MO dual action: " +
+                        mPendingMoDualTransitionType);
+            }
+        } catch (Exception e) {
+            LogUtil.e("BottomSheetHelper.onPendingMoRttVtModifyCompleted",
+                    "Dual transition execution failed: " + e);
+        } finally {
+            mPendingMoDualTransitionType = CALL_TYPE_INACTIVE;
+        }
+    }
+
+    private void maybeUpdateSwitchToRttInMap() {
+        boolean visible = false;
+        if (mCall != null) {
+            final int primaryCallState = mCall.getState();
+            try {
+                visible = mCall.isVideoCall()
+                        && mCall.isActiveRttCall()
+                        && primaryCallState == DialerCallState.ACTIVE
+                        && !mCall.hasReceivedVideoUpgradeRequest();
+            } catch (Exception e) {
+                LogUtil.w("BottomSheetHelper.maybeUpdateSwitchToRttInMap",
+                        "error: " + e);
+            }
+        }
+        moreOptionsMap.put(mResources.getString(R.string.switch_to_rtt_label), visible);
+    }
+
+   private boolean canSupportBidirectionalVt(DialerCall call) {
+      if (call == null || mContext == null) {
+          return false;
+      }
+      boolean isVideoEnabled = com.android.dialer.util.CallUtil.isVideoEnabled(mContext);
+      return isVideoEnabled
+             && QtiCallUtils.hasReceiveVideoCapabilities(call)
+             && QtiCallUtils.hasTransmitVideoCapabilities(call)
+             && !QtiCallUtils.hasVisualizedVoiceAttribute(call);
+   }
 }

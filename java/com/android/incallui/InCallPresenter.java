@@ -1233,6 +1233,15 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
   @Override
   public void onUpgradeToRtt(DialerCall call, int rttRequestId) {
+    if (BottomSheetHelper.getInstance().isPendingMtVtRttUpgrade()) {
+      BottomSheetHelper.getInstance().setRttRequestId(rttRequestId);
+      // Now that RTT id is available, reevaluate UI
+      // Answer UI will be shown if VT upgrade is present
+      if (inCallActivity != null) {
+        inCallActivity.toggleVideoRtt(false);
+      }
+      return;
+    }
     if (inCallActivity != null) {
       inCallActivity.showDialogForRttRequest(call, rttRequestId);
     }
@@ -2472,6 +2481,15 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     default void onMergeProgressing(DialerCall call, boolean isMerging) {}
     default void onIncomingVideoStateChanged(DialerCall call) {}
     default void onSatelliteHandoverEvent(DialerCall call) {}
+    default void onRttToVideo() {}
+    default void onRttInitiationFailure(DialerCall call, int reason) {}
+  }
+
+  public void onRttToVideoClicked() {
+    LogUtil.i("InCallPresenter.onRttToVideoClicked", null);
+    for (InCallEventListener listener : inCallEventListeners) {
+      listener.onRttToVideo();
+    }
   }
 
   public interface InCallUiListener {
@@ -2570,6 +2588,14 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       automaticallyMutedByAddCall = false;
     }
     addCallClicked = false;
+  }
+
+  @Override
+  public void onRttInitiationFailure(DialerCall call, int reason) {
+    // Forward to in-call event listeners so presenters can react (e.g., reset awaitingRttMode)
+    for (InCallEventListener listener : inCallEventListeners) {
+      listener.onRttInitiationFailure(call, reason);
+    }
   }
 
   private final Set<InCallUiLock> inCallUiLocks = new ArraySet<>();

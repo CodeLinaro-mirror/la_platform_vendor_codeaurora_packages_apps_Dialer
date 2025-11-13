@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.answer.impl;
@@ -59,6 +63,7 @@ import android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 import com.android.dialer.common.Assert;
 import com.android.dialer.common.FragmentUtils;
 import com.android.dialer.common.LogUtil;
@@ -1034,6 +1039,12 @@ public class AnswerFragment extends Fragment
     updateUI();
     if (answerVideoCallScreen != null) {
       answerVideoCallScreen.onVideoScreenStart();
+    }
+    boolean isDualActive = isVideoCall() && isRttCall();
+    boolean isDualUpgradePending =
+        isVideoUpgradeRequest() && BottomSheetHelper.getInstance().isPendingMtVtRttUpgrade();
+    if (isDualActive || isDualUpgradePending) {
+      Toast.makeText(getContext(), R.string.rtt_vt_dual_stream_toast, Toast.LENGTH_SHORT).show();
     }
     Trace.endSection();
   }

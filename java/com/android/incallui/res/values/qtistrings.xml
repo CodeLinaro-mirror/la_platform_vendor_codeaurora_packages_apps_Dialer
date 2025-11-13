@@ -27,8 +27,8 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Changes from Qualcomm Innovation Center are provided under the following license:
-Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+Changes from Qualcomm Technologies, Inc. are provided under the following license:
+Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 SPDX-License-Identifier: BSD-3-Clause-Clear
   -->
 
@@ -167,6 +167,8 @@ SPDX-License-Identifier: BSD-3-Clause-Clear
     <string name="modify_call_option_voice" translatable="false">Voice Only</string>
     <string name="modify_call_option_screen_share" translatable="false">Screen Sharing</string>
     <string name="modify_call_option_dual_vt" translatable="false">Dual VT bidirectional</string>
+    <string name="modify_call_option_vt_rtt" translatable="false">VT + RTT</string>
+    <string name="modify_call_option_rtt_only" translatable="false">RTT Only</string>
     <string name="cancel_modify_call_title">Cancel modify call?</string>
     <string name="cancel_upgrade">Cancel Upgrade</string>
     <string name="not_cancel">Not Cancel</string>
@@ -232,4 +234,6 @@ nonusr - call rejected</string>
     <!-- Adhoc conference -->
     <string name="adhoc_conference_call_not_supported">Default subscription doesn\'t support adhoc
 conference calling please change default subscription to access conference dialer</string>
+
+    <string name="switch_to_rtt_label" translatable="false">Switch to RTT</string>
 </resources>

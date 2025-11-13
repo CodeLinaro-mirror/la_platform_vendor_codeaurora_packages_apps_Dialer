@@ -13,14 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.rtt.impl;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.os.Bundle;
@@ -33,6 +34,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.RecyclerView.OnScrollListener;
 import android.telecom.CallAudioState;
+import android.telecom.Call.Details;
 import android.telephony.satellite.SatelliteManager;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -61,8 +63,11 @@ import com.android.dialer.logging.Logger;
 import com.android.dialer.rtt.RttTranscript;
 import com.android.dialer.rtt.RttTranscriptMessage;
 import com.android.dialer.satellite.SatelliteInfo;
+import com.android.dialer.util.CallUtil;
 import com.android.dialer.util.DrawableConverter;
 import com.android.incallui.audioroute.AudioRouteSelectorDialogFragment.AudioRouteSelectorPresenter;
+import com.android.incallui.BottomSheetHelper;
+import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.state.DialerCallState;
 import com.android.incallui.hold.OnHoldFragment;
@@ -77,11 +82,13 @@ import com.android.incallui.incall.protocol.InCallScreenDelegateFactory;
 import com.android.incallui.incall.protocol.PrimaryCallState;
 import com.android.incallui.incall.protocol.PrimaryInfo;
 import com.android.incallui.incall.protocol.SecondaryInfo;
+import com.android.incallui.QtiCallUtils;
 import com.android.incallui.rtt.impl.RttChatAdapter.MessageListener;
 import com.android.incallui.rtt.protocol.Constants;
 import com.android.incallui.rtt.protocol.RttCallScreen;
 import com.android.incallui.rtt.protocol.RttCallScreenDelegate;
 import com.android.incallui.rtt.protocol.RttCallScreenDelegateFactory;
+import org.codeaurora.ims.utils.QtiImsExtUtils;
 import java.util.List;
 
 /** RTT chat fragment to show chat bubbles. */
@@ -112,6 +119,7 @@ public class RttChatFragment extends Fragment
   private RttOverflowMenu overflowMenu;
   private SecondaryInfo savedSecondaryInfo;
   private TextView statusBanner;
+  private TextView vtIndicatorBanner;
   private PrimaryInfo primaryInfo = PrimaryInfo.empty();
   private PrimaryCallState primaryCallState = PrimaryCallState.empty();
   private boolean isUserScrolling;
@@ -368,6 +376,31 @@ public class RttChatFragment extends Fragment
   }
 
   @Override
+  public void onResume() {
+    super.onResume();
+    LogUtil.i("RttChatFragment.onResume", "updatevtbanner");
+    updateVtIndicatorBanner();
+    updateTransferButtonVisibility();
+    updateVideoToggleMenuLabel();
+  }
+
+  private void updateVtIndicatorBanner() {
+    if (getView() == null || primaryCallState.state() == DialerCallState.DIALING) {
+      return;
+    }
+
+    DialerCall call = CallList.getInstance().getCallById(getCallId());
+    boolean isRttVt = call != null && call.isVideoCall() && call.isActiveRttCall();
+
+    if (isRttVt) {
+      statusBanner.setText(getString(R.string.rtt_vt_banner_text));
+      statusBanner.setVisibility(View.VISIBLE);
+    } else {
+      statusBanner.setVisibility(View.GONE);
+    }
+  }
+
+  @Override
   public void onStop() {
     LogUtil.enterBlock("RttChatFragment.onStop");
     super.onStop();
@@ -500,6 +533,22 @@ public class RttChatFragment extends Fragment
     if (primaryCallState.state() == DialerCallState.DISCONNECTED) {
       rttCallScreenDelegate.onSaveRttTranscript();
     }
+     updateVtIndicatorBanner();
+     updateTransferButtonVisibility();
+  }
+
+  // Compute whether Transfer options should be shown in RTT menu and toggle visibility
+  private void updateTransferButtonVisibility() {
+    if (overflowMenu == null) {
+      return;
+    }
+    DialerCall currentCall = CallList.getInstance().getCallById(getCallId());
+    boolean showTransferOptions =
+        currentCall != null
+            && (currentCall.can(Details.CAPABILITY_TRANSFER)
+                || currentCall.can(Details.CAPABILITY_TRANSFER_CONSULTATIVE))
+            && !currentCall.hasReceivedVideoUpgradeRequest();
+    overflowMenu.enableTransferButton(showTransferOptions);
   }
 
   private void showWaitingForJoinBanner() {
@@ -641,6 +690,76 @@ public class RttChatFragment extends Fragment
   }
 
   @Override
+  public void showDowngradeOptions() {
+    AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+    builder.setTitle(R.string.downgrade_call_menu_title);
+
+    DialerCall currentCall = CallList.getInstance().getCallById(getCallId());
+    if (currentCall == null) {
+      LogUtil.w("RttChatFragment.showDowngradeOptions", "currentCall is null");
+      return;
+    }
+
+    boolean featureSupported = BottomSheetHelper.getInstance().isRttVtFeatureSupported();
+    boolean isRttActive = currentCall.isActiveRttCall();
+    boolean isVideo = currentCall.isVideoCall();
+    boolean isRttOnly = isRttActive && !isVideo;
+    boolean isRttVt  = isRttActive && isVideo;
+
+    boolean phoneAccountRttDowngradeCapable = currentCall.isPhoneAccountRttDowngradeCapable();
+    boolean vtBiDirSupported = isVtBidirectionalSupported(currentCall);
+
+    String voice = getString(R.string.downgrade_to_voice_call);
+    String rtt   = getString(R.string.downgrade_to_rtt_call);
+    String video = getString(R.string.downgrade_to_video_call);
+
+    java.util.ArrayList<String> itemsList = new java.util.ArrayList<>();
+
+    // Voice only
+    boolean showVoice =
+        (isRttOnly && phoneAccountRttDowngradeCapable)
+        || (isRttVt && phoneAccountRttDowngradeCapable);
+    if (showVoice) {
+      itemsList.add(voice);
+    }
+
+    // RTT only (only for RTT+VT)
+    boolean showRttOnly = isRttVt && featureSupported;
+    if (showRttOnly) {
+      itemsList.add(rtt);
+    }
+
+    // VT only
+    boolean showVtOnly =
+        (isRttOnly && phoneAccountRttDowngradeCapable && featureSupported && vtBiDirSupported)
+        || (isRttVt && phoneAccountRttDowngradeCapable);
+    if (showVtOnly) {
+      itemsList.add(video);
+    }
+
+    if (itemsList.isEmpty()) {
+      LogUtil.i("RttChatFragment.showDowngradeOptions", "No downgrade options available");
+      return;
+    }
+
+    String[] items = itemsList.toArray(new String[0]);
+    builder.setItems(
+        items,
+        (dialog, which) -> {
+          String selected = items[which];
+          if (voice.equals(selected)) {
+            inCallButtonUiDelegate.downgradeToVoice();
+          } else if (rtt.equals(selected)) {
+            inCallButtonUiDelegate.downgradeToRtt();
+          } else if (video.equals(selected)) {
+            inCallButtonUiDelegate.downgradeToVideo();
+          }
+        });
+    AlertDialog dialog = builder.create();
+    dialog.show();
+  }
+
+  @Override
   public void onAudioRouteSelectorDismiss() {}
 
   @Override
@@ -669,6 +788,34 @@ public class RttChatFragment extends Fragment
     launchSatelliteAppButton.setText(buttonText);
     satellitePromptText.setVisibility(View.VISIBLE);
     satellitePromptText.setText(text);
+  }
+
+  private boolean isVtBidirectionalSupported(DialerCall call) {
+    if (call == null || getContext() == null) {
+      return false;
+    }
+    boolean isVideoEnabled = CallUtil.isVideoEnabled(getContext());
+    return isVideoEnabled
+        && QtiCallUtils.hasReceiveVideoCapabilities(call)
+        && QtiCallUtils.hasTransmitVideoCapabilities(call)
+        && !QtiCallUtils.hasVisualizedVoiceAttribute(call);
+  }
+
+  private void updateVideoToggleMenuLabel() {
+    if (overflowMenu == null) {
+      return;
+    }
+    DialerCall call = CallList.getInstance().getCallById(getCallId());
+    boolean isRttVt = call != null && call.isVideoCall() && call.isActiveRttCall();
+    overflowMenu.setSwitchToVideoLabel(isRttVt);
+
+    boolean featureSupported = BottomSheetHelper.getInstance().isRttVtFeatureSupported();
+    boolean vtBiDirSupported = isVtBidirectionalSupported(call);
+    // showVideoToggle is a single button which will be used to upgrade to RTT VT
+    // as well as switch to video view once call is already RTT VT from RTT fragment
+    // hence we should only on featureSupported and if we can upgrade to VT Bidir
+    boolean showVideoToggle = featureSupported && vtBiDirSupported;
+    overflowMenu.enableVideoToggleButton(showVideoToggle);
   }
 
 }

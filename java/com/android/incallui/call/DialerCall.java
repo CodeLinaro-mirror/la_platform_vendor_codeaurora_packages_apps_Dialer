@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -392,6 +392,9 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
               R.string.rtt_call_not_available_toast;
           Toast.makeText(context, resourceId, Toast.LENGTH_LONG).show();
           update();
+          for (DialerCallListener listener : listeners) {
+            listener.onRttInitiationFailure(reason);
+          }
         }
 
         @Override
@@ -1398,13 +1401,21 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     if (isActiveRttCall()) {
       return false;
     }
-    if (isVideoCall()) {
+    if (isVideoCall() && !isVtRttSupported()) {
       return false;
     }
     if (isConferenceCall() || wasConferenceCall) {
       return false;
     }
     return true;
+  }
+
+  public boolean isVtRttSupported() {
+    boolean doesCarrierSupportRttVt = QtiImsExtUtils.isCarrierConfigEnabled(
+        BottomSheetHelper.getInstance()
+        .getPhoneId(), context, "rtt_supported_for_vt_bool");
+    return BottomSheetHelper.getInstance().isRttVtFeatureSupported() &&
+        doesCarrierSupportRttVt;
   }
 
   @TargetApi(28)

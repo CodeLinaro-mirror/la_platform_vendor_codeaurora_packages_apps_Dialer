@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -172,6 +172,8 @@ public class InCallActivity extends TransactionSafeFragmentActivity
   private SpeakEasyCallManager speakEasyCallManager;
   private DialogFragment rttRequestDialogFragment;
   private Toast errorToastPrompt;
+
+  private boolean forceRtt = false;
 
   final Handler mSuplSvcSnackbarShowHandler = new Handler();
   Set<String> mSuplSvcMessages = Collections.synchronizedSet(new HashSet<String>());
@@ -1337,11 +1339,20 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     ShouldShowUiResult shouldShowVideoUi = getShouldShowVideoUi();
     ShouldShowUiResult shouldShowRttUi = getShouldShowRttUi();
     ShouldShowUiResult shouldShowSpeakEasyUi = getShouldShowSpeakEasyUi();
+
+
+    if (forceRtt && shouldShowRttUi.shouldShow) {
+      // User has selected to view the RTT screen, so force it.
+      shouldShowVideoUi = new ShouldShowUiResult(false, null);
+    } else {
+      forceRtt = false;
+    }
+
     LogUtil.i(
         "InCallActivity.showMainInCallFragment",
-        "shouldShowAnswerUi: %b, shouldShowRttUi: %b, shouldShowVideoUi: %b, "
-            + "shouldShowSpeakEasyUi: %b, didShowAnswerScreen: %b, didShowInCallScreen: %b, "
-            + "didShowRttCallScreen: %b, didShowVideoCallScreen: %b, didShowSpeakEasyScreen: %b",
+        "shouldShowAnswerUi: %b, shouldShowRttUi: %b, shouldShowVideoUi: %b, "+
+        "didShowRttCallScreen: %b, didShowVideoCallScreen: %b,didShowSpeakEasyScreen: %b,"+
+        "forceRtt: %b",
         shouldShowAnswerUi.shouldShow,
         shouldShowRttUi.shouldShow,
         shouldShowVideoUi.shouldShow,
@@ -1350,7 +1361,8 @@ public class InCallActivity extends TransactionSafeFragmentActivity
         didShowInCallScreen,
         didShowRttCallScreen,
         didShowVideoCallScreen,
-        didShowSpeakEasyScreen);
+        didShowSpeakEasyScreen,
+        forceRtt);
 
     FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
     boolean didChange;
@@ -1396,6 +1408,12 @@ public class InCallActivity extends TransactionSafeFragmentActivity
     notifyDialpadVisibilityState(isDialpadVisible());
     isInShowMainInCallFragment = false;
     Trace.endSection();
+  }
+
+  public void toggleVideoRtt(boolean showRtt) {
+    LogUtil.i("InCallActivity.toggleVideoRtt", "showRtt: %b", showRtt);
+    forceRtt = showRtt;
+    showMainInCallFragment();
   }
 
   private boolean showSpeakEasyFragment(FragmentTransaction transaction, DialerCall call) {
@@ -1502,6 +1520,17 @@ public class InCallActivity extends TransactionSafeFragmentActivity
 
     call = CallList.getInstance().getVideoUpgradeRequestCall();
     if (call != null) {
+      // Defer the Answer UI if this is a dual MT VT+RTT upgrade
+      // and RTT request id hasn't arrived yet
+      BottomSheetHelper helper = BottomSheetHelper.getInstance();
+      if (helper != null
+          && helper.isPendingMtVtRttUpgrade()
+          && helper.getPendingRttRequestId() == -1) {
+        LogUtil.i(
+            "InCallActivity.getShouldShowAnswerUi",
+            "deferring answer UI until dual upgrade RTT request id is available");
+        return new ShouldShowUiResult(false, null);
+      }
       LogUtil.i("InCallActivity.getShouldShowAnswerUi", "found video upgrade request");
       return new ShouldShowUiResult(true, call);
     }

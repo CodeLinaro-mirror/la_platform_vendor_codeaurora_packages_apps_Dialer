@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -108,7 +108,7 @@ public class VideoCallPresenter
         PictureModeHelper.Listener {
 
   private static boolean isVideoMode = false;
-
+  private boolean awaitingRttMode = false;
   private final Handler handler = new Handler();
   private VideoCallScreen videoCallScreen;
 
@@ -678,6 +678,21 @@ public class VideoCallPresenter
     isVideoCallScreenUiReady = false;
   }
 
+  @Override
+  public void rttButtonClicked() {
+    if (primaryCall == null) {
+      return;
+    }
+    if (primaryCall.isActiveRttCall()) {
+      LogUtil.i("VideoCallPresenter.rttButtonClicked", "Switching to RTT UI");
+      InCallPresenter.getInstance().getActivity().toggleVideoRtt(true /* showRtt */);
+    } else {
+      LogUtil.i("VideoCallPresenter.rttButtonClicked", "Requesting RTT upgrade");
+      primaryCall.sendRttUpgradeRequest();
+      awaitingRttMode = true;
+    }
+  }
+
   public static void cleanUp() {
     LogUtil.v("VideoCallPresenter.cleanUp", "");
     sShallTransmitStaticImage = false;
@@ -833,6 +848,16 @@ public class VideoCallPresenter
         oldState,
         newState,
         isVideoMode());
+
+    if (awaitingRttMode) {
+      if (primaryCall != null && primaryCall.isActiveRttCall()) {
+        awaitingRttMode = false;
+        InCallActivity activity = InCallPresenter.getInstance().getActivity();
+        if (activity != null) {
+          activity.toggleVideoRtt(true /* showRtt */);
+        }
+      }
+    }
 
     if (newState == InCallPresenter.InCallState.NO_CALLS) {
       if (isVideoMode()) {
@@ -2588,5 +2613,15 @@ public class VideoCallPresenter
   private boolean isDualVideoCallEnabled() {
     LogUtil.v("VideoCallPresenter.isDualVideoCallEnabled", "primaryCall: " + primaryCall);
     return primaryCall != null ? primaryCall.isDualVtCall() : false;
+  }
+
+  @Override
+  public void onRttInitiationFailure(DialerCall call, int reason) {
+    if (primaryCall != null && DialerCall.areSame(primaryCall, call) &&
+            awaitingRttMode) {
+      awaitingRttMode = false;
+      LogUtil.w("VideoCallPresenter.onRttInitiationFailure",
+          "RTT upgrade failed (reason=%d); resetting awaitingRttMode", reason);
+    }
   }
 }
