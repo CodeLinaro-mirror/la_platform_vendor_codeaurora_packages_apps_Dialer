@@ -412,8 +412,6 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
 
         @Override
         public void onConnectionEvent(android.telecom.Call call, String event, Bundle extras) {
-          final String EVENT_PHONE_ACCOUNT_CHANGED =
-              "org.codeaurora.telecom.event.EVENT_PHONE_ACCOUNT_CHANGED";
           LogUtil.v(
               "TelecomCallCallback.onConnectionEvent",
               "Call: " + call + ", Event: " + event + ", Extras: " + extras);
@@ -470,7 +468,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
             case TelephonyManagerCompat.EVENT_SUPPLEMENTARY_SERVICE_NOTIFICATION:
                 notifySuplServiceMessage(extras);
                 break;
-            case EVENT_PHONE_ACCOUNT_CHANGED:
+            case android.telecom.Call.EVENT_PHONE_ACCOUNT_CHANGED:
                 maybeUpdatePhoneAccountRttCapability();
                 break;
             case TelephonyManager.EVENT_DISPLAY_EMERGENCY_MESSAGE:
