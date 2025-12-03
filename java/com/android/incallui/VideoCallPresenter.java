@@ -1542,6 +1542,10 @@ public class VideoCallPresenter
       return true;
     }
 
+    if (QtiCallUtils.hasVideoCrbtVoLteCall(call.getContext(), call)) {
+      return true;
+    }
+
     return false;
   }
 
@@ -1715,9 +1719,10 @@ public class VideoCallPresenter
         shallTransmitStaticImage(),
         isModifyToVideoRxType);
     updateRemoteVideoSurfaceDimensions();
-    videoCallScreen.showVideoViews(showOutgoingVideo && !shallTransmitStaticImage() &&
-        !QtiCallUtils.hasVideoCrbtVoLteCall(context) && !QtiCallUtils.isVisualizedVoiceCall(),
-        showIncomingVideo, isRemotelyHeld, showOutgoingVideo2, showIncomingVideo2);
+    videoCallScreen.showVideoViews(showOutgoingVideo && !shallTransmitStaticImage()
+        && !QtiCallUtils.isVisualizedVoiceCall(),
+        showIncomingVideo || QtiCallUtils.hasVideoCrbtVoLteCall(context),
+        isRemotelyHeld, showOutgoingVideo2, showIncomingVideo2);
     if (BottomSheetHelper.getInstance().canDisablePipMode() && mPictureModeHelper != null) {
       mPictureModeHelper.setPreviewVideoLayoutParams();
     }

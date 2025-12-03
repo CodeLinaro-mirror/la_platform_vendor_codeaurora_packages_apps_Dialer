@@ -561,7 +561,7 @@ public class QtiCallUtils {
         if (extras == null) {
             return false;
         }
-        return extras.getBoolean(QtiCallConstants.EXTRA_IS_CRBT_CALL, false);
+        return extras.getBoolean(android.telecom.Call.EXTRA_IS_USING_VIDEO_RINGBACK, false);
     }
 
     public static boolean hasVideoCrbtVoLteCall(Context context) {

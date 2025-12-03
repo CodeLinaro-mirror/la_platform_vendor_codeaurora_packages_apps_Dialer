@@ -498,8 +498,7 @@ public class CallCardPresenter
       try {
         final PrimaryCallState callState = PrimaryCallState.builder()
             .setState(primary.getState())
-            .setIsVideoCall(!QtiCallUtils.hasVideoCrbtVoLteCall(context, primary)
-                && !QtiCallUtils.isVisualizedVoiceCall(primary)
+            .setIsVideoCall(!QtiCallUtils.isVisualizedVoiceCall(primary)
                 && primary.isVideoCall())
             .setSessionModificationState(primary.getVideoTech().getSessionModificationState())
             .setDisconnectCause(primary.getDisconnectCause())
