@@ -104,9 +104,13 @@ public class ImsVideoTech implements VideoTech {
             LogUtil.i("ImsVideoCall.isAvailable", "has video CRBT");
             return true;
         }
+
+        if (extras.getBoolean(
+                android.telecom.Call.EXTRA_IS_USING_UNIDIRECTIONAL_VIDEO_SERVICE, false)) {
+            LogUtil.i("ImsVideoCall.isAvailable", "has UVS call");
+            return true;
+        }
     }
-
-
 
     // The current call doesn't support transmitting video
     if (!details.can(Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL_TX)) {

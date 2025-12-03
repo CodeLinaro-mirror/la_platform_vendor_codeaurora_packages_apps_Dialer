@@ -669,32 +669,24 @@ public class QtiCallUtils {
     }
 
     /**
-     * Check if call has visualized voice attribute, it could be used in the case,
-     * if return true, the options VT-TX/RX will not be shown in the Modify call sheet
-     * even if this visualized voice call is downgraded to voice call or upgraded to VT call.
-     */
-    public static boolean hasVisualizedVoiceAttribute(DialerCall call) {
-        if (call == null) {
-            return false;
-        }
-        final Bundle extras = call.getExtras();
-        return ((extras == null) ? false :
-            extras.getBoolean(QtiCallConstants.EXTRA_IS_VISUALIZED_VOICE_CALL, false));
-    }
-
-
-    /**
-     * Check if it is VT-RX call with visualized voice attribute, it could be used
+     * Check if it is voice call with visualized voice attribute, it could be used
      * in the cases, if return true:
      *   1. Do not show local preview window
      *   2. Support to turn off screen while user ear is close to the screen
      *   3. Disallow the rotation
      *   4. Show voice call icon in status bar
+     *   5. Do not show the options VT-TX/RX in the Modify call sheet
      * If this visualized voice call is downgraded or upgraded, these Dialer UI
      * behaviors follow its current call type completely.
      */
     public static boolean isVisualizedVoiceCall(DialerCall call) {
-        return hasVisualizedVoiceAttribute(call) && isVideoRxOnly(call);
+        if (call == null) {
+            return false;
+        }
+        final Bundle extras = call.getExtras();
+        return ((extras == null) ? false :
+                extras.getBoolean(
+                android.telecom.Call.EXTRA_IS_USING_UNIDIRECTIONAL_VIDEO_SERVICE, false));
     }
 
     public static boolean isVisualizedVoiceCall() {

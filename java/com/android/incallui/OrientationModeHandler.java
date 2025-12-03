@@ -213,8 +213,7 @@ public class OrientationModeHandler implements InCallDetailsListener, InCallUiLi
         // Additionally, restrict rotation for dual VT call
         if (isVideoOrUpgrade(call) && (call.getNonConferenceState() != DialerCallState.ONHOLD)
                 && (call.getNonConferenceState() != DialerCallState.DISCONNECTED)
-                && !QtiCallUtils.isVideoCrs(call)
-                && !QtiCallUtils.isVisualizedVoiceCall(call)) {
+                && !QtiCallUtils.isVideoCrs(call)) {
             return (mOrientationMode == QtiCallConstants.ORIENTATION_MODE_UNSPECIFIED) ?
                     InCallOrientationEventListener.ACTIVITY_PREFERENCE_ALLOW_ROTATION :
                     QtiCallUtils.toScreenOrientation(mOrientationMode);

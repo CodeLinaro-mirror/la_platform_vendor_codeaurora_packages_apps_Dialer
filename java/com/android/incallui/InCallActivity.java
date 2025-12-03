@@ -1572,6 +1572,11 @@ public class InCallActivity extends TransactionSafeFragmentActivity
       return new ShouldShowUiResult(true, call);
     }
 
+    if (QtiCallUtils.isVisualizedVoiceCall(call)) {
+      LogUtil.i("InCallActivity.getShouldShowVideoUi", "found UVS call");
+      return new ShouldShowUiResult(true, call);
+    }
+
     return new ShouldShowUiResult(false, null);
   }
 

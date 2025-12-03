@@ -782,7 +782,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     final int oldState = getState();
     final int translatedState = translateState(telecomCall.getState());
     if (!isVideoCall) {
-      isVideoCall = isVideoCall() && !QtiCallUtils.isVisualizedVoiceCall(this);
+      isVideoCall = isVideoCall();
     }
     if (!overwriteDisconnectCause) {
       overwriteDisconnectCause = (DialerCallState.isDialing(oldState)
