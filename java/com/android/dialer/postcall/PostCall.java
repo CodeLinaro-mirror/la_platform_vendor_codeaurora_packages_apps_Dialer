@@ -227,13 +227,15 @@ public class PostCall {
 
     ConfigProvider binding = ConfigProviderComponent.get(context).getConfigProvider();
     final int subId = getSubscriptionId(context);
+    String phoneNumber = getPhoneNumber(context);
     return disconnectTimeMillis != -1
         && connectTimeMillis != -1
         && isSimReady(context, SubscriptionManager.getSlotIndex(subId))
         && binding.getLong("postcall_last_call_threshold", 30_000) > timeSinceDisconnect
         && (connectTimeMillis == 0
             || binding.getLong("postcall_call_duration_threshold", 35_000) > callDurationMillis)
-        && getPhoneNumber(context) != null
+        && phoneNumber != null
+        && !phoneNumber.equals("tel:conf-factory") // Don't send sms for conference.
         && callDisconnectedByUser;
   }
 
