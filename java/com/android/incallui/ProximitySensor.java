@@ -14,7 +14,7 @@
  * limitations under the License
  *
  * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -118,10 +118,24 @@ public class ProximitySensor
             || InCallState.OUTGOING == newState
             || hasOngoingCall;
 
+    boolean isVideoCall = false;
+    boolean isRttCall = false;
+
     DialerCall activeCall = callList.getActiveCall();
-    boolean isVideoCall = activeCall != null && activeCall.isVideoCall()
-        && !QtiCallUtils.isVisualizedVoiceCall(activeCall);
-    boolean isRttCall = activeCall != null && activeCall.isActiveRttCall();
+    if (activeCall != null) {
+      isVideoCall = activeCall.isVideoCall() && !QtiCallUtils.isVisualizedVoiceCall(activeCall);
+      isRttCall = activeCall.isActiveRttCall();
+    } else {
+      DialerCall outgoingCall = callList.getOutgoingCall();
+      if (outgoingCall == null) {
+        outgoingCall = callList.getPendingOutgoingCall();
+      }
+
+      if (outgoingCall != null) {
+        isVideoCall = outgoingCall.isVideoCall()
+            && !QtiCallUtils.hasVideoCrbtVoLteCall(outgoingCall.getContext(), outgoingCall);
+      }
+    }
 
     if (isOffhook != isPhoneOffhook
         || this.isVideoCall != isVideoCall
