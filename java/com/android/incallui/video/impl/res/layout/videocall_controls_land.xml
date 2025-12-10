@@ -68,6 +68,15 @@
      android:layout_marginEnd="24dp"
      android:src="@drawable/quantum_ic_more_vert_white_24"/>
 
+    <ImageButton
+      android:id="@+id/videocall_rtt_upgrade"
+      style="@style/Incall.Button.VideoCall"
+      android:layout_marginEnd="24dp"
+      android:checked="true"
+      android:src="@drawable/quantum_ic_rtt_vd_theme_24"
+      app:contentDescriptionChecked="@string/incall_content_description_speaker"
+      app:contentDescriptionUnchecked="@string/incall_content_description_earpiece"
+      />
     <com.android.incallui.video.impl.CheckableImageButton
       android:id="@+id/videocall_speaker_button"
       style="@style/Incall.Button.VideoCall"
