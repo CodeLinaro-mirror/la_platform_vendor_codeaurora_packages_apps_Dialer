@@ -798,7 +798,7 @@ public class RttChatFragment extends Fragment
     return isVideoEnabled
         && QtiCallUtils.hasReceiveVideoCapabilities(call)
         && QtiCallUtils.hasTransmitVideoCapabilities(call)
-        && !QtiCallUtils.hasVisualizedVoiceAttribute(call);
+        && !QtiCallUtils.isVisualizedVoiceCall(call);
   }
 
   private void updateVideoToggleMenuLabel() {

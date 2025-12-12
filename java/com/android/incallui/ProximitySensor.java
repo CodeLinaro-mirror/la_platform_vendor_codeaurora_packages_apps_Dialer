@@ -36,7 +36,6 @@ import com.android.incallui.audiomode.AudioModeProvider;
 import com.android.incallui.audiomode.AudioModeProvider.AudioModeListener;
 import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
-import com.android.incallui.QtiCallUtils;
 
 /**
  * Class manages the proximity sensor for the in-call UI. We enable the proximity sensor while the
@@ -119,8 +118,7 @@ public class ProximitySensor
             || hasOngoingCall;
 
     DialerCall activeCall = callList.getActiveCall();
-    boolean isVideoCall = activeCall != null && activeCall.isVideoCall()
-        && !QtiCallUtils.isVisualizedVoiceCall(activeCall);
+    boolean isVideoCall = activeCall != null && activeCall.isVideoCall();
     boolean isRttCall = activeCall != null && activeCall.isActiveRttCall();
 
     if (isOffhook != isPhoneOffhook
@@ -273,7 +271,7 @@ public class ProximitySensor
   @Override
   public void onDetailsChanged(DialerCall call, android.telecom.Call.Details details) {
     if (call != null && call.isActiveCall() ) {
-      boolean isVideoCall = call.isVideoCall() && !QtiCallUtils.isVisualizedVoiceCall(call);
+      boolean isVideoCall = call.isVideoCall();
       boolean isRttCall = call.isActiveRttCall();
       if (isVideoCall != this.isVideoCall || isRttCall != this.isRttCall) {
         this.isRttCall = isRttCall;
