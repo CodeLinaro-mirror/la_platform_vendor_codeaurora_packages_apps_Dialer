@@ -545,8 +545,9 @@ public class RttChatFragment extends Fragment
     DialerCall currentCall = CallList.getInstance().getCallById(getCallId());
     boolean showTransferOptions =
         currentCall != null
+            && !currentCall.isEmergencyCall()
             && (currentCall.can(Details.CAPABILITY_TRANSFER)
-                || currentCall.can(Details.CAPABILITY_TRANSFER_CONSULTATIVE))
+            || currentCall.can(Details.CAPABILITY_TRANSFER_CONSULTATIVE))
             && !currentCall.hasReceivedVideoUpgradeRequest();
     overflowMenu.enableTransferButton(showTransferOptions);
   }
