@@ -478,6 +478,10 @@ public class VideoCallFragment extends Fragment
             LogUtil.i("VideoCallFragment.onLayoutChange", "previewTextureView layout changed");
             updatePreviewVideoScaling(QtiCallConstants.DUAL_VIDEO_MAIN_STREAM);
             updatePreviewOffView();
+            if ((bottom != oldBottom) && !isInGreenScreenMode && !isInFullscreenMode) {
+              Point previewOffsetStartShown = getPreviewOffsetStartShown();
+              moveAllPreviewRelatedViews(previewOffsetStartShown.x, previewOffsetStartShown.y);
+            }
           }
         });
 
