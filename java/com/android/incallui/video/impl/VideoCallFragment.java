@@ -403,6 +403,10 @@ public class VideoCallFragment extends Fragment
             LogUtil.i("VideoCallFragment.onLayoutChange", "previewTextureView layout changed");
             updatePreviewVideoScaling();
             updatePreviewOffView();
+            if ((bottom != oldBottom) && !isInGreenScreenMode && !isInFullscreenMode) {
+              Point previewOffsetStartShown = getPreviewOffsetStartShown();
+              moveAllPreviewRelatedViews(previewOffsetStartShown.x, previewOffsetStartShown.y);
+            }
           }
         });
 
