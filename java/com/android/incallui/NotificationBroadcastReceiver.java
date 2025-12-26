@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui;
@@ -120,6 +124,12 @@ public class NotificationBroadcastReceiver extends BroadcastReceiver {
       DialerCall call = callList.getVideoUpgradeRequestCall();
       if (call != null) {
         call.getVideoTech().acceptVideoRequest(context);
+        // Also accept RTT if this is a dual VT+RTT MT upgrade.
+        BottomSheetHelper helper = BottomSheetHelper.getInstance();
+        if (helper != null && helper.isPendingMtVtRttUpgrade()) {
+          call.respondToRttRequest(true, helper.getPendingRttRequestId());
+          helper.clearPendingMtVtRttUpgrade();
+        }
       }
     }
   }
@@ -133,6 +143,12 @@ public class NotificationBroadcastReceiver extends BroadcastReceiver {
       DialerCall call = callList.getVideoUpgradeRequestCall();
       if (call != null) {
         call.getVideoTech().declineVideoRequest();
+        // Also decline RTT if this is a dual VT+RTT MT upgrade.
+        BottomSheetHelper helper = BottomSheetHelper.getInstance();
+        if (helper != null && helper.isPendingMtVtRttUpgrade()) {
+          call.respondToRttRequest(false, helper.getPendingRttRequestId());
+          helper.clearPendingMtVtRttUpgrade();
+        }
       }
     }
   }

@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui;
@@ -20,6 +24,7 @@ import android.annotation.TargetApi;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.telecom.VideoProfile;
 import android.telecom.Call.RttCall;
 import com.android.dialer.common.LogUtil;
 import com.android.dialer.common.concurrent.ThreadUtil;
@@ -37,12 +42,16 @@ import java.io.IOException;
  * based on other user interface events and incoming events.
  */
 @TargetApi(28)
-public class RttCallPresenter implements RttCallScreenDelegate, InCallStateListener {
+public class RttCallPresenter implements RttCallScreenDelegate, InCallStateListener,
+    InCallPresenter.InCallEventListener {
 
   private RttCallScreen rttCallScreen;
   private RttCall rttCall;
   private HandlerThread handlerThread;
   private RemoteMessageHandler remoteMessageHandler;
+
+  public RttCallPresenter() {
+  }
 
   @Override
   public void initRttCallScreenDelegate(RttCallScreen rttCallScreen) {
@@ -62,6 +71,7 @@ public class RttCallPresenter implements RttCallScreenDelegate, InCallStateListe
   public void onRttCallScreenUiReady() {
     LogUtil.enterBlock("RttCallPresenter.onRttCallScreenUiReady");
     InCallPresenter.getInstance().addListener(this);
+    InCallPresenter.getInstance().addInCallEventListener(this);
     startListenOnRemoteMessage();
     DialerCall call = CallList.getInstance().getCallById(rttCallScreen.getCallId());
     if (call != null) {
@@ -82,6 +92,7 @@ public class RttCallPresenter implements RttCallScreenDelegate, InCallStateListe
   public void onRttCallScreenUiUnready() {
     LogUtil.enterBlock("RttCallPresenter.onRttCallScreenUiUnready");
     InCallPresenter.getInstance().removeListener(this);
+    InCallPresenter.getInstance().removeInCallEventListener(this);
     stopListenOnRemoteMessage();
     onSaveRttTranscript();
   }
@@ -100,6 +111,21 @@ public class RttCallPresenter implements RttCallScreenDelegate, InCallStateListe
         builder.setNumber(dialerCall.getNumber());
     }
     dialerCall.setRttTranscript(builder.build());
+  }
+
+  @Override
+  public void onRttToVideo() {
+    DialerCall call = CallList.getInstance().getCallById(rttCallScreen.getCallId());
+    if (call == null) {
+      return;
+    }
+    if (call.isVideoCall()) {
+      LogUtil.i("RttCallPresenter.onRttToVideo", "Switching to Video UI");
+      InCallPresenter.getInstance().getActivity().toggleVideoRtt(false /* showRtt */);
+    } else {
+      LogUtil.i("RttCallPresenter.onRttToVideo", "Sending video upgrade request");
+      call.getVideoTech().upgradeToVideo(VideoProfile.STATE_BIDIRECTIONAL);
+    }
   }
 
   @Override
