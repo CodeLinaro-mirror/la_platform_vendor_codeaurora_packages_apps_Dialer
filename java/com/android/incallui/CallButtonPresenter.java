@@ -66,6 +66,7 @@ import com.android.incallui.incall.protocol.InCallButtonIds;
 import com.android.incallui.incall.protocol.InCallButtonUi;
 import com.android.incallui.incall.protocol.InCallButtonUiDelegate;
 import com.android.incallui.multisim.SwapSimWorker;
+import com.android.incallui.ScreenShareHelper.ScreenShareListener;
 import com.android.incallui.videotech.utils.SessionModificationState;
 import com.android.incallui.videotech.utils.VideoUtils;
 import java.util.Set;
@@ -80,6 +81,7 @@ public class CallButtonPresenter
         InCallEventListener,
         CanAddCallListener,
         SimultaneousCallingChangeListener,
+        ScreenShareListener,
         InCallCameraManager.Listener,
         InCallButtonUiDelegate {
 
@@ -115,7 +117,7 @@ public class CallButtonPresenter
     if (!telephonyManager.isDsdsTransitionSupported()) {
       InCallPresenter.getInstance().addSimultaneousCallingChangeListener(this);
     }
-
+    ScreenShareHelper.addScreenShareListener(this);
     // Update the buttons state immediately for the current call
     onStateChange(InCallState.NO_CALLS, inCallPresenter.getInCallState(), CallList.getInstance());
     phoneAccountChangedReceiver.register();
@@ -136,6 +138,7 @@ public class CallButtonPresenter
     if (!telephonyManager.isDsdsTransitionSupported()) {
       InCallPresenter.getInstance().removeSimultaneousCallingChangeListener(this);
     }
+    ScreenShareHelper.removeScreenShareListener(this);
     phoneAccountChangedReceiver.unregister();
     isInCallButtonUiReady = false;
   }
@@ -896,6 +899,13 @@ public class CallButtonPresenter
       return;
     }
     updateButtonsState(call);
+  }
+
+  @Override
+  public void onScreenSharePermissionChanged() {
+    if (inCallButtonUi != null && call != null) {
+      updateButtonsState(call);
+    }
   }
 
   private InCallActivity getActivity() {
