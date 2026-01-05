@@ -25,10 +25,10 @@
 * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear
+*
+* Changes from Qualcomm Technologies, Inc. are provided under the following license:
+* Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
 package com.android.incallui;
@@ -561,7 +561,7 @@ public class QtiCallUtils {
         if (extras == null) {
             return false;
         }
-        return extras.getBoolean(QtiCallConstants.EXTRA_IS_CRBT_CALL, false);
+        return extras.getBoolean(android.telecom.Call.EXTRA_IS_USING_VIDEO_RINGBACK, false);
     }
 
     public static boolean hasVideoCrbtVoLteCall(Context context) {
@@ -603,35 +603,10 @@ public class QtiCallUtils {
         if (extras == null) {
             return false;
         }
-        int crsType = extras.getInt(QtiCallConstants.EXTRA_CRS_TYPE,
-                QtiCallConstants.CRS_TYPE_INVALID);
-        return  (crsType & QtiCallConstants.CRS_TYPE_VIDEO) == QtiCallConstants.CRS_TYPE_VIDEO;
-    }
-
-    //Checks what's original call type of video CRS
-    private static int getOriginalCallType(DialerCall call) {
-        if (!isVideoCrs(call)) {
-            return call.getVideoState();
-        }
-        //Ideally if call has video CRS, then original call type should be there.
-        Bundle extras = call.getExtras();
-        if (extras == null) {
-            return UNKNOWN_CALL_TYPE;
-        }
-        return extras.getInt(QtiCallConstants.EXTRA_ORIGINAL_CALL_TYPE,
-                UNKNOWN_CALL_TYPE);
-    }
-
-    //Checks if original call type is VT with or without video CRS
-    public static boolean isVideoCallOriginally(DialerCall call) {
-        if (!isVideoCrs(call)) {
-            return call == null ? false : call.isVideoCall();
-        }
-        int originalCallType = getOriginalCallType(call);
-        if (originalCallType == UNKNOWN_CALL_TYPE) {
-            Log.w(LOG_TAG, "Video CRS call has no original call type, it's not expected.");
-        }
-        return VideoProfile.STATE_BIDIRECTIONAL == originalCallType;
+        int crsType = extras.getInt(android.telecom.Call.EXTRA_CRS_MEDIA_TYPE,
+                android.telecom.Call.CRS_MEDIA_TYPE_NONE);
+        return  (crsType & android.telecom.Call.CRS_MEDIA_TYPE_VIDEO)
+            == android.telecom.Call.CRS_MEDIA_TYPE_VIDEO;
     }
 
     public static boolean isPreparatory(DialerCall call) {
@@ -694,32 +669,24 @@ public class QtiCallUtils {
     }
 
     /**
-     * Check if call has visualized voice attribute, it could be used in the case,
-     * if return true, the options VT-TX/RX will not be shown in the Modify call sheet
-     * even if this visualized voice call is downgraded to voice call or upgraded to VT call.
-     */
-    public static boolean hasVisualizedVoiceAttribute(DialerCall call) {
-        if (call == null) {
-            return false;
-        }
-        final Bundle extras = call.getExtras();
-        return ((extras == null) ? false :
-            extras.getBoolean(QtiCallConstants.EXTRA_IS_VISUALIZED_VOICE_CALL, false));
-    }
-
-
-    /**
-     * Check if it is VT-RX call with visualized voice attribute, it could be used
+     * Check if it is voice call with visualized voice attribute, it could be used
      * in the cases, if return true:
      *   1. Do not show local preview window
      *   2. Support to turn off screen while user ear is close to the screen
      *   3. Disallow the rotation
      *   4. Show voice call icon in status bar
+     *   5. Do not show the options VT-TX/RX in the Modify call sheet
      * If this visualized voice call is downgraded or upgraded, these Dialer UI
      * behaviors follow its current call type completely.
      */
     public static boolean isVisualizedVoiceCall(DialerCall call) {
-        return hasVisualizedVoiceAttribute(call) && isVideoRxOnly(call);
+        if (call == null) {
+            return false;
+        }
+        final Bundle extras = call.getExtras();
+        return ((extras == null) ? false :
+                extras.getBoolean(
+                android.telecom.Call.EXTRA_IS_USING_UNIDIRECTIONAL_VIDEO_SERVICE, false));
     }
 
     public static boolean isVisualizedVoiceCall() {

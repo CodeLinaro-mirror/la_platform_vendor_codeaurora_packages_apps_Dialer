@@ -13,14 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.videotech.ims;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
@@ -75,20 +76,50 @@ public class ImsVideoTech implements VideoTech {
       return false;
     }
 
+    Details details = call.getDetails();
+    if (details == null) {
+      LogUtil.i("ImsVideoCall.isAvailable", "null call details");
+      return false;
+    }
+
     // We are already in an IMS video call
-    if (VideoProfile.isVideo(call.getDetails().getVideoState())) {
+    if (VideoProfile.isVideo(details.getVideoState())) {
       LogUtil.i("ImsVideoCall.isAvailable", "already video call");
       return true;
     }
 
+    Bundle extras = details.getExtras();
+    if (extras != null) {
+        if (details.getState() == Call.STATE_RINGING) {
+            int crsType = extras.getInt(android.telecom.Call.EXTRA_CRS_MEDIA_TYPE,
+                android.telecom.Call.CRS_MEDIA_TYPE_NONE);
+            if ((crsType & android.telecom.Call.CRS_MEDIA_TYPE_VIDEO)
+                    == android.telecom.Call.CRS_MEDIA_TYPE_VIDEO) {
+                LogUtil.i("ImsVideoCall.isAvailable", "has video CRS");
+                return true;
+            }
+        }
+
+        if (extras.getBoolean(android.telecom.Call.EXTRA_IS_USING_VIDEO_RINGBACK, false)) {
+            LogUtil.i("ImsVideoCall.isAvailable", "has video CRBT");
+            return true;
+        }
+
+        if (extras.getBoolean(
+                android.telecom.Call.EXTRA_IS_USING_UNIDIRECTIONAL_VIDEO_SERVICE, false)) {
+            LogUtil.i("ImsVideoCall.isAvailable", "has UVS call");
+            return true;
+        }
+    }
+
     // The current call doesn't support transmitting video
-    if (!call.getDetails().can(Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL_TX)) {
+    if (!details.can(Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL_TX)) {
       LogUtil.i("ImsVideoCall.isAvailable", "no TX");
       return false;
     }
 
     // The current call remote device doesn't support receiving video
-    if (!call.getDetails().can(Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_RX)) {
+    if (!details.can(Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_RX)) {
       LogUtil.i("ImsVideoCall.isAvailable", "no RX");
       return false;
     }

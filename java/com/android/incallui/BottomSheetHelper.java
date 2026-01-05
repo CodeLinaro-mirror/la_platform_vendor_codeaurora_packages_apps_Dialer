@@ -942,7 +942,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
       if (!QtiCallUtils.isDualVideo(mCall) && isVideoEnabled
           && QtiCallUtils.hasReceiveVideoCapabilities(mCall)
           && !QtiCallUtils.isVideoRxOnly(mCall)
-          && !QtiCallUtils.hasVisualizedVoiceAttribute(mCall) && !isCallRttVt) {
+          && !QtiCallUtils.isVisualizedVoiceCall(mCall) && !isCallRttVt) {
         items.add(mResources.getText(R.string.modify_call_option_vt_rx));
         itemToCallType.add(VideoProfile.STATE_RX_ENABLED);
       }
@@ -951,7 +951,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
           && QtiCallUtils.hasTransmitVideoCapabilities(mCall)
           && (!QtiCallUtils.isVideoTxOnly(mCall)
           || ScreenShareHelper.screenShareRequested())
-          && !QtiCallUtils.hasVisualizedVoiceAttribute(mCall) && !isCallRttVt) {
+          && !QtiCallUtils.isVisualizedVoiceCall(mCall) && !isCallRttVt) {
         items.add(mResources.getText(R.string.modify_call_option_vt_tx));
         itemToCallType.add(VideoProfile.STATE_TX_ENABLED);
       }
@@ -1287,6 +1287,6 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
       return isVideoEnabled
              && QtiCallUtils.hasReceiveVideoCapabilities(call)
              && QtiCallUtils.hasTransmitVideoCapabilities(call)
-             && !QtiCallUtils.hasVisualizedVoiceAttribute(call);
+             && !QtiCallUtils.isVisualizedVoiceCall(call);
    }
 }

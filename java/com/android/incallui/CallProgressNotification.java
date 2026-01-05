@@ -67,6 +67,11 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
     private static final int CALL_REJECT_NON_UNIQUE_REASON_CODE = 21;
     private static final int CALL_REJECT_INVALID_NUMBER_FORMAT = 28;
 
+    /**
+     * Sip 603 response : Decline
+     */
+    private static final int CODE_SIP_USER_REJECTED = 603;
+
     // Non unique call reject reason text received from network in english.
     private String mCallRejectedReasonFromNw;
     private String mUserCallRejectedReasonFromNw;
@@ -232,8 +237,15 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
                 }
                 return getCallInfoCallRejectQ850ReasonText(q850Code, callExtras);
             case QtiCallConstants.CALL_PROGRESS_INFO_TYPE_CALL_REJ_SIP:
-                return callExtras.getString(QtiCallConstants.EXTRAS_CALL_PROGRESS_REJECT_SIP_TEXT,
-                        null);
+                int sipCode = callExtras.getInt(
+                        QtiCallConstants.EXTRAS_CALL_PROGRESS_REJECT_SIP_CODE,
+                        QtiCallConstants.CALL_REJECTION_CODE_INVALID);
+                Log.d(this, "getCallProgressText - sipCode : " + sipCode);
+                if (sipCode == QtiCallConstants.CALL_REJECTION_CODE_INVALID) {
+                    return null;
+                }
+
+                return getCallInfoCallRejectSipReasonText(sipCode, callExtras);
             case QtiCallConstants.CALL_PROGRESS_INFO_TYPE_CALL_WARNING:
                 return callExtras.getString(QtiCallConstants.EXTRAS_CALL_PROGRESS_WARNING_TEXT,
                         null);
@@ -305,6 +317,28 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
         }
 
         return null;
+    }
+
+    private String getCallInfoCallRejectSipReasonText(int reasonCode, Bundle callExtras) {
+        final boolean isCalledPartyRinging = callExtras.getBoolean(
+                QtiCallConstants.EXTRA_IS_CALLED_PARTY_RINGING);
+
+        String rejectReasonText = getRejectSipReasonForUniqueReasonText(reasonCode,
+                isCalledPartyRinging);
+
+        return rejectReasonText != null ? rejectReasonText :
+            callExtras.getString(QtiCallConstants.EXTRAS_CALL_PROGRESS_REJECT_SIP_TEXT, null);
+    }
+
+    private String getRejectSipReasonForUniqueReasonText(int reasonCode,
+            boolean isCalledPartyRinging) {
+        switch (reasonCode) {
+            case CODE_SIP_USER_REJECTED:
+                return isCalledPartyRinging ?
+                    mResources.getString(R.string.call_progress_info_user_busy_ringing) : null;
+            default:
+                return null;
+        }
     }
 
     /**

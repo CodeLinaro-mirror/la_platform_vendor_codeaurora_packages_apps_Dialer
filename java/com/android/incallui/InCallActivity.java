@@ -1567,6 +1567,16 @@ public class InCallActivity extends TransactionSafeFragmentActivity
       return new ShouldShowUiResult(true, call);
     }
 
+    if (QtiCallUtils.hasVideoCrbtVoLteCall(call.getContext(), call)) {
+      LogUtil.i("InCallActivity.getShouldShowVideoUi", "found video CRBT");
+      return new ShouldShowUiResult(true, call);
+    }
+
+    if (QtiCallUtils.isVisualizedVoiceCall(call)) {
+      LogUtil.i("InCallActivity.getShouldShowVideoUi", "found UVS call");
+      return new ShouldShowUiResult(true, call);
+    }
+
     return new ShouldShowUiResult(false, null);
   }
 
@@ -1638,11 +1648,9 @@ public class InCallActivity extends TransactionSafeFragmentActivity
             CallList.getInstance().getBackgroundCall() != null,
             getSpeakEasyCallManager().isAvailable(getApplicationContext())
                 && call.isSpeakEasyEligible(),
-            QtiCallUtils.isVideoCrs(call),
-            QtiCallUtils.isVideoCallOriginally(call));
-    LogUtil.d("InCallActivity.showAnswerScreenFragment", "Is video call originally : "
-            + QtiCallUtils.isVideoCallOriginally(call)
-            + " isVideoCrs : " + QtiCallUtils.isVideoCrs(call));
+            QtiCallUtils.isVideoCrs(call));
+    LogUtil.d("InCallActivity.showAnswerScreenFragment", " isVideoCrs : " +
+            QtiCallUtils.isVideoCrs(call));
     transaction.add(R.id.main, answerScreen.getAnswerScreenFragment(), Tags.ANSWER_SCREEN);
 
     Logger.get(this).logScreenView(ScreenEvent.Type.INCOMING_CALL, this);

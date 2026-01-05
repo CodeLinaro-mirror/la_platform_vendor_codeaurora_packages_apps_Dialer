@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.answer.bindings;
@@ -31,8 +35,7 @@ public class AnswerBindings {
       boolean allowAnswerAndRelease,
       boolean hasCallOnHold,
       boolean allowSpeakEasy,
-      boolean hasCrs,
-      boolean isVideoCallOriginally) {
+      boolean hasCrs) {
     return AnswerFragment.newInstance(
         callId,
         isRttCall,
@@ -42,7 +45,6 @@ public class AnswerBindings {
         allowAnswerAndRelease,
         hasCallOnHold,
         allowSpeakEasy,
-        hasCrs,
-        isVideoCallOriginally);
+        hasCrs);
   }
 }
