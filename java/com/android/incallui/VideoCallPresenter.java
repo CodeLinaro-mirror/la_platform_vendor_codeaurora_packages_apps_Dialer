@@ -1273,7 +1273,8 @@ public class VideoCallPresenter
     }
     Log.i("VideoCallPresenter.onDetailsChanged", "getToken: " + call.getToken());
     if(isDualVideoCallEnabled() && mVideoCallProviderManager == null
-               && call.getToken() != QtiCallConstants.INVALID_TOKEN_ID) {
+               && call.getToken() != QtiCallConstants.INVALID_TOKEN_ID
+               && isVideoCallScreenUiReady) {
       if (mQtiImsExtConnector == null) {
           Log.i("VideoCallPresenter.onDetailsChanged", "maybeCreateConnector");
           maybeCreateQtiImsExtConnector(context, DUAL_VIDEO);
@@ -2180,7 +2181,7 @@ public class VideoCallPresenter
     @Override
     public void onSurfaceClick(VideoSurfaceTexture videoCallSurface) {
       // Show zoom control when preview surface is clicked.
-      LogUtil.i("VideoCallPresenter.onSurfaceClick", "");
+      LogUtil.i("VideoCallPresenter.onSurfaceClick", "LocalDelegate");
       if (shallTransmitStaticImage()) {
         VideoCallPresenter.this.onSurfaceClick();
       } else if (mPictureModeHelper != null && mPictureModeHelper.canShowPreviewVideoView()
@@ -2224,14 +2225,11 @@ public class VideoCallPresenter
 
     @Override
     public void onSurfaceClick(VideoSurfaceTexture videoCallSurface) {
-      boolean isCrbtReady = isIncomingVideoAvailableForEarlyMedia();
-      // Set CRBT call and visualized voice call not support full screen mode.
-      if ((QtiCallUtils.hasVideoCrbtVtCall(context) && isCrbtReady)
-          || QtiCallUtils.hasVideoCrbtVoLteCall(context)
-          || QtiCallUtils.isVisualizedVoiceCall()) {
-        LogUtil.i(
-            "VideoCallPresenter.RemoteDelegate",
-            "ignore to enter full screen mode for CRBT/UVS call.");
+      LogUtil.i("VideoCallPresenter.onSurfaceClick", "RemoteDelegate");
+      if (primaryCall != null
+          && (primaryCall.getState() == DialerCallState.DIALING
+          || primaryCall.getState() == DialerCallState.CONNECTING)) {
+        LogUtil.i("VideoCallPresenter.RemoteDelegate", "ignore to enter full screen mode.");
         return;
       }
       VideoCallPresenter.this.onSurfaceClick();
