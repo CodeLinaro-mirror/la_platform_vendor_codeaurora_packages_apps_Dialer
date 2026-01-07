@@ -1545,6 +1545,9 @@ public class VideoCallFragment extends Fragment
                 }
               });
     }
+
+    //ensure RTT button visibility is updated when the phone ID becomes valid
+    updateRttButtonVisibility();
   }
 
   @Override
@@ -2067,16 +2070,8 @@ public class VideoCallFragment extends Fragment
     try {
       DialerCall call = CallList.getInstance().getCallById(getCallId());
       boolean hasCall = call != null;
-      if (!hasCall) {
-        return;
-      }
-      boolean featureSupported = BottomSheetHelper.getInstance().isRttVtFeatureSupported();
 
-      boolean isVideo = hasCall && call.isVideoCall();
-      boolean isRttActive = hasCall && call.isActiveRttCall();
-
-      boolean showRttButton =
-          hasCall && isVideo && !isRttActive && featureSupported;
+      boolean showRttButton = hasCall && call.isVideoCall() && call.canUpgradeToRttCall();
 
       rttButton.setVisibility(showRttButton ? View.VISIBLE : View.GONE);
     } catch (Exception e) {
