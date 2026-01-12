@@ -40,12 +40,17 @@ import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.DialerCallListener;
 import com.android.incallui.call.state.DialerCallState;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 public class AnswerUtils {
 
   private AnswerUtils() {}
 
   public static void disconnectCallsAndAnswer(int videoState, boolean needLaunchUi) {
-    boolean isCallAvailableToDisconnect = false;
+
     CallList callList = InCallPresenter.getInstance().getCallList();
     if (callList == null) {
       LogUtil.i("AnswerUtils.disconnectCallsAndAnswer", "CallList is null.");
@@ -56,6 +61,9 @@ public class AnswerUtils {
       LogUtil.i("AnswerUtils.disconnectCallsAndAnswer", "No valid call found.");
       return;
     }
+
+    List<DialerCall> callsToDisconnect = new ArrayList<>();
+    Set<DialerCall> callsToIgnore = new HashSet<>();
     PhoneAccount incomingPa = incomingCall.getPhoneAccount();
     boolean isDsda = incomingPa != null && incomingPa.hasSimultaneousCallingRestriction() &&
         incomingPa.getSimultaneousCallingRestriction().size() > 0;
@@ -66,7 +74,8 @@ public class AnswerUtils {
         // We want to allow Telecom to decide whether to keep or disconnect
         // the held call if we're in DSDA.
         if (isCurrentCallHoldable && isDsda) {
-            continue;
+          callsToIgnore.add(currentCall);
+          continue;
         }
 
         // This check is added for carriers not supporting hold, however implicit hold
@@ -74,16 +83,22 @@ public class AnswerUtils {
         // which determines the correct sequence of operations. However if device is
         // in Pseudo DSDA then disconnect should be initiated from Dialer.
         boolean isPseudoDsda = !isDsda && !incomingPa.equals(currentCall.getPhoneAccount());
-        if (currentCall.shouldIgnoreExtraForDroppingFgCall() && !isPseudoDsda) continue;
-
-        isCallAvailableToDisconnect = true;
-        currentCall.setReleasedByAnsweringSecondCall(true);
-        currentCall.addListener(
-            new AnswerOnDisconnected(currentCall, null, videoState, needLaunchUi, true));
-        if (currentCall.getParentId() == null) {
-          //Send disconnect only for parent calls and not for child calls.
-          currentCall.disconnect();
+        if (currentCall.shouldIgnoreExtraForDroppingFgCall() && !isPseudoDsda) {
+          callsToIgnore.add(currentCall);
+          continue;
         }
+        callsToDisconnect.add(currentCall);
+      }
+    }
+
+    for (DialerCall currentCall: callsToDisconnect) {
+      currentCall.setReleasedByAnsweringSecondCall(true);
+      currentCall.addListener(
+          new AnswerOnDisconnected(currentCall, null, videoState, needLaunchUi, true,
+          callsToIgnore));
+      if (currentCall.getParentId() == null) {
+        //Send disconnect only for parent calls and not for child calls.
+        currentCall.disconnect();
       }
     }
 
@@ -91,7 +106,7 @@ public class AnswerUtils {
      * {@link AnswerOnDisconnected.onDialerCallDisconnect.
      * If there are no calls to disconnect then answer MT call immediately.
      */
-    if (!isCallAvailableToDisconnect) {
+    if (callsToDisconnect.isEmpty()) {
       LogUtil.i("AnswerUtils.disconnectCallsAndAnswer", "There are no calls to release," +
           " answer incoming call");
       callList.getIncomingCall().answer(videoState);
@@ -108,7 +123,7 @@ public class AnswerUtils {
 
   public static void disconnectAndAnswer(DialerCall callToDisconnect, DialerCall callToAnswer) {
     callToDisconnect.addListener(
-        new AnswerOnDisconnected(callToDisconnect, callToAnswer, 0, false, false));
+        new AnswerOnDisconnected(callToDisconnect, callToAnswer, 0, false, false, null));
     callToDisconnect.disconnect();
   }
 
@@ -119,14 +134,17 @@ public class AnswerUtils {
     private final int videoState;
     private final boolean needLaunchUi;
     private final boolean disconnectAll;
+    private Set<DialerCall> callsToIgnore;
 
     AnswerOnDisconnected(DialerCall disconnectingCall, DialerCall callToAnswer,
-        int videoState, boolean needLaunchUi, boolean disconnectAll) {
+        int videoState, boolean needLaunchUi, boolean disconnectAll,
+        Set<DialerCall> callsToIgnore) {
       this.disconnectingCall = disconnectingCall;
       this.callToAnswer = callToAnswer;
       this.videoState = videoState;
       this.needLaunchUi = needLaunchUi;
       this.disconnectAll = disconnectAll;
+      this.callsToIgnore = callsToIgnore;
     }
 
     @Override
@@ -140,17 +158,35 @@ public class AnswerUtils {
     }
 
     private void checkAndAnswerPendingIncomingCall() {
+      CallList callList = InCallPresenter.getInstance().getCallList();
+      if (callList == null) {
+        LogUtil.i("AnswerUtils.checkAndAnswerPendingIncomingCall", "CallList is null.");
+        return;
+      }
+      DialerCall callToAnswer = null;
       // Only answer when all the calls except Incoming call is disconnected.
-      if (CallList.getInstance().hasIncomingCallOnly()) {
-        LogUtil.i(
-          "AnswerUtils.AnswerOnDisconnected", "call disconnected, answering new call");
-          CallList callList = InCallPresenter.getInstance().getCallList();
-        if (callList != null && callList.getIncomingCall() != null) {
-          callList.getIncomingCall().answer(videoState);
-          if (needLaunchUi) {
-            InCallPresenter.getInstance().showInCall(
-                false /* showDialpad */, false /* newOutgoingCall */);
-          }
+      // Ignore the calls in ignore list.
+      for (DialerCall call: callList.getAllCalls()) {
+        if (call.getState() == DialerCallState.INCOMING) {
+          callToAnswer = call;
+          continue;
+        }
+        if (call.getState() != DialerCallState.DISCONNECTED &&
+            (callsToIgnore == null || !callsToIgnore.contains(call))) {
+          LogUtil.i(
+              "AnswerUtils.checkAndAnswerPendingIncomingCall",
+              "Wait for more calls to get disconnected");
+          return;
+        }
+      }
+
+      LogUtil.i(
+          "AnswerUtils.checkAndAnswerPendingIncomingCall", "Answering call: " + callToAnswer);
+      if (callToAnswer != null) {
+        callToAnswer.answer(videoState);
+        if (needLaunchUi) {
+          InCallPresenter.getInstance().showInCall(
+              false /* showDialpad */, false /* newOutgoingCall */);
         }
       }
     }
