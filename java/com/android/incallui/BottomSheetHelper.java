@@ -805,7 +805,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
              && primaryCallState != DialerCallState.INCOMING
              && primaryCallState != DialerCallState.CALL_WAITING
              && primaryCallState != DialerCallState.ONHOLD)
-         || QtiCallUtils.isVideoCrs(mCall);
+         || QtiCallUtils.isVideoCrs(mCall)
+         || QtiCallUtils.isVisualizedVoiceCall(mCall);
      moreOptionsMap.put(mResources.getString(R.string.dialpad_label), enable);
    }
 
@@ -934,7 +935,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
       boolean isCallRttVt = QtiCallUtils.isVideoBidirectional(mCall) && mCall.isActiveRttCall();
       // Prepare the string array and mapping.
       if (QtiCallUtils.hasVoiceCapabilities(mCall) && mCall.isVideoCall()
-          && !QtiCallUtils.isDualVideo(mCall) && !isCallRttVt) {
+          && !QtiCallUtils.isDualVideo(mCall) && !isCallRttVt
+          || QtiCallUtils.isVisualizedVoiceCall(mCall)) {
         items.add(mResources.getText(R.string.modify_call_option_voice));
         itemToCallType.add(VideoProfile.STATE_AUDIO_ONLY);
       }
