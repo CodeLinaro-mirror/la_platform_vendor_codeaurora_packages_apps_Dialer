@@ -1278,7 +1278,13 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   @Override
   public void onDisconnect(DialerCall call) {
     showDialogOrToastForDisconnectedCall(call);
-
+    // If screenshare is active while call is ended from notification drop down
+    // as VideoCallPresenter in in background, screen share cleanup won't happen
+    // we need to invoke cleanup explicitely in that case.
+    if (ScreenShareHelper.isSessionActive() && !isShowingInCallUi()) {
+      ScreenShareHelper.exitScreenShare();
+      ScreenShareHelper.clearScreenShareStates();
+    }
     clearCrsCrbtState();
     // We need to do the run the same code as onCallListChange.
     onCallListChange(callList);
