@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.videosurface.impl;
@@ -104,7 +108,7 @@ public class VideoScale {
       if (viewHeight * videoWidth > viewWidth * videoHeight) {
         // Current display height is too much. Correct it.
         int desiredHeight = viewWidth * videoHeight / videoWidth;
-        scaleWidth = (float) desiredHeight / (float) viewHeight;
+        scaleHeight = (float) desiredHeight / (float) viewHeight;
       } else if (viewHeight * videoWidth < viewWidth * videoHeight) {
         // Current display width is too much. Correct it.
         int desiredWidth = viewHeight * videoWidth / videoHeight;
@@ -119,7 +123,7 @@ public class VideoScale {
       } else if (viewHeight * videoWidth < viewWidth * videoHeight) {
         // Current display width is too much. Correct it.
         int desiredWidth = viewHeight * videoWidth / videoHeight;
-        scaleHeight = (float) desiredWidth / (float) viewWidth;
+        scaleWidth = (float) desiredWidth / (float) viewWidth;
       }
     }
 
