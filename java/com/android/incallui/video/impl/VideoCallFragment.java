@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -149,6 +149,7 @@ public class VideoCallFragment extends Fragment
   private static final long CAMERA_PERMISSION_DIALOG_DELAY_IN_MILLIS = 2000L;
   private static final long VIDEO_OFF_VIEW_FADE_OUT_DELAY_IN_MILLIS = 2000L;
   private static final long VIDEO_CHARGES_ALERT_DIALOG_DELAY_IN_MILLIS = 500L;
+  private static final long SWAP_CAMERA_BUTTON_DISABLE_DURATION_IN_MILLIS = 300L;
 
   public class BorderView extends View {
     private Paint paint;
@@ -292,6 +293,17 @@ public class VideoCallFragment extends Fragment
               .show(getChildFragmentManager(), TAG_VIDEO_CHARGES_ALERT);
         }
       };
+
+  private final Runnable enableSwapCameraButtonRunnable = new Runnable() {
+      @Override
+      public void run() {
+        if (swapCameraButton != null && isAdded() && getView() != null) {
+          LogUtil.i(
+              "VideoCallFragment.enableSwapCameraButtonRunnable", "enable swap camera button");
+          swapCameraButton.setEnabled(true);
+        }
+      }
+   };
 
   public static VideoCallFragment newInstance(String callId) {
     Bundle bundle = new Bundle();
@@ -640,6 +652,7 @@ public class VideoCallFragment extends Fragment
 
   @Override
   public void onVideoScreenStop() {
+    getView().removeCallbacks(enableSwapCameraButtonRunnable);
     getView().removeCallbacks(videoChargesAlertDialogRunnable);
     getView().removeCallbacks(cameraPermissionDialogRunnable);
     videoCallScreenDelegate.onVideoCallScreenUiUnready();
@@ -937,9 +950,18 @@ public class VideoCallFragment extends Fragment
       inCallButtonUiDelegate.onEndCallClicked();
       videoCallScreenDelegate.resetAutoFullscreenTimer();
     } else if (v == swapCameraButton) {
+      if (!swapCameraButton.isEnabled()) {
+        LogUtil.i(
+            "VideoCallFragment.onClick", "swap camera button already disabled, ignoring click");
+        return;
+      }
       if (swapCameraButton.getDrawable() instanceof Animatable) {
         ((Animatable) swapCameraButton.getDrawable()).start();
       }
+      LogUtil.i("VideoCallFragment.onClick", "disable swap camera button");
+      swapCameraButton.setEnabled(false);
+      swapCameraButton.postDelayed(enableSwapCameraButtonRunnable,
+          SWAP_CAMERA_BUTTON_DISABLE_DURATION_IN_MILLIS);
       inCallButtonUiDelegate.toggleCameraClicked();
       videoCallScreenDelegate.resetAutoFullscreenTimer();
       videoCallScreenDelegate.maybeSwitchSecondCamera();
