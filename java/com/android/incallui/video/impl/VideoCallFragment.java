@@ -57,6 +57,9 @@ import android.telecom.CallAudioState;
 import android.telephony.satellite.SatelliteManager;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
+import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.TextureView;
@@ -144,6 +147,7 @@ public class VideoCallFragment extends Fragment
   private static final float BLUR_REMOTE_RADIUS = 25.0f;
   private static final float BLUR_REMOTE_SCALE_FACTOR = 0.25f;
   private static final float ASPECT_RATIO_MATCH_THRESHOLD = 0.1f;
+  private static final float ALT_ASPECT_RATIO_MATCH_THRESHOLD = 0.2f;
   private static final String VT_ASPECT_RATIO_MATCH_THRESHOLD_SETTING =
       "vt_aspect_ratio_match_threshold";
 
@@ -152,6 +156,14 @@ public class VideoCallFragment extends Fragment
   private static final long CAMERA_PERMISSION_DIALOG_DELAY_IN_MILLIS = 2000L;
   private static final long VIDEO_OFF_VIEW_FADE_OUT_DELAY_IN_MILLIS = 2000L;
   private static final long VIDEO_CHARGES_ALERT_DIALOG_DELAY_IN_MILLIS = 500L;
+
+  private boolean areStreamsSwapped = false;
+  // constants used to update to remote alt size (based on values in xml)
+  private static final float REMOTE2_WIDTH_DP = 120f;
+  private static final float REMOTE2_HEIGHT_DP = 140f;
+  private static final float REMOTE2_MARGIN_TOP_DP = 30f;
+  private static final float REMOTE2_MARGIN_START_DP = 15f;
+
 
   public class BorderView extends View {
     private Paint paint;
@@ -1108,15 +1120,191 @@ public class VideoCallFragment extends Fragment
 
     maybeLoadPreConfiguredImageAsync();
     if (videoCallScreenDelegate.shallRemovePreviewWindow(shouldShowPreview)) {
-        previewTextureView.setVisibility(View.GONE);
+      previewTextureView.setVisibility(View.GONE);
     } else if (shouldShowPreview) {
-        previewTextureView.setVisibility(View.VISIBLE);
-        if (shouldShowPreview2) {
-          preview2TextureView.setVisibility(View.VISIBLE);
-        } else {
-          preview2TextureView.setVisibility(View.GONE);
-        }
+      previewTextureView.setVisibility(View.VISIBLE);
+      preview2TextureView.setVisibility(
+          shouldShowPreview2 ? View.VISIBLE : View.GONE);
     }
+  }
+
+  // Helper function used when swapping the alt remote view (remote2TextureView)
+  // with the main remote view (remoteTextureView)
+  // This function handles resizing the view layoutto full screen size and matches the
+  // alignment for videocall_video_remote in frag_videocall/frag_videocall_land.xml
+  private void updateViewLayoutToFullscreen(View view) {
+    if (view == null) {
+      return;
+    }
+    ViewGroup.LayoutParams params = view.getLayoutParams();
+    params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+    params.height = ViewGroup.LayoutParams.MATCH_PARENT;
+    // reset any margins to view so it aligns as full screen
+    if (params instanceof ViewGroup.MarginLayoutParams) {
+      ((ViewGroup.MarginLayoutParams) params).setMargins(0, 0, 0, 0);
+      ((ViewGroup.MarginLayoutParams) params).setMarginStart(0);
+    }
+    view.setLayoutParams(params);
+  }
+
+  // Helper function used when swapping the alt remote view (remote2TextureView)
+  // with the main remote view (remoteTextureView)
+  // This function handles resizing the view layout to the alt remote view size and alignment
+  // Calculates the width/height and margins based on values defined in
+  // frag_videocall/frag_videocall_land for videocall_video_remote2
+  private void updateViewLayoutToRemote2Size(View view) {
+    if (view == null) {
+      return;
+    }
+    Context context = view.getContext();
+    if (context == null) {
+      return;
+    }
+    Resources res = context.getResources();
+    DisplayMetrics metrics = res.getDisplayMetrics();
+    // applies videocall_video_remote2 layout dimensions (see xml files)
+    int widthPx = (int) TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP, REMOTE2_WIDTH_DP, metrics);
+    int heightPx = (int) TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP, REMOTE2_HEIGHT_DP, metrics);
+    int marginTopPx = (int) TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP, REMOTE2_MARGIN_TOP_DP, metrics);
+    int marginStartPx = (int) TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP, REMOTE2_MARGIN_START_DP, metrics);
+
+    // sets view width/height to videocall_video_remote2 width/height
+    ViewGroup.LayoutParams params = view.getLayoutParams();
+    params.width = widthPx;
+    params.height = heightPx;
+
+    // set margins to videocall_video_remote2 margins
+    if (params instanceof ViewGroup.MarginLayoutParams) {
+      ViewGroup.MarginLayoutParams mp = (ViewGroup.MarginLayoutParams) params;
+      mp.setMargins(marginStartPx, marginTopPx, 0, 0);
+      mp.setMarginStart(marginStartPx); // Ensure correct position in RTL languages
+    }
+
+    // Aligns view based on whether it is remote2TextureView versus remoteTextureView
+    // remoteTextureView is instance of RelativeLayout
+    if (params instanceof RelativeLayout.LayoutParams) {
+      RelativeLayout.LayoutParams rp = (RelativeLayout.LayoutParams) params;
+      rp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+      rp.addRule(RelativeLayout.ALIGN_PARENT_START);
+      rp.removeRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+      rp.removeRule(RelativeLayout.ALIGN_PARENT_END);
+      rp.removeRule(RelativeLayout.CENTER_IN_PARENT);
+      // remote2TextureView is instance of FrameLayout
+    } else if (params instanceof FrameLayout.LayoutParams) {
+      FrameLayout.LayoutParams fp = (FrameLayout.LayoutParams) params;
+      fp.gravity = Gravity.TOP | Gravity.START;
+    }
+
+    view.setLayoutParams(params);
+  }
+
+  // Helper function to help attach border view after swapping remote texture views
+  private void attachBorderToTextureView(View targetTextureView) {
+    if (borderView == null || targetTextureView == null) {
+      return;
+    }
+    // remove borderView previous parent to attach to new parent after swapping
+    if (borderView.getParent() != null) {
+      ((ViewGroup) borderView.getParent()).removeView(borderView);
+    }
+
+    ViewGroup newParent = (ViewGroup) targetTextureView.getParent();
+    ViewGroup.LayoutParams videoParams = targetTextureView.getLayoutParams();
+    ViewGroup.LayoutParams borderParams;
+
+    // instance of remoteTextureView is instance of RelativeLayout
+    if (newParent instanceof RelativeLayout) {
+      RelativeLayout.LayoutParams rp =
+          new RelativeLayout.LayoutParams(videoParams.width, videoParams.height);
+      if (videoParams instanceof ViewGroup.MarginLayoutParams) {
+        ViewGroup.MarginLayoutParams mp = (ViewGroup.MarginLayoutParams) videoParams;
+        rp.setMargins(mp.leftMargin, mp.topMargin, mp.rightMargin, mp.bottomMargin);
+        rp.setMarginStart(mp.getMarginStart());
+        rp.setMarginEnd(mp.getMarginEnd());
+      }
+      if (videoParams instanceof RelativeLayout.LayoutParams) {
+        RelativeLayout.LayoutParams videoRp = (RelativeLayout.LayoutParams) videoParams;
+        int[] rules = videoRp.getRules();
+        for (int i = 0; i < rules.length; i++) {
+          if (rules[i] != 0) {
+            rp.addRule(i, rules[i]);
+          }
+        }
+      }
+      borderParams = rp;
+      // remote2TextureView parent is instance of FrameLayout
+    } else if (newParent instanceof FrameLayout) {
+      FrameLayout.LayoutParams fp =
+          new FrameLayout.LayoutParams(videoParams.width, videoParams.height);
+      if (videoParams instanceof FrameLayout.LayoutParams) {
+        fp.gravity = ((FrameLayout.LayoutParams) videoParams).gravity;
+      }
+
+      if (videoParams instanceof ViewGroup.MarginLayoutParams) {
+        ViewGroup.MarginLayoutParams mp = (ViewGroup.MarginLayoutParams) videoParams;
+        fp.setMargins(mp.leftMargin, mp.topMargin, mp.rightMargin, mp.bottomMargin);
+        fp.setMarginStart(mp.getMarginStart());
+        fp.setMarginEnd(mp.getMarginEnd());
+      }
+      borderParams = fp;
+    } else {
+      // fallback to initialize borderParams
+      borderParams = new ViewGroup.LayoutParams(videoParams.width, videoParams.height);
+    }
+    // Add border to new parent and bring to the front
+    borderView.setVisibility(View.VISIBLE);
+    newParent.addView(borderView, borderParams);
+    borderView.bringToFront();
+  }
+
+  @Override
+  public void updateRemoteVideoAttachments() {
+    if (videoCallScreenDelegate == null) {
+      LogUtil.w("VideoCallFragment.updateRemoteVideoAttachments", "delegate is null");
+      return;
+    }
+    if (remoteTextureView == null || remote2TextureView == null || remote2FrameLayout == null) {
+      LogUtil.w("VideoCallFragment.updateRemoteVideoAttachments", "texture views not initialized");
+      return;
+    }
+
+    areStreamsSwapped = !areStreamsSwapped;
+    if (areStreamsSwapped) {
+      updateViewLayoutToFullscreen(remote2TextureView);
+      updateViewLayoutToRemote2Size(remoteTextureView);
+      remoteTextureView.setOutlineProvider(rectOutlineProvider);
+      remoteTextureView.setClipToOutline(true);
+      remoteTextureView.bringToFront();
+      attachBorderToTextureView(remoteTextureView);
+    } else {
+      updateViewLayoutToFullscreen(remoteTextureView);
+      updateViewLayoutToRemote2Size(remote2TextureView);
+      remote2FrameLayout.bringToFront();
+      remote2TextureView.bringToFront();
+      remote2TextureView.setOutlineProvider(rectOutlineProvider);
+      remote2TextureView.setClipToOutline(true);
+
+      remoteTextureView.setOutlineProvider(null);
+      remoteTextureView.setClipToOutline(false);
+      attachBorderToTextureView(remote2TextureView);
+    }
+
+    // bring previews and controls container to the front
+    if (controlsContainer != null) {
+      controlsContainer.bringToFront();
+    }
+    if (previewTextureView != null && shouldShowPreview) {
+      previewTextureView.bringToFront();
+    }
+    if (preview2TextureView != null && shouldShowPreview2) {
+      preview2TextureView.bringToFront();
+    }
+
+    remote2FrameLayout.requestLayout();
   }
 
   private void maybeLoadPreConfiguredImageAsync() {
@@ -1679,11 +1867,11 @@ public class VideoCallFragment extends Fragment
       textureView = remote2TextureView;
     }
 
-    updateRemoteVideoScaling(videoSurfaceTexture, textureView);
+    updateRemoteVideoScaling(videoSurfaceTexture, textureView, stream);
   }
 
   private void updateRemoteVideoScaling(VideoSurfaceTexture videoSurfaceTexture,
-      TextureView textureView) {
+      TextureView textureView, int stream) {
     if (videoSurfaceTexture == null || textureView == null) {
       LogUtil.e("VideoCallFragment.updateRemoteVideoScaling",
           "VideoSurfaceTexture or textureView is null");
@@ -1705,13 +1893,20 @@ public class VideoCallFragment extends Fragment
         ((float) textureView.getWidth()) / textureView.getHeight();
     float delta = Math.abs(videoAspectRatio - displayAspectRatio);
     float sum = videoAspectRatio + displayAspectRatio;
-    if (delta / sum < mAspectRatioMatchThreshold) {
+    float comparison = delta / sum;
+    if (lessThanThreshold(stream, comparison)) {
       VideoSurfaceBindings.scaleVideoAndFillView(textureView, videoSize.x, videoSize.y, 0);
     } else {
       VideoSurfaceBindings.scaleVideoMaintainingAspectRatio(
           textureView, videoSize.x, videoSize.y);
     }
 
+  }
+
+  private boolean lessThanThreshold(int stream, float comparison) {
+    return (stream == QtiCallConstants.DUAL_VIDEO_ALT_STREAM) ?
+        comparison < ALT_ASPECT_RATIO_MATCH_THRESHOLD :
+        comparison < mAspectRatioMatchThreshold;
   }
 
   private boolean isLandscape() {

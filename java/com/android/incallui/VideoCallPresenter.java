@@ -2340,6 +2340,12 @@ public class VideoCallPresenter
 
     @Override
     public void onSurfaceClick(VideoSurfaceTexture videoCallSurface) {
+      if (videoCallScreen == null) {
+        LogUtil.i("VideoCallPresenter.Remote2Delegate.onSurfaceClick",
+                " videoCallScreen is null");
+        return;
+      }
+      videoCallScreen.updateRemoteVideoAttachments();
     }
   }
 
