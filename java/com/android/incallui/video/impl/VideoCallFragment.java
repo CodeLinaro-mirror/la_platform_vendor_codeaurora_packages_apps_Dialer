@@ -1143,6 +1143,7 @@ public class VideoCallFragment extends Fragment
     maybeLoadPreConfiguredImageAsync();
     if (videoCallScreenDelegate.shallRemovePreviewWindow(shouldShowPreview)) {
       previewTextureView.setVisibility(View.GONE);
+      preview2TextureView.setVisibility(View.GONE);
     } else if (shouldShowPreview) {
       previewTextureView.setVisibility(View.VISIBLE);
       preview2TextureView.setVisibility(
