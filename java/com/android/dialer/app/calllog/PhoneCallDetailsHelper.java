@@ -12,13 +12,20 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ​​​​​Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.app.calllog;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.ComponentName;
 import android.content.DialogInterface;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.graphics.Typeface;
@@ -200,6 +207,9 @@ public class PhoneCallDetailsHelper
       views.callAccountIcon.setVisibility(View.GONE);
     }
 
+    // Set the OTT account label if OTT call exists.
+    String ottAccountLabel = getOttAccountLabel(details);
+
     // Set the account label if it exists.
     String accountLabel = callLogCache.getAccountLabel(details.accountHandle);
     if (!TextUtils.isEmpty(details.viaNumber)) {
@@ -211,16 +221,10 @@ public class PhoneCallDetailsHelper
         accountLabel = resources.getString(R.string.call_log_via_number, details.viaNumber);
       }
     }
-    if (!TextUtils.isEmpty(accountLabel)) {
-      views.callAccountLabel.setVisibility(View.VISIBLE);
-      views.callAccountLabel.setText(accountLabel);
-      int color = callLogCache.getAccountColor(details.accountHandle);
-      if (color == PhoneAccount.NO_HIGHLIGHT_COLOR) {
-        int defaultColor = R.color.dialer_secondary_text_color;
-        views.callAccountLabel.setTextColor(context.getResources().getColor(defaultColor));
-      } else {
-        views.callAccountLabel.setTextColor(color);
-      }
+    if (!TextUtils.isEmpty(ottAccountLabel)) {
+      setAccountLabel(ottAccountLabel, views, details);
+    } else if (!TextUtils.isEmpty(accountLabel)) {
+      setAccountLabel(accountLabel, views, details);
     } else {
       views.callAccountLabel.setVisibility(View.GONE);
     }
@@ -293,6 +297,53 @@ public class PhoneCallDetailsHelper
         details.isRead
             ? ThemeComponent.get(context).theme().getTextColorSecondary()
             : ThemeComponent.get(context).theme().getTextColorPrimary());
+  }
+
+  /**
+   * Resolves the user-visible label for the OTT calling account's package.
+   *
+   * <p>Uses {@link PhoneCallDetails#accountComponentName} to extract the package name and then
+   * resolves the application label via {@link PackageManager}. If the package isn't queryable
+   * (e.g., Android 11+ package visibility) or not installed, falls back to returning the package
+   * name.</p>
+   */
+  private String getOttAccountLabel(PhoneCallDetails details) {
+    if (details == null || details.uuid == null || details.accountComponentName == null) {
+      return null;
+    }
+
+    String pkg = ComponentName.unflattenFromString(details.accountComponentName).getPackageName();
+    PackageManager pm = context.getPackageManager();
+    if (pkg == null || pm == null) {
+      return null;
+    }
+
+    try {
+      ApplicationInfo appInfo = pm.getApplicationInfo(pkg, 0);
+      return pm.getApplicationLabel(appInfo).toString();
+    } catch (PackageManager.NameNotFoundException e) {
+      LogUtil.e("PhoneCallDetailsHelper.getOttAccountLabel ", "exception accessing app info", e);
+      return pkg;
+    }
+  }
+
+  /**
+   * Displays an account label (e.g., SIM name or VoIP app name) in the call log item UI and applies
+   * the account color if available.
+   *
+   * <p>If the account has no highlight color, falls back to the default secondary text color.</p>
+   */
+  private void setAccountLabel(String label, PhoneCallDetailsViews views,
+        PhoneCallDetails details) {
+    views.callAccountLabel.setVisibility(View.VISIBLE);
+    views.callAccountLabel.setText(label);
+    int color = callLogCache.getAccountColor(details.accountHandle);
+    if (color == PhoneAccount.NO_HIGHLIGHT_COLOR) {
+      int defaultColor = R.color.dialer_secondary_text_color;
+      views.callAccountLabel.setTextColor(context.getResources().getColor(defaultColor));
+    } else {
+      views.callAccountLabel.setTextColor(color);
+    }
   }
 
   private void setNameView(PhoneCallDetailsViews views, PhoneCallDetails details) {

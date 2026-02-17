@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * ​​​​​Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -23,11 +23,13 @@ package com.android.dialer.app.calllog;
 import android.Manifest.permission;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.provider.CallLog;
 import android.provider.CallLog.Calls;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
@@ -37,6 +39,7 @@ import android.support.annotation.RequiresPermission;
 import android.support.annotation.VisibleForTesting;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.telecom.CallAttributes;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
@@ -235,6 +238,9 @@ public final class CallLogListItemViewHolder extends RecyclerView.ViewHolder
   private final OnActionModeStateChangedListener onActionModeStateChangedListener;
   private final View.OnLongClickListener longPressListener;
   private boolean voicemailPrimaryActionButtonClicked;
+
+  public String uuid;
+  public int features;
 
   public int callbackAction;
   public int dayGroupHeaderVisibility;
@@ -870,6 +876,17 @@ public final class CallLogListItemViewHolder extends RecyclerView.ViewHolder
   }
 
   /**
+   * Returns true if this call log entry represents an OTT/VoIP call.
+   *
+   * <p>In this implementation, OTT calls are identified by the presence of a non-empty UUID
+   * (populated from the call log provider for VoIP calls).</p>
+   */
+  private boolean isOttCall() {
+    LogUtil.v("isOttCall", "uuid: " + uuid);
+    return !TextUtils.isEmpty(uuid);
+  }
+
+  /**
    * Show or hide the action views, such as voicemail, details, and add contact.
    *
    * <p>If the action views have never been shown yet for this view, inflate the view stub.
@@ -970,6 +987,14 @@ public final class CallLogListItemViewHolder extends RecyclerView.ViewHolder
   public void onClick(View view) {
     if (view.getId() == R.id.primary_action_button) {
       CallLogAsyncTaskUtil.markCallAsRead(context, callIds);
+    }
+
+    // When trying to dial from the call log, check if that call was over an OTT app. Dial the
+    // callback over the same OTT app if so.
+    if ((view.getId() == R.id.call_action || view.getId() == R.id.primary_action_button)
+        && isOttCall()) {
+      handleOttCallback(view);
+      return;
     }
 
     if (view.getId() == R.id.primary_action_button && !TextUtils.isEmpty(voicemailUri)) {
@@ -1074,6 +1099,48 @@ public final class CallLogListItemViewHolder extends RecyclerView.ViewHolder
         Logger.get(context).logImpression(DialerImpression.Type.IMS_VIDEO_REQUESTED_FROM_CALL_LOG);
       }
       DialerUtils.startActivityWithErrorToast(context, intent);
+    }
+  }
+
+  /**
+   * Places an OTT/VoIP callback using {@link TelecomManager#placeCall(Uri, Bundle)}.
+   *
+   * <p>We place the call using a call-log entry URI (content://call_log/calls/...) so Telecom can
+   * route the call back through the correct VoIP calling account associated with this call log row.
+   * Defensive checks are used to avoid crashes if required services/inputs are missing.</p>
+   */
+  private void handleOttCallback(View view) {
+    Context context = view.getContext();
+    if (context == null) {
+      return;
+    }
+
+    TelecomManager telecomManager =
+        (TelecomManager) context.getSystemService(Context.TELECOM_SERVICE);
+    if (telecomManager == null) {
+      return;
+    }
+
+    Uri callLogEntryUri =
+        ContentUris.withAppendedId(CallLog.Calls.CONTENT_URI_WITH_VOIP_CALLS, rowId);
+    if (callLogEntryUri == null) {
+      LogUtil.w("handleOttCallback ", "callLogEntryUri is null for rowId: " + rowId);
+      return;
+    }
+
+    Bundle extras = new Bundle();
+    int callAttributeType = ((features & Calls.FEATURES_VIDEO) == Calls.FEATURES_VIDEO)
+        ? CallAttributes.VIDEO_CALL
+        : CallAttributes.AUDIO_CALL;
+    extras.putInt(TelecomManager.EXTRA_CALL_TYPE, callAttributeType);
+
+    LogUtil.i("OttCall callLogEntryUri: ", callLogEntryUri.toString(), callAttributeType);
+    try {
+      telecomManager.placeCall(callLogEntryUri, extras);
+    } catch (SecurityException e) {
+      LogUtil.e("handleOttCallback", "Failed to place call due to missing permissions", e);
+    } catch (Exception e) {
+      LogUtil.e("handleOttCallback", "Failed to place call", e);
     }
   }
 
