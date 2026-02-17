@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.voicemail.impl;
@@ -64,8 +68,10 @@ public class OmtpService extends VisualVoicemailService {
     }
 
     if (!isServiceEnabled(phoneAccountHandle)) {
+      VvmLog.i(TAG, "onCellServiceConnected: service is not enabled");
       disableFilter(phoneAccountHandle);
       task.finish();
+      stopSelf();
       return;
     }
 
@@ -92,6 +98,7 @@ public class OmtpService extends VisualVoicemailService {
       VvmLog.e(TAG, "onSmsReceived received when service is disabled");
       disableFilter(sms.getPhoneAccountHandle());
       task.finish();
+      stopSelf();
       return;
     }
 

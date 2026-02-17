@@ -542,7 +542,10 @@ public class CallButtonPresenter
   @Override
   public void downgradeToVoice() {
     LogUtil.enterBlock("CallButtonPresenter.downgradeToVoice");
-    Assert.isNotNull(call);
+    if (call == null) {
+        LogUtil.e("CallButtonPresenter.downgradeToVoice", "call is null");
+        return;
+    }
 
     final boolean isRtt = call.isActiveRttCall();
     final boolean isVideo = call.isVideoCall();
@@ -557,7 +560,10 @@ public class CallButtonPresenter
   @Override
   public void downgradeToVideo() {
     LogUtil.enterBlock("CallButtonPresenter.downgradeToVideo");
-    Assert.isNotNull(call);
+    if (call == null) {
+        LogUtil.e("CallButtonPresenter.downgradeToVideo", "call is null");
+        return;
+    }
 
     final boolean isRtt = call.isActiveRttCall();
     final boolean isVideo = call.isVideoCall();
@@ -571,7 +577,10 @@ public class CallButtonPresenter
 
   @Override
   public void downgradeToRtt() {
-    Assert.isNotNull(call);
+    if (call == null) {
+        LogUtil.e("CallButtonPresenter.downgradeToRtt", "call is null");
+        return;
+    }
     call.getVideoTech().upgradeToVideo(VideoProfile.STATE_AUDIO_ONLY);
   }
 
@@ -580,7 +589,10 @@ public class CallButtonPresenter
    */
   @Override
   public void downgradeCall() {
-    Assert.isNotNull(inCallButtonUi);
+    if (inCallButtonUi == null) {
+        LogUtil.e("CallButtonPresenter.downgradeCall", "inCallButtonUi is null");
+        return;
+    }
     inCallButtonUi.showDowngradeOptions();
   }
 

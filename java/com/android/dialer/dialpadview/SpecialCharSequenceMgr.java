@@ -15,8 +15,8 @@
  */
 
 /*
- * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -81,7 +81,9 @@ import com.qti.extphone.ExtTelephonyManager;
 import com.qti.extphone.QtiImeiInfo;
 import com.qti.extphone.ServiceCallback;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -406,9 +408,12 @@ public class SpecialCharSequenceMgr {
       View customView = LayoutInflater.from(context).inflate(R.layout.dialog_deviceids, null);
       ViewGroup holder = customView.findViewById(R.id.deviceids_holder);
 
-      if (TelephonyManagerCompat.getPhoneCount(telephonyManager) > 1 || (sDsdsToSsConfigStatus == 1
-              && slotsInfo != null && slotsInfo.length > 1)) {
+      if (TelephonyManagerCompat.getPhoneCount(telephonyManager) > 1
+          || (sDsdsToSsConfigStatus == 1 && slotsInfo != null
+          && slotsInfo.length > 1 && slotsInfo[1] != null)) {
         String deviceId = null;
+        List<String> imeiListFromSlot = new ArrayList<>();
+        List<String> imeiList = new ArrayList<>();
         for (int slot = 0; slotsInfo != null && slot < slotsInfo.length; slot++) {
           // Add MEID
           final String meid = telephonyManager.getMeid(slot);
@@ -428,19 +433,19 @@ public class SpecialCharSequenceMgr {
           // Add IMEI
           String imei = null;
           boolean isPrimary = false;
+          String primaryImei = null;
           Pair<Integer, Integer> radioVersion = telephonyManager.getHalVersion(
               TelephonyManager.HAL_SERVICE_MODEM);
           int halVersion = makeRadioVersion(radioVersion.first, radioVersion.second);
           if (halVersion > makeRadioVersion(2, 0) && !(sDsdsToSsConfigStatus == 1
-                  && slotsInfo != null && slotsInfo.length > 1)) {
+            && slotsInfo != null && slotsInfo.length > 1)) {
 
             imei = telephonyManager.getImei(slot);
             if (!TextUtils.isEmpty(imei)) {
-              String primaryImei = null;
               try {
-                  primaryImei = telephonyManager.getPrimaryImei();
+                primaryImei = telephonyManager.getPrimaryImei();
               } catch (Exception e) {
-                  LogUtil.e("SpecialCharSequenceMgr", "PrimaryImei not available.", e);
+                LogUtil.e("SpecialCharSequenceMgr", "PrimaryImei not available.", e);
               }
               isPrimary = (primaryImei != null) && primaryImei.equals(imei.toString());
             }
@@ -464,17 +469,27 @@ public class SpecialCharSequenceMgr {
               imei = telephonyManager.getImei(slot);
             }
           }
-          if (isPrimary) {
-              imei += " (Primary)";
-          }
           if (!TextUtils.isEmpty(imei)) {
-            addDeviceIdRow(
-                holder,
-                imei,
-                /* showDecimal */
-                context.getResources().getBoolean(R.bool.show_device_id_in_hex_and_decimal),
-                /* showBarcode */ false);
+            if (isPrimary) {
+              imeiList.add(imei);
+            } else {
+              imeiListFromSlot.add(imei);
+            }
           }
+        }
+
+        Collections.sort(imeiListFromSlot);
+        imeiList.addAll(imeiListFromSlot);
+
+        for (int i = 0; i < imeiList.size(); i++) {
+          String imei = imeiList.get(i);
+          String displayText = "IMEI" + (i + 1) + ": " + imei;
+          addDeviceIdRow(
+              holder,
+              displayText,
+              /* showDecimal */
+              context.getResources().getBoolean(R.bool.show_device_id_in_hex_and_decimal),
+              /* showBarcode */ false);
         }
       } else {
         final String meid = telephonyManager.getMeid();
