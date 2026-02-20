@@ -1398,7 +1398,13 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     if (isActiveRttCall()) {
       return false;
     }
-    if (isVideoCall() && !isVtRttSupported()) {
+    if (QtiCallUtils.isDualVideo(this)) {
+        return false;
+    }
+    // Allow VoLTE calls (no video flags set) to proceed.
+    // Only apply VT bidirectional + VtRtt check when it's actually a video call.
+    if (isVideoCall() &&
+        (!QtiCallUtils.isVideoBidirectional(this) || !isVtRttSupported())) {
       return false;
     }
     if (isConferenceCall() || wasConferenceCall) {
