@@ -75,7 +75,7 @@ import org.codeaurora.ims.QtiImsException;
 import org.codeaurora.ims.utils.QtiImsExtUtils;
 
 public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeListener,
-        InCallPresenter.InCallEventListener{
+        InCallPresenter.InCallEventListener, InCallPresenter.InCallStateListener {
 
    private ConcurrentHashMap<String,Boolean> moreOptionsMap;
    private ExtBottomSheetFragment moreOptionsSheet;
@@ -114,6 +114,9 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    private int mPendingRttRequestId = INVALID_RTT_REQUEST_ID;
    private boolean isRttVtFeatureSupported = false;
    private int DEFAULT_PHONE_ID = 0;
+   // Tracks the phoneId for which the MT RTT+VT upgrade listener is currently registered.
+   // INVALID_PHONE_ID means not yet registered (or registration was reset).
+   private int mMtRttVTListenerRegisteredPhoneId = QtiCallConstants.INVALID_PHONE_ID;
    private BottomSheetHelper() {
      LogUtil.d("BottomSheetHelper"," ");
    }
@@ -137,6 +140,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
              }
              @Override
              public void onConnectionUnavailable() {
+               mMtRttVTListenerRegisteredPhoneId = QtiCallConstants.INVALID_PHONE_ID;
                mQtiImsExtManager = null;
              }
            });
@@ -174,6 +178,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      InCallPresenter.getInstance().addListener(mPrimaryCallTracker);
      InCallPresenter.getInstance().addIncomingCallListener(mPrimaryCallTracker);
      InCallPresenter.getInstance().addInCallEventListener(this);
+     InCallPresenter.getInstance().addListener(this);
      mPrimaryCallTracker.addListener(this);
    }
 
@@ -182,6 +187,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      InCallPresenter.getInstance().removeListener(mPrimaryCallTracker);
      InCallPresenter.getInstance().removeIncomingCallListener(mPrimaryCallTracker);
      InCallPresenter.getInstance().removeInCallEventListener(this);
+     InCallPresenter.getInstance().removeListener(this);
+     mMtRttVTListenerRegisteredPhoneId = QtiCallConstants.INVALID_PHONE_ID;
      if (mPrimaryCallTracker != null) {
        mPrimaryCallTracker.removeListener(this);
        mPrimaryCallTracker = null;
@@ -288,6 +295,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      }
      try {
        mQtiImsExtManager.setIncomingRttVtUpgradeListener(phoneId, mImsInterfaceListener);
+       mMtRttVTListenerRegisteredPhoneId = phoneId;
        LogUtil.i("BottomSheetHelper.registerMtRttVtModifyListenerSafely",
            "Registered MT dual-upgrade listener for phoneId=" + phoneId);
      } catch (QtiImsException e) {
@@ -602,9 +610,21 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
     @Override
     public void onPrimaryCallChanged(DialerCall call) {
       LogUtil.d("BottomSheetHelper.onPrimaryCallChanged", "");
+      mMtRttVTListenerRegisteredPhoneId = QtiCallConstants.INVALID_PHONE_ID;
       registerMtRttVtModifyListenerSafely();
       dismissBottomSheet();
       updateMap();
+    }
+
+    @Override
+    public void onStateChange(InCallPresenter.InCallState oldState,
+        InCallPresenter.InCallState newState, CallList callList) {
+      if (newState == InCallPresenter.InCallState.INCALL
+          && mMtRttVTListenerRegisteredPhoneId == QtiCallConstants.INVALID_PHONE_ID) {
+        LogUtil.d("BottomSheetHelper.onStateChange",
+            "State is INCALL and listener not yet registered, retrying.");
+        registerMtRttVtModifyListenerSafely();
+      }
     }
 
    private void manageConferenceCall() {
