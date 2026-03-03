@@ -2489,6 +2489,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     default void onSatelliteHandoverEvent(DialerCall call) {}
     default void onRttToVideo() {}
     default void onRttInitiationFailure(DialerCall call, int reason) {}
+    default void onRttStatusChanged(DialerCall call, boolean enabled) {}
   }
 
   public void onRttToVideoClicked() {
@@ -2601,6 +2602,14 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
     // Forward to in-call event listeners so presenters can react (e.g., reset awaitingRttMode)
     for (InCallEventListener listener : inCallEventListeners) {
       listener.onRttInitiationFailure(call, reason);
+    }
+  }
+
+  @Override
+  public void onRttStatusChanged(DialerCall call, boolean enabled) {
+    LogUtil.i("InCallPresenter.onRttStatusChanged", "enabled: " + enabled);
+    for (InCallEventListener listener : inCallEventListeners) {
+      listener.onRttStatusChanged(call, enabled);
     }
   }
 

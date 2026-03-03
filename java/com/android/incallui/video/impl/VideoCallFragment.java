@@ -2319,5 +2319,13 @@ public class VideoCallFragment extends Fragment
       rttButton.setVisibility(View.GONE);
     }
   }
-}
 
+  @Override
+  public void onRttStatusChanged(DialerCall call, boolean enabled) {
+    LogUtil.i("VideoCallFragment.onRttStatusChanged", "enabled: " + enabled);
+    // RTT status changed mid-call (e.g. RTT activated on a VT call).
+    // Re-evaluate the RTT button visibility immediately rather than waiting
+    // for the next call-state update cycle.
+    updateRttButtonVisibility();
+  }
+}

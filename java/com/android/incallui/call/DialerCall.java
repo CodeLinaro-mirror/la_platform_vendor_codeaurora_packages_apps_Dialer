@@ -408,6 +408,9 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
                     getTimeAddedMs());
           }
           update();
+          for (DialerCallListener listener : listeners) {
+            listener.onRttStatusChanged(enabled);
+          }
         }
 
         @Override

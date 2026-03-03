@@ -864,6 +864,8 @@ public class CallList implements DialerCallDelegate {
     default void onSatelliteHandoverEvent(DialerCall call) {}
 
     default void onRttInitiationFailure(DialerCall call, int reason) {}
+
+    default void onRttStatusChanged(DialerCall call, boolean enabled) {}
   }
 
   /** UiListener interface for measuring incall latency.(used by testing only) */
@@ -932,6 +934,13 @@ public class CallList implements DialerCallDelegate {
     public void onRttInitiationFailure(int reason) {
       for (Listener listener : listeners) {
         listener.onRttInitiationFailure(call, reason);
+      }
+    }
+
+    @Override
+    public void onRttStatusChanged(boolean enabled) {
+      for (Listener listener : listeners) {
+        listener.onRttStatusChanged(call, enabled);
       }
     }
 
