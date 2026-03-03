@@ -1244,6 +1244,8 @@ public class AnswerFragment extends Fragment
         } else if (primaryCallState.supportsCallOnHold()) {
           getAnswerMethod()
               .setHintText(getText(R.string.call_incoming_default_label_answer_and_release_second));
+        } else {
+          getAnswerMethod().setHintText(null);
         }
       } else {
         getAnswerMethod().setHintText(null);
