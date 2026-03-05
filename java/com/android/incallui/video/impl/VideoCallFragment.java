@@ -681,6 +681,28 @@ public class VideoCallFragment extends Fragment
     videoCallScreenDelegate.onVideoCallScreenUiUnready();
   }
 
+  private void updateMoreButtonVisibility() {
+    if (moreOptionsMenuButton == null) {
+      return;
+    }
+    BottomSheetHelper bottomSheetHelper = BottomSheetHelper.getInstance();
+    if (bottomSheetHelper == null) {
+      return;
+    }
+    bottomSheetHelper.updateMoreButtonVisibility(InCallPresenter.getInstance().isDialpadVisible()
+        ? false : bottomSheetHelper.shallShowMoreButton(getActivity()), moreOptionsMenuButton);
+  }
+
+  @Override
+  public void onMultiWindowModeChanged(boolean isInMultiWindowMode) {
+    super.onMultiWindowModeChanged(isInMultiWindowMode);
+    LogUtil.i("VideoCallFragment.onMultiWindowModeChanged", "isInMultiWindowMode = "
+        + isInMultiWindowMode);
+    if (!isInMultiWindowMode) {
+      updateMoreButtonVisibility();
+    }
+  }
+
   private void moveAllPreviewRelatedViews(int x, int y) {
     for (View view : getAllPreviewRelatedViews()) {
       // Animate up with the preview offset above the navigation bar or
@@ -1143,6 +1165,7 @@ public class VideoCallFragment extends Fragment
     maybeLoadPreConfiguredImageAsync();
     if (videoCallScreenDelegate.shallRemovePreviewWindow(shouldShowPreview)) {
       previewTextureView.setVisibility(View.GONE);
+      preview2TextureView.setVisibility(View.GONE);
     } else if (shouldShowPreview) {
       previewTextureView.setVisibility(View.VISIBLE);
       preview2TextureView.setVisibility(

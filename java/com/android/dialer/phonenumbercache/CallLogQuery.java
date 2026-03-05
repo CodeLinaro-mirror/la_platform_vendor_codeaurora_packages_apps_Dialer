@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ​​​​​Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.phonenumbercache;
@@ -55,9 +59,10 @@ public final class CallLogQuery {
   public static final int CACHED_PHOTO_URI = 23;
   public static final int POST_DIAL_DIGITS = 24;
   public static final int VIA_NUMBER = 25;
+  public static final int UUID = 26;
 
   @RequiresApi(VERSION_CODES.O)
-  public static final int TRANSCRIPTION_STATE = 26;
+  public static final int TRANSCRIPTION_STATE = 27;
 
   private static final String[] PROJECTION_N =
       new String[] {
@@ -86,7 +91,8 @@ public final class CallLogQuery {
         Calls.TRANSCRIPTION, // 22
         Calls.CACHED_PHOTO_URI, // 23
         CallLog.Calls.POST_DIAL_DIGITS, // 24
-        CallLog.Calls.VIA_NUMBER // 25
+        CallLog.Calls.VIA_NUMBER, // 25
+        CallLog.Calls.UUID // 26
       };
 
   private static final String[] PROJECTION_O;

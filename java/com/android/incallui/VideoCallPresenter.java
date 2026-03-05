@@ -1376,7 +1376,11 @@ public class VideoCallPresenter
    *  1. Video CRBT for VoLTE call (VT-RX) in DIALING stage
    *  2. Video service call(VT-RX) in ACTIVE stage
    *  3. Video CRBT for VT call (VT-BI) in DIALING stage
-   *  4. Visualized voice call
+   *  4. Visualized voice call extra is true, and it is not VT-BI call.
+   *  It is designed for UVS upgrade to VT call case that showVideoViews
+   *  is called earlier than UVS extra as false comes, in this case, when
+   *  shallRemovePreviewWindow is called, dialer would remove preview window
+   *  incorrectly because UVS extra is not updated to false yet.
    **/
   @Override
   public boolean shallRemovePreviewWindow(boolean shouldShowPreview) {
@@ -1385,7 +1389,8 @@ public class VideoCallPresenter
                 || (primaryCall != null && primaryCall.isCustomerServiceCall()))
             && !shouldShowPreview)
         || (QtiCallUtils.hasVideoCrbtVtCall(context) && isCrbtReady)
-        || QtiCallUtils.isVisualizedVoiceCall();
+        || (QtiCallUtils.isVisualizedVoiceCall()
+                && !(primaryCall != null && QtiCallUtils.isVideoBidirectional(primaryCall)));
   }
 
   @Override

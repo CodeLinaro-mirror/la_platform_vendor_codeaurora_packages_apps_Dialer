@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ​​Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.database;
@@ -223,20 +227,6 @@ public class CallLogQueryHandler extends NoNullCursorAsyncQueryHandler {
       VoicemailComponent.get(context)
           .getVoicemailClient()
           .appendOmtpVoicemailSelectionClause(context, where, selectionArgs);
-    } else {
-      // Filter out all Duo entries other than video calls
-      where
-          .append(" AND (")
-          .append(Calls.PHONE_ACCOUNT_COMPONENT_NAME)
-          .append(" IS NULL OR ")
-          .append(Calls.PHONE_ACCOUNT_COMPONENT_NAME)
-          .append(" NOT LIKE 'com.google.android.apps.tachyon%' OR ")
-          .append(Calls.FEATURES)
-          .append(" & ")
-          .append(Calls.FEATURES_VIDEO)
-          .append(" == ")
-          .append(Calls.FEATURES_VIDEO)
-          .append(")");
     }
 
     final int limit = (logLimit == -1) ? NUM_LOGS_TO_DISPLAY : logLimit;
@@ -245,7 +235,9 @@ public class CallLogQueryHandler extends NoNullCursorAsyncQueryHandler {
         TelecomUtil.getCallLogUri(context)
             .buildUpon()
             .appendQueryParameter(Calls.LIMIT_PARAM_KEY, Integer.toString(limit))
+            .appendQueryParameter(Calls.INCLUDE_VOIP_CALLS_PARAM_KEY, "true")
             .build();
+
     startQuery(
         token,
         null,
