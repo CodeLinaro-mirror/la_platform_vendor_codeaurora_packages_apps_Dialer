@@ -22,10 +22,7 @@ package com.android.dialer.app.calllog;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.ComponentName;
 import android.content.DialogInterface;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.graphics.Typeface;
@@ -36,6 +33,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.os.BuildCompat;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
+import android.telecom.TelecomManager;
 import android.telephony.PhoneNumberUtils;
 import android.text.SpannableString;
 import android.text.TextUtils;
@@ -61,6 +59,7 @@ import com.android.dialer.phonenumbercache.PhoneNumberCache;
 import com.android.dialer.phonenumberutil.PhoneNumberHelper;
 import com.android.dialer.spannable.ContentWithLearnMoreSpanner;
 import com.android.dialer.storage.StorageComponent;
+import com.android.dialer.telecom.TelecomUtil;
 import com.android.dialer.theme.base.ThemeComponent;
 import com.android.dialer.util.DialerUtils;
 import com.android.voicemail.VoicemailClient;
@@ -300,31 +299,32 @@ public class PhoneCallDetailsHelper
   }
 
   /**
-   * Resolves the user-visible label for the OTT calling account's package.
+   * Resolves the user-visible label for the OTT calling account.
    *
-   * <p>Uses {@link PhoneCallDetails#accountComponentName} to extract the package name and then
-   * resolves the application label via {@link PackageManager}. If the package isn't queryable
-   * (e.g., Android 11+ package visibility) or not installed, falls back to returning the package
-   * name.</p>
+   * <p>Uses {@link PhoneCallDetails#accountComponentName} and
+   * {@link PhoneCallDetails#accountId} to compose a {@link PhoneAccountHandle}, then
+   * retrieves the account label via {@link TelecomManager#getPhoneAccount(PhoneAccountHandle)}
+   * Returns null if the account cannot be found or if the label is unavailable.</p>
    */
   private String getOttAccountLabel(PhoneCallDetails details) {
-    if (details == null || details.uuid == null || details.accountComponentName == null) {
+    if (details == null || details.uuid == null || details.accountComponentName == null
+        || details.accountId == null) {
       return null;
     }
 
-    String pkg = ComponentName.unflattenFromString(details.accountComponentName).getPackageName();
-    PackageManager pm = context.getPackageManager();
-    if (pkg == null || pm == null) {
+    final PhoneAccountHandle accountHandle =
+        TelecomUtil.composePhoneAccountHandle(details.accountComponentName, details.accountId);
+    TelecomManager telecomManager = context.getSystemService(TelecomManager.class);
+    if (accountHandle == null || telecomManager == null) {
       return null;
     }
 
-    try {
-      ApplicationInfo appInfo = pm.getApplicationInfo(pkg, 0);
-      return pm.getApplicationLabel(appInfo).toString();
-    } catch (PackageManager.NameNotFoundException e) {
-      LogUtil.e("PhoneCallDetailsHelper.getOttAccountLabel ", "exception accessing app info", e);
-      return pkg;
+    final PhoneAccount phoneAccount = telecomManager.getPhoneAccount(accountHandle);
+    if (phoneAccount == null) {
+      return null;
     }
+    CharSequence label = phoneAccount.getLabel();
+    return label != null ? label.toString() : null;
   }
 
   /**
