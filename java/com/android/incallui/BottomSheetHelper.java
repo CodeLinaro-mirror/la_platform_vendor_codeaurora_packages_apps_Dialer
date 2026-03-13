@@ -486,7 +486,9 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
            || !(getPhoneIdExtra(call) != QtiCallConstants.INVALID_PHONE_ID))
            || isCancelModifyCallOptionsVisible()
            || canDisplayAcceptWithTirOptionsButtons()
-           || canDisplayDeflectOptionsButtons();
+           || canDisplayDeflectOptionsButtons()
+           || QtiCallUtils.hasVideoCrbtVoLteCall(mContext, call)
+           || QtiCallUtils.isVideoCrs(call);
        }
      }
      LogUtil.w("BottomSheetHelper shallShowMoreButton","returns false");
