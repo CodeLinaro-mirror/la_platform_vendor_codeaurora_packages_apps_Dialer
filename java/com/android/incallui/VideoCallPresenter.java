@@ -1731,13 +1731,13 @@ public class VideoCallPresenter
         || QtiCallUtils.isVisualizedVoiceCall(),
         isRemotelyHeld, showOutgoingVideo2, showIncomingVideo2);
     if (BottomSheetHelper.getInstance().canDisablePipMode() && mPictureModeHelper != null) {
-      mPictureModeHelper.setPreviewVideoLayoutParams();
+      mPictureModeHelper.setPreviewVideoLayoutParams(primaryCall);
     }
 
     InCallPresenter.getInstance().enableScreenTimeout(VideoProfile.isAudioOnly(videoState));
     updateFullscreenAndGreenScreenMode(callState, sessionModificationState);
     if (BottomSheetHelper.getInstance().canDisablePipMode() && mPictureModeHelper != null) {
-      mPictureModeHelper.maybeHideVideoViews();
+      mPictureModeHelper.maybeHideVideoViews(primaryCall);
     }
   }
 
