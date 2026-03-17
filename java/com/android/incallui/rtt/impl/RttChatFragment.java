@@ -53,6 +53,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
+import androidx.core.view.ViewCompat;
 import com.android.dialer.common.Assert;
 import com.android.dialer.common.FragmentUtils;
 import com.android.dialer.common.LogUtil;
@@ -163,6 +164,7 @@ public class RttChatFragment extends Fragment
   public void onViewCreated(@NonNull View view, @Nullable Bundle bundle) {
     super.onViewCreated(view, bundle);
     LogUtil.i("RttChatFragment.onViewCreated", null);
+    ViewCompat.requestApplyInsets(view);
 
     rttCallScreenDelegate =
         FragmentUtils.getParentUnsafe(this, RttCallScreenDelegateFactory.class)
