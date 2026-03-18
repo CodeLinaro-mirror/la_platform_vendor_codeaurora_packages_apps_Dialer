@@ -664,6 +664,14 @@ public class VideoCallPresenter
     checkForOrientationAllowedChange(primaryCall);
     cancelAutoFullScreen();
 
+    InCallActivity activity = InCallPresenter.getInstance().getActivity();
+    boolean isChangingConfigurations = activity != null && activity.isChangingConfigurations();
+    if (!isChangingConfigurations) {
+      // Set force=true to guarantee the event is broadcasted, ensuring the
+      // status bar is shown before fragment is destroyed.
+      InCallPresenter.getInstance().setFullScreen(false, true);
+    }
+
     InCallPresenter.getInstance().removeListener(this);
     if (primaryCall != null && primaryCall.getVideoTech().getSessionModificationState()
             == SessionModificationState.NO_REQUEST) {
