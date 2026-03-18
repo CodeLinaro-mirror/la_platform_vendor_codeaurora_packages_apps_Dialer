@@ -12,11 +12,17 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.app.calllog;
 
 import android.content.Context;
+import android.net.Uri;
+import android.provider.ContactsContract.QuickContact;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.QuickContactBadge;
@@ -29,6 +35,7 @@ class DialerQuickContactBadge extends QuickContactBadge {
 
   private View.OnClickListener extraOnClickListener;
   private OnActionModeStateChangedListener onActionModeStateChangeListener;
+  private Uri mDialerContactUri;
 
   public DialerQuickContactBadge(Context context) {
     super(context);
@@ -43,12 +50,23 @@ class DialerQuickContactBadge extends QuickContactBadge {
   }
 
   @Override
+  public void assignContactUri(Uri contactUri) {
+    mDialerContactUri = contactUri;
+    super.assignContactUri(contactUri);
+  }
+
+  @Override
   public void onClick(View v) {
     if (extraOnClickListener != null
         && onActionModeStateChangeListener.isActionModeStateEnabled()) {
       Logger.get(v.getContext())
           .logImpression(DialerImpression.Type.MULTISELECT_SINGLE_PRESS_TAP_VIA_CONTACT_BADGE);
       extraOnClickListener.onClick(v);
+    } else if (mDialerContactUri != null) {
+      QuickContact.showQuickContact(
+          getContext(),
+          DialerQuickContactBadge.this, mDialerContactUri,
+          4 /* QuickContactActivity.MODE_FULLY_EXPANDED */, null);
     } else {
       super.onClick(v);
     }
