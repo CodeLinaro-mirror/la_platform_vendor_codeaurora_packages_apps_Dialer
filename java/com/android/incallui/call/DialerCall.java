@@ -424,6 +424,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
               // currently conferenceable calls available or Connection Capabilities.
             case android.telecom.Connection.EVENT_CALL_MERGE_FAILED:
               isMergeInProcess = false;
+              notifyMergeProgressing();
               update();
               break;
             case TelephonyManagerCompat.EVENT_HANDOVER_VIDEO_FROM_WIFI_TO_LTE:
