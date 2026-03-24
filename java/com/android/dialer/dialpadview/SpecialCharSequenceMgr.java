@@ -375,8 +375,9 @@ public class SpecialCharSequenceMgr {
   /**
     * Querying the DSDS to SSSS configuration status.
     *
-    * If sDsdsToSsConfigStatus is 1, it means the dsds_to_ss property is enabled.
     * If sDsdsToSsConfigStatus is 0, it means the dsds_to_ss property is not enabled.
+    * If sDsdsToSsConfigStatus is 1, it means the dsds_to_ss property is enabled for PSIM.
+    * If sDsdsToSsConfigStatus is 2, it means the dsds_to_ss property is enabled for PSIM and ESIM.
     */
   private static void queryDsdsToSsConfig() {
       if (sDsdsToSsConfigStatus == -1) {
@@ -409,7 +410,7 @@ public class SpecialCharSequenceMgr {
       ViewGroup holder = customView.findViewById(R.id.deviceids_holder);
 
       if (TelephonyManagerCompat.getPhoneCount(telephonyManager) > 1
-          || (sDsdsToSsConfigStatus == 1 && slotsInfo != null
+          || ((sDsdsToSsConfigStatus == 1 || sDsdsToSsConfigStatus == 2) && slotsInfo != null
           && slotsInfo.length > 1 && slotsInfo[1] != null)) {
         String deviceId = null;
         List<String> imeiListFromSlot = new ArrayList<>();
@@ -437,8 +438,8 @@ public class SpecialCharSequenceMgr {
           Pair<Integer, Integer> radioVersion = telephonyManager.getHalVersion(
               TelephonyManager.HAL_SERVICE_MODEM);
           int halVersion = makeRadioVersion(radioVersion.first, radioVersion.second);
-          if (halVersion > makeRadioVersion(2, 0) && !(sDsdsToSsConfigStatus == 1
-            && slotsInfo != null && slotsInfo.length > 1)) {
+          if (halVersion > makeRadioVersion(2, 0) && !((sDsdsToSsConfigStatus == 1
+            || sDsdsToSsConfigStatus == 2) && slotsInfo != null && slotsInfo.length > 1)) {
 
             imei = telephonyManager.getImei(slot);
             if (!TextUtils.isEmpty(imei)) {

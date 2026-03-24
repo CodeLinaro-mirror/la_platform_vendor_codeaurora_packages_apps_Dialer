@@ -267,6 +267,8 @@ public class RttChatFragment extends Fragment
               // Hide keyboard when opening overflow menu. This is alternative solution since hiding
               // keyboard after the menu is open or dialpad is shown doesn't work.
               UiUtil.hideKeyboardFrom(getContext(), editText);
+              updateTransferButtonVisibility();
+              updateVideoToggleMenuLabel();
               overflowMenu.showAtLocation(v, Gravity.TOP | Gravity.RIGHT, 0, 0);
             });
 

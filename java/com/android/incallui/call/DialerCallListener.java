@@ -60,4 +60,6 @@ public interface DialerCallListener {
   default void onSatelliteHandoverEvent() {}
 
   default void onRttInitiationFailure(int reason) {}
+
+  default void onRttStatusChanged(boolean enabled) {}
 }

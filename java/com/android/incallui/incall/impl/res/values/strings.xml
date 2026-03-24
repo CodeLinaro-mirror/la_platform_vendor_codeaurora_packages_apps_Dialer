@@ -14,9 +14,8 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License
   ~
-  ~
-  ~ Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
-  ~ Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+  ~ Changes from Qualcomm Technologies, Inc. are provided under the following license:
+  ~ Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
   ~ SPDX-License-Identifier: BSD-3-Clause-Clear
   -->
 <resources>
@@ -87,4 +86,13 @@
   <string name="satellite_messaging_title"><b>Use Satellite messaging?</b></string>
   <string name="satellite_sos_title"><b>Use Satellite SOS to contact emergency services?</b></string>
   <string name="satellite_generic_message">You can message with emergency services without a mobile or Wi-Fi network</string>
+
+  <!-- Intelligent calling strings -->
+  <string name="intelligent_calling_title"><b>Intelligent Calling</b></string>
+  <string name="intelligent_calling_generic_error_message">Unknown contact - Please check if permissions are granted or if contact has been saved - call will not be placed</string>
+  <string name="intelligent_calling_invalid_type">Valid 3rd party VoIP application not found - call will not be placed</string>
+  <string name="intelligent_calling_invalid_uri">Contact data URI for 3rd party VoIP application not found - call will not be placed</string>
+  <string name="intelligent_calling_place_call">Call will be placed through 3rd party VoIP application</string>
+  <string name="intelligent_calling_querying_database">Querying database for contact in progress</string>
+
 </resources>
