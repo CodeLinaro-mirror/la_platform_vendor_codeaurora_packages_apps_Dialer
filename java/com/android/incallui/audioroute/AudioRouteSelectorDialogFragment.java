@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.audioroute;
@@ -27,6 +31,7 @@ import android.graphics.PorterDuff.Mode;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.Nullable;
+import android.support.design.widget.BottomSheetBehavior;
 import android.support.design.widget.BottomSheetDialogFragment;
 import android.support.v4.os.BuildCompat;
 import android.telecom.CallAudioState;
@@ -70,6 +75,23 @@ public class AudioRouteSelectorDialogFragment extends BottomSheetDialogFragment 
     args.putParcelable(ARG_AUDIO_STATE, audioState);
     fragment.setArguments(args);
     return fragment;
+  }
+
+  @Override
+  public void onStart() {
+    super.onStart();
+    Dialog dialog = getDialog();
+    if (dialog == null) {
+      return;
+    }
+    View bottomSheet = dialog.findViewById(android.support.design.R.id.design_bottom_sheet);
+    if (bottomSheet == null) {
+      return;
+    }
+    BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);
+    behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+    behavior.setHideable(true);
+    behavior.setSkipCollapsed(true);
   }
 
   @Override
