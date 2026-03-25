@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.app.calllog;
@@ -21,8 +25,11 @@ import static android.Manifest.permission.READ_CALL_LOG;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.KeyguardManager;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.database.ContentObserver;
 import android.database.Cursor;
@@ -156,6 +163,25 @@ public class CallLogFragment extends Fragment
    */
   private boolean isCallLogActivity = false;
   private boolean selectAllMode;
+
+  private final BroadcastReceiver systemTimeChangedReceiver =
+      new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+          final String action = intent.getAction();
+          if (Intent.ACTION_TIME_CHANGED.equals(action)
+              || Intent.ACTION_DATE_CHANGED.equals(action)
+              || Intent.ACTION_TIMEZONE_CHANGED.equals(action)) {
+            LogUtil.i("CallLogFragment", "the system time is changed, forcing refresh");
+            final Activity activity = getActivity();
+            if (isAdded() && activity != null && !activity.isFinishing()) {
+              refreshDataRequired = true;
+              refreshData();
+            }
+          }
+        }
+      };
+
   private final Handler displayUpdateHandler =
       new Handler() {
         @Override
@@ -261,6 +287,24 @@ public class CallLogFragment extends Fragment
     this.dateLimit = dateLimit;
   }
 
+  private void registerSystemTimeChangedReceiver() {
+    final Activity activity = getActivity();
+    if (activity != null) {
+      IntentFilter intentFilter = new IntentFilter();
+      intentFilter.addAction(Intent.ACTION_TIME_CHANGED);
+      intentFilter.addAction(Intent.ACTION_DATE_CHANGED);
+      intentFilter.addAction(Intent.ACTION_TIMEZONE_CHANGED);
+      activity.registerReceiver(systemTimeChangedReceiver, intentFilter);
+    }
+  }
+
+  private void unregisterSystemTimeChangedReceiver() {
+    final Activity activity = getActivity();
+    if (activity != null) {
+      activity.unregisterReceiver(systemTimeChangedReceiver);
+    }
+  }
+
   @Override
   public void onCreate(Bundle state) {
     LogUtil.enterBlock("CallLogFragment.onCreate");
@@ -283,6 +327,7 @@ public class CallLogFragment extends Fragment
     final ContentResolver resolver = activity.getContentResolver();
     callLogQueryHandler = new CallLogQueryHandler(activity, resolver, this, logLimit);
     setHasOptionsMenu(true);
+    registerSystemTimeChangedReceiver();
   }
 
   private void registerCallLogAndContactsObserver() {
@@ -552,6 +597,7 @@ public class CallLogFragment extends Fragment
   public void onDestroy() {
     LogUtil.enterBlock("CallLogFragment.onDestroy");
     unregisterCallLogAndContactsObserver();
+    unregisterSystemTimeChangedReceiver();
     if (adapter != null) {
       adapter.changeCursor(null);
     }
@@ -646,6 +692,9 @@ public class CallLogFragment extends Fragment
 
   /** Requests updates to the data to be shown. */
   private void refreshData() {
+    if (adapter == null) {
+      return;
+    }
     // Prevent unnecessary refresh.
     if (refreshDataRequired) {
       // Mark all entries in the contact info cache as out of date, so they will be looked up
