@@ -133,6 +133,7 @@ public class CallCardPresenter
   private AccessibilityManager accessibilityManager;
   private Display defaultDisplay;
   private PrimaryCallState primaryCallState;
+  private boolean wasConferenceCall = false;
 
   @NonNull private final CallLocation callLocation;
   private final Runnable sendAccessibilityEventRunnable =
@@ -302,6 +303,13 @@ public class CallCardPresenter
     this.primary = primary;
     this.primaryNumber = primaryNumber;
 
+    // Reset wasConferenceCall when primary call changes
+    if (primaryChanged) {
+      LogUtil.v("CallCardPresenter.onStateChange",
+          "primary call changed, resetting wasConferenceCall");
+      wasConferenceCall = false;
+    }
+
     if (this.primary != null) {
       inCallScreen.updateInCallScreenColors();
     }
@@ -360,6 +368,20 @@ public class CallCardPresenter
     // just need to update for primary call
     if (DialerCall.areSame(primary, call)) {
       updatePrimaryCallState();
+    }
+
+    // Track conference call state to ensure UI displays "Conference call"
+    // label immediately when call becomes a conference, fixing the issue
+    // where label was not shown until screen on/off cycle.
+    // Note: Google uses a new Telecom API when adding remotely hosted IMS
+    // conferences that allows for adding a conference from an existing
+    // connection instead of the legacy behavior of tearing down the original
+    // telecom call and replacing it with a new call when a conference is added.
+    if (call.isConferenceCall() != wasConferenceCall) {
+      wasConferenceCall = call.isConferenceCall();
+      LogUtil.v("CallCardPresenter.onDetailsChanged",
+          "conference state changed, wasConferenceCall=" + wasConferenceCall + ", updating UI");
+      updatePrimaryDisplayInfo();
     }
 
     if (call.can(Details.CAPABILITY_MANAGE_CONFERENCE)
