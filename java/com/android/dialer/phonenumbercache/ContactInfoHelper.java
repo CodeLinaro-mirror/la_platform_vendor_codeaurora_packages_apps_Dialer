@@ -11,8 +11,8 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -25,6 +25,7 @@ import android.database.sqlite.SQLiteFullException;
 import android.net.Uri;
 import android.provider.CallLog.Calls;
 import android.provider.ContactsContract;
+import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Directory;
@@ -216,16 +217,22 @@ public class ContactInfoHelper {
     }
 
     ContactInfo info;
-
     if (PhoneNumberHelper.isUriNumber(number)) {
       LogUtil.d("ContactInfoHelper.lookupNumber", "number is sip");
       // The number is a SIP address..
       info = lookupContactFromUri(getContactInfoLookupUri(number, directoryId));
       if (info == null || info == ContactInfo.EMPTY) {
-        // If lookup failed, check if the "username" of the SIP address is a phone number.
-        String username = PhoneNumberHelper.getUsernameFromUriNumber(number);
-        if (PhoneNumberUtils.isGlobalPhoneNumber(username)) {
-          info = queryContactInfoForPhoneNumber(username, countryIso, directoryId);
+        // If lookup failed, check if the number is an email address
+        if (PhoneNumberHelper.isEmailAddress(number)) {
+          LogUtil.d("ContactInfoHelper.lookupNumber", "number is email address");
+          info = lookupContactByEmail(number);
+        }
+        if (info == null || info == ContactInfo.EMPTY) {
+          // If lookup failed, check if the "username" of the SIP address is a phone number.
+          String username = PhoneNumberHelper.getUsernameFromUriNumber(number);
+          if (PhoneNumberUtils.isGlobalPhoneNumber(username)) {
+            info = queryContactInfoForPhoneNumber(username, countryIso, directoryId);
+          }
         }
       }
     } else {
@@ -394,6 +401,84 @@ public class ContactInfoHelper {
       contactInfo.carrierPresence =
           cursor.getInt(PhoneQuery.ADDITIONAL_CONTACT_INFO_CARRIER_PRESENCE);
     }
+  }
+
+  /**
+   * Looks up a contact by email address and returns the associated {@link ContactInfo}.
+   *
+   * <p>Queries {@link ContactsContract.CommonDataKinds.Email#CONTENT_FILTER_URI} against the
+   * local contacts data table. Remote directory support via this URI is not guaranteed — most
+   * remote directory providers implement {@link ContactsContract.PhoneLookup} but do not
+   * implement email data-kind queries.
+   *
+   * <p>Returns {@code null} if the email is null or if the lookup cursor returns null.
+   * Returns {@link ContactInfo#EMPTY} if the app lacks contacts read permission or if
+   * no matching contact is found.
+   *
+   * @param email the email address to look up
+   * @return a {@link ContactInfo} populated with the matching contact's details,
+   *     {@link ContactInfo#EMPTY} if no match is found or permission is denied,
+   *     or {@code null} if the email is null or the query fails
+   */
+  private ContactInfo lookupContactByEmail(String email) {
+    if (email == null) {
+      LogUtil.d("ContactInfoHelper.lookupContactByEmail", "email is null");
+      return null;
+    }
+    if (!PermissionsUtil.hasContactsReadPermissions(context)) {
+      LogUtil.d("ContactInfoHelper.lookupContactByEmail", "no contact permission, return empty");
+      return ContactInfo.EMPTY;
+    }
+
+    Uri uri = Uri.withAppendedPath(Email.CONTENT_FILTER_URI, Uri.encode(email));
+    try (Cursor emailLookupCursor = context
+        .getContentResolver()
+        .query(
+            uri,
+            PhoneQuery.getEmailLookupProjection(),
+            null /* selection */,
+            null /* selectionArgs */,
+            null /* sortOrder */)) {
+      if (emailLookupCursor == null) {
+        LogUtil.d("ContactInfoHelper.lookupContactByEmail", "emailLookupCursor is null");
+        return null;
+      }
+
+      if (!emailLookupCursor.moveToFirst()) {
+        return ContactInfo.EMPTY;
+      }
+
+      String lookupKey = emailLookupCursor.getString(PhoneQuery.EMAIL_LOOKUP_KEY);
+      return createEmailLookupContactInfo(emailLookupCursor, lookupKey);
+    }
+  }
+
+  /**
+   * Creates a {@link ContactInfo} object from an email address lookup cursor.
+   *
+   * @param cursor the cursor returned from an email lookup query, positioned at the
+   *     desired row
+   * @param lookupKey the stable lookup key for the contact
+   * @param email the email address used as the contact's number identifier
+   * @return a {@link ContactInfo} populated with the contact's name, photo, lookup URI,
+   *     and user type, with {@link ContactInfo#contactExists} set to {@code true}
+   */
+  private ContactInfo createEmailLookupContactInfo(Cursor cursor, String lookupKey) {
+    if (cursor == null || lookupKey == null) {
+      return null;
+    }
+    ContactInfo info = new ContactInfo();
+    info.lookupKey = lookupKey;
+    info.lookupUri =
+        Contacts.getLookupUri(cursor.getLong(PhoneQuery.EMAIL_PERSON_ID), lookupKey);
+    info.name = cursor.getString(PhoneQuery.EMAIL_NAME);
+    info.number = cursor.getString(PhoneQuery.EMAIL_ADDRESS);
+    info.photoId = cursor.getLong(PhoneQuery.EMAIL_PHOTO_ID);
+    info.photoUri = UriUtils.parseUriOrNull(cursor.getString(PhoneQuery.EMAIL_PHOTO_URI));
+    info.userType =
+        ContactsUtils.determineUserType(null, cursor.getLong(PhoneQuery.EMAIL_PERSON_ID));
+    info.contactExists = true;
+    return info;
   }
 
   /**
