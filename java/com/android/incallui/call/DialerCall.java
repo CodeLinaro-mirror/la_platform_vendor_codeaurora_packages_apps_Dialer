@@ -408,6 +408,9 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
                     getTimeAddedMs());
           }
           update();
+          for (DialerCallListener listener : listeners) {
+            listener.onRttStatusChanged(enabled);
+          }
         }
 
         @Override
@@ -2427,5 +2430,10 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     // ignore the foreground call extra being set from Telecom.
     return !QtiImsExtUtils.isCarrierConfigEnabled(
         subInfo.getSimSlotIndex(), context, CarrierConfigManager.KEY_ALLOW_HOLD_IN_IMS_CALL_BOOL);
+  }
+
+  public boolean isIntelligentCallingFeatureEnabled() {
+    return QtiImsExtUtils.isIntelligentCallingFeatureEnabled(context.getContentResolver(),
+            QtiCallUtils.getPhoneId(this));
   }
 }
