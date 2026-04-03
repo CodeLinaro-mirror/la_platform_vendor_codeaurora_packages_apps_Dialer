@@ -77,11 +77,22 @@ public class ContactInfoHelper {
    */
   private static Uri createTemporaryContactUri(String number) {
     try {
-      final JSONObject contactRows =
-          new JSONObject()
-              .put(
-                  Phone.CONTENT_ITEM_TYPE,
-                  new JSONObject().put(Phone.NUMBER, number).put(Phone.TYPE, Phone.TYPE_CUSTOM));
+      final JSONObject contactRows;
+      if (PhoneNumberHelper.isEmailAddress(number)) {
+        contactRows =
+            new JSONObject()
+                .put(
+                    Email.CONTENT_ITEM_TYPE,
+                    new JSONObject().put(Email.ADDRESS, number)
+                        .put(Email.TYPE, Email.TYPE_OTHER));
+      } else {
+        contactRows =
+            new JSONObject()
+                .put(
+                    Phone.CONTENT_ITEM_TYPE,
+                    new JSONObject().put(Phone.NUMBER, number)
+                        .put(Phone.TYPE, Phone.TYPE_CUSTOM));
+      }
 
       final String jsonString =
           new JSONObject()
