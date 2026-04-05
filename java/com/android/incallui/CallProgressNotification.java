@@ -171,6 +171,12 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
             String text = getCallProgressText(types[i], callExtras);
             Log.d(this, "getCallProgressText - text : " + text);
             if (text != null && !text.isEmpty() && seenTexts.add(text)) {
+                if (types[i] == QtiCallConstants.CALL_PROGRESS_INFO_TYPE_CALL_WARNING) {
+                    // Warning text is non-standardized content received directly from the network,
+                    // so it is only logged for debugging purposes and not shown in toast to user.
+                    Log.d(this, "onDetailsChanged - warning text (log only): " + text);
+                    continue;
+                }
                 // Toast is limited to two lines, so use double spaces to separate
                 // multiple notifications.
                 callInfoReasonTextBuilder.append(text).append("  ");
