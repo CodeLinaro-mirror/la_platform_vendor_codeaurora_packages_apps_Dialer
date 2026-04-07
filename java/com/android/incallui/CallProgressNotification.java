@@ -42,6 +42,7 @@ import com.android.incallui.InCallPresenter.InCallDetailsListener;
 import com.android.incallui.InCallPresenter.InCallDisconnectedListener;
 
 import java.util.HashMap;
+import java.util.HashSet;
 
 import org.codeaurora.ims.QtiCallConstants;
 
@@ -165,10 +166,11 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
 
         StringBuilder callInfoReasonTextBuilder = new StringBuilder();
 
+        HashSet<String> seenTexts = new HashSet<>();
         for (int i = 0; i < types.length; i++) {
             String text = getCallProgressText(types[i], callExtras);
             Log.d(this, "getCallProgressText - text : " + text);
-            if (text != null && !text.isEmpty()) {
+            if (text != null && !text.isEmpty() && seenTexts.add(text)) {
                 // Toast is limited to two lines, so use double spaces to separate
                 // multiple notifications.
                 callInfoReasonTextBuilder.append(text).append("  ");
