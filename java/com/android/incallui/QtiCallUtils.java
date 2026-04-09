@@ -692,4 +692,59 @@ public class QtiCallUtils {
     public static boolean isVisualizedVoiceCall() {
         return isVisualizedVoiceCall(CallList.getInstance().getFirstCall());
     }
+
+    /**
+     * Returns the subscription ID associated with the given call.
+     *
+     * <p>Uses {@link TelephonyManager#getSubscriptionId(PhoneAccountHandle)} which is the
+     * standard API 29+ path from PhoneAccountHandle to subId.
+     *
+     * @param context the application context
+     * @param call    the {@link DialerCall} whose subscription ID is needed
+     * @return the subscription ID, or {@link SubscriptionManager#INVALID_SUBSCRIPTION_ID}
+     *         if the call, account handle, or {@link TelephonyManager} is unavailable
+     */
+    public static int getSubIdForCall(Context context, DialerCall call) {
+        if (context == null || call == null) {
+            return SubscriptionManager.INVALID_SUBSCRIPTION_ID;
+        }
+        PhoneAccountHandle handle = call.getAccountHandle();
+        if (handle == null) return SubscriptionManager.INVALID_SUBSCRIPTION_ID;
+        TelephonyManager tm = context.getSystemService(TelephonyManager.class);
+        if (tm == null) return SubscriptionManager.INVALID_SUBSCRIPTION_ID;
+        return tm.getSubscriptionId(handle);
+    }
+
+    /**
+     * Returns locale-aware {@link Resources} for the subscription associated with the given call.
+     *
+     * <p>{@link SubscriptionManager#getResourcesForSubId} overrides only the MCC/MNC in the
+     * {@link android.content.res.Configuration} while preserving the system locale (e.g. zh-rCN),
+     * so Android's resource resolution can fall back to {@code values-zh-rCN/} instead of the
+     * English-only {@code values/} directory.
+     *
+     * <p>Falls back to {@code context.getResources()} if the call, account handle, or
+     * {@link TelephonyManager} is unavailable.
+     *
+     * @param context the application context
+     * @param call    the {@link DialerCall} whose subscription resources are needed
+     * @return locale-aware {@link Resources} for the call's subscription,
+     *         or {@code null} if {@code context} is null
+     */
+    public static Resources getResourcesForCall(Context context, DialerCall call) {
+        if (context == null) {
+            Log.w(LOG_TAG, "getResourcesForCall: context is null");
+            return null;
+        }
+        int subId = getSubIdForCall(context, call);
+        if (SubscriptionManager.isValidSubscriptionId(subId)) {
+            try {
+                return SubscriptionManager.getResourcesForSubId(context, subId);
+            } catch (UnsupportedOperationException e) {
+                Log.w(LOG_TAG, "getResourcesForCall: failed to get sub resources, "
+                        + "falling back to default. " + e);
+            }
+        }
+        return context.getResources();
+    }
 }
