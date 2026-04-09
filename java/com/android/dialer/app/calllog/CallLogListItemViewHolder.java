@@ -989,11 +989,19 @@ public final class CallLogListItemViewHolder extends RecyclerView.ViewHolder
       CallLogAsyncTaskUtil.markCallAsRead(context, callIds);
     }
 
-    // When trying to dial from the call log, check if that call was over an OTT app. Dial the
-    // callback over the same OTT app if so.
-    if ((view.getId() == R.id.call_action || view.getId() == R.id.primary_action_button)
-        && isOttCall()) {
-      handleOttCallback(view);
+    // When trying to callback from the main view of the call log, check if that call
+    // was over an OTT app. Dial the callback over the same OTT app with the same call type.
+    if ((view.getId() == R.id.primary_action_button) && isOttCall()) {
+      handleOttCallback(view, false);
+      return;
+    }
+
+    // When the call log entry is for a video call, the call details dropdown menu will have
+    // the option to callback with a voice call. Since handleOttCallback logic uses the original
+    // call type, force the call type as audio for this case. This callback option is not seen
+    // when the original call is a voice call.
+    if ((view.getId() == R.id.call_action) && isOttCall()) {
+      handleOttCallback(view, true);
       return;
     }
 
@@ -1109,7 +1117,7 @@ public final class CallLogListItemViewHolder extends RecyclerView.ViewHolder
    * route the call back through the correct VoIP calling account associated with this call log row.
    * Defensive checks are used to avoid crashes if required services/inputs are missing.</p>
    */
-  private void handleOttCallback(View view) {
+  private void handleOttCallback(View view, boolean forceAudio) {
     Context context = view.getContext();
     if (context == null) {
       return;
@@ -1129,9 +1137,14 @@ public final class CallLogListItemViewHolder extends RecyclerView.ViewHolder
     }
 
     Bundle extras = new Bundle();
-    int callAttributeType = ((features & Calls.FEATURES_VIDEO) == Calls.FEATURES_VIDEO)
-        ? CallAttributes.VIDEO_CALL
-        : CallAttributes.AUDIO_CALL;
+    int callAttributeType;
+    if (forceAudio) {
+      callAttributeType = CallAttributes.AUDIO_CALL;
+    } else {
+      callAttributeType = ((features & Calls.FEATURES_VIDEO) == Calls.FEATURES_VIDEO)
+          ? CallAttributes.VIDEO_CALL
+          : CallAttributes.AUDIO_CALL;
+    }
     extras.putInt(TelecomManager.EXTRA_CALL_TYPE, callAttributeType);
 
     LogUtil.i("OttCall callLogEntryUri: ", callLogEntryUri.toString(), callAttributeType);
