@@ -12,10 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.phonenumbercache;
 
+import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.PhoneLookup;
@@ -32,6 +37,14 @@ final class PhoneQuery {
   static final int PHOTO_ID = 6;
   static final int LOOKUP_KEY = 7;
   static final int PHOTO_URI = 8;
+
+  static final int EMAIL_PERSON_ID = 0;
+  static final int EMAIL_NAME = 1;
+  static final int EMAIL_ADDRESS = 2;
+  static final int EMAIL_PHOTO_ID = 3;
+  static final int EMAIL_LOOKUP_KEY = 4;
+  static final int EMAIL_PHOTO_URI = 5;
+
   /** Projection to look up a contact's DISPLAY_NAME_ALTERNATIVE */
   static final String[] DISPLAY_NAME_ALTERNATIVE_PROJECTION =
       new String[] {
@@ -65,5 +78,22 @@ final class PhoneQuery {
 
   static String[] getPhoneLookupProjection() {
       return PHONE_LOOKUP_PROJECTION;
+  }
+
+  /**
+   * Projection to look up the ContactInfo by email address.
+   */
+  private static final String[] EMAIL_LOOKUP_PROJECTION =
+      new String[] {
+        Contacts._ID,
+        Contacts.DISPLAY_NAME,
+        Email.ADDRESS,
+        Contacts.PHOTO_ID,
+        Contacts.LOOKUP_KEY,
+        Contacts.PHOTO_URI,
+      };
+
+  static String[] getEmailLookupProjection() {
+      return EMAIL_LOOKUP_PROJECTION;
   }
 }

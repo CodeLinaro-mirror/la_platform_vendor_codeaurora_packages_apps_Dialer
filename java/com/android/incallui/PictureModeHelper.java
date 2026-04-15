@@ -25,6 +25,10 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui;
@@ -55,6 +59,7 @@ import android.widget.RelativeLayout;
 
 import com.android.incallui.call.CallList;
 import com.android.incallui.call.DialerCall;
+import com.android.incallui.call.state.DialerCallState;
 import com.android.dialer.common.LogUtil;
 import com.android.incallui.InCallPresenter.InCallDetailsListener;
 import com.android.incallui.InCallPresenter.InCallDisconnectedListener;
@@ -357,7 +362,14 @@ public class PictureModeHelper implements
         }
     }
 
-    public void maybeHideVideoViews() {
+    private boolean isCallActive(DialerCall call) {
+        return call != null && call.getState() == DialerCallState.ACTIVE;
+    }
+
+    public void maybeHideVideoViews(DialerCall primaryCall) {
+        if (!isCallActive(primaryCall)) {
+            return;
+        }
         InCallActivity incallActivity = InCallPresenter.getInstance().getActivity();
         if (incallActivity == null) {
             return;
@@ -389,7 +401,10 @@ public class PictureModeHelper implements
         remoteOffImageView.setVisibility(mShowIncomingVideoView ? View.VISIBLE : View.GONE);
     }
 
-    public void setPreviewVideoLayoutParams() {
+    public void setPreviewVideoLayoutParams(DialerCall call) {
+        if (!isCallActive(call)) {
+            return;
+        }
         InCallActivity incallActivity = InCallPresenter.getInstance().getActivity();
         if (incallActivity == null || (!mShowPreviewVideoView && mShowIncomingVideoView)) {
             LogUtil.e("PictureModeHelper.setPreviewVideoLayoutParams",

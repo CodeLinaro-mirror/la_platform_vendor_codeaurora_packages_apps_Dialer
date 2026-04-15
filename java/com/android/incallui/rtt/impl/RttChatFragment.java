@@ -735,9 +735,9 @@ public class RttChatFragment extends Fragment
     }
 
     // VT only
-    boolean showVtOnly =
-        (isRttOnly && phoneAccountRttDowngradeCapable && featureSupported && vtBiDirSupported)
-        || (isRttVt && phoneAccountRttDowngradeCapable);
+    boolean showVtOnly = !currentCall.isEmergencyCall() &&
+        ((isRttOnly && phoneAccountRttDowngradeCapable && featureSupported && vtBiDirSupported)
+        || (isRttVt && phoneAccountRttDowngradeCapable));
     if (showVtOnly) {
       itemsList.add(video);
     }
@@ -818,8 +818,10 @@ public class RttChatFragment extends Fragment
     boolean vtBiDirSupported = isVtBidirectionalSupported(call);
     // showVideoToggle is a single button which will be used to upgrade to RTT VT
     // as well as switch to video view once call is already RTT VT from RTT fragment
-    // hence we should only on featureSupported and if we can upgrade to VT Bidir
-    boolean showVideoToggle = featureSupported && vtBiDirSupported;
+    // hence we should depend only on featureSupported, if we can upgrade to VT Bidir
+    // and if it's a non emergency call
+    boolean showVideoToggle = featureSupported && vtBiDirSupported && call != null
+        && !call.isEmergencyCall();
     overflowMenu.enableVideoToggleButton(showVideoToggle);
   }
 

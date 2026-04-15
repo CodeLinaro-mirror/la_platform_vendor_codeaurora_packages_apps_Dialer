@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.phonenumberutil;
@@ -42,6 +46,8 @@ import com.google.common.base.Optional;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.Set;
 
 public class PhoneNumberHelper {
@@ -316,6 +322,48 @@ public class PhoneNumberHelper {
     // the passed-in string is URI-escaped.  (Neither "@" nor "%40"
     // will ever be found in a legal PSTN number.)
     return number != null && (number.contains("@") || number.contains("%40"));
+  }
+
+  /**
+   * Pattern to match name-addr format: [display-name] "<" addr-spec ">"
+   * mailbox = name-addr
+   * name-addr = [display-name] angle-addr
+   * angle-addr = [CFWS] "<" addr-spec ">" [CFWS]
+   */
+  public static final Pattern NAME_ADDR_EMAIL_PATTERN =
+      Pattern.compile("\\s*(\"[^\"]*\"|[^<>\"]+)\\s*<([^<>]+)>\\s*");
+
+  /**
+   * Extracts the addr-spec from a name-addr formatted address. If the address is already a bare
+   * addr-spec (no display name or angle brackets), it is returned as-is.
+   *
+   * @param address the input address, possibly in name-addr format
+   * @return the addr-spec portion of the address
+   */
+  public static String extractAddrSpec(final String address) {
+    final Matcher match = NAME_ADDR_EMAIL_PATTERN.matcher(address);
+    if (match.matches()) {
+      return match.group(2);
+    }
+    return address;
+  }
+
+  /**
+   * Returns true if the address is an email address.
+   *
+   * <p>Handles both bare addr-spec format (e.g., {@code user@example.com}) and name-addr
+   * format (e.g., {@code "John Doe" <john@example.com>}).
+   *
+   * @param address the input address to be tested
+   * @return true if address is an email address
+   */
+  public static boolean isEmailAddress(final String address) {
+    if (TextUtils.isEmpty(address)) {
+      return false;
+    }
+    final String s = extractAddrSpec(address);
+    final Matcher match = android.util.Patterns.EMAIL_ADDRESS.matcher(s);
+    return match.matches();
   }
 
   /**
