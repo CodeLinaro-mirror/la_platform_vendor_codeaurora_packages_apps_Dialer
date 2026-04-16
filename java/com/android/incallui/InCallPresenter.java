@@ -2096,6 +2096,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
         EnrichedCallComponent.get(context)
             .getEnrichedCallManager()
             .unregisterStateChangedListener(statusBarNotifier);
+        statusBarNotifier.tearDown();
       }
 
       if (externalCallNotifier != null && externalCallList != null) {
