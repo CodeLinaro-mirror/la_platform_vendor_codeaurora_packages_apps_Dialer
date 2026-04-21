@@ -165,6 +165,7 @@ public class VideoCallFragment extends Fragment
   private static final float REMOTE2_MARGIN_TOP_DP = 30f;
   private static final float REMOTE2_MARGIN_START_DP = 15f;
 
+  private static final int TRANSLATION_NONE = 0;
 
   public class BorderView extends View {
     private Paint paint;
@@ -704,11 +705,16 @@ public class VideoCallFragment extends Fragment
   }
 
   private void moveAllPreviewRelatedViews(int x, int y) {
+    final boolean isLandscape = isLandscape();
     for (View view : getAllPreviewRelatedViews()) {
+      int finalX = x;
+      if (view.getId() == R.id.videocall_video_preview2 && isLandscape) {
+        finalX = TRANSLATION_NONE;
+      }
       // Animate up with the preview offset above the navigation bar or
       // animate down with the navigation bar hidden.
       view.animate()
-          .translationX(x)
+          .translationX(finalX)
           .translationY(y)
           .setInterpolator(new AccelerateDecelerateInterpolator())
           .start();
