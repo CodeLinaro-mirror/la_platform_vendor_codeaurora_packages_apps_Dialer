@@ -40,8 +40,10 @@ import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Person;
 import android.app.admin.DevicePolicyManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
@@ -146,6 +148,17 @@ public class StatusBarNotifier
   private Uri ringtone;
   private DialerCall showedCall;
 
+  private final BroadcastReceiver localeChangeReceiver = new BroadcastReceiver() {
+    @Override
+    public void onReceive(Context context, Intent intent) {
+      if (Intent.ACTION_LOCALE_CHANGED.equals(intent.getAction())) {
+        LogUtil.i("StatusBarNotifier.localeChangeReceiver",
+            "Locale changed, rebuilding notification");
+        updateNotification();
+      }
+    }
+  };
+
   public StatusBarNotifier(@NonNull Context context, @NonNull ContactInfoCache contactInfoCache) {
     Trace.beginSection("StatusBarNotifier.Constructor");
     this.context = Assert.isNotNull(context);
@@ -155,7 +168,21 @@ public class StatusBarNotifier
             new InCallTonePlayer(new ToneGeneratorFactory(), new PausableExecutorImpl()),
             CallList.getInstance());
     currentNotification = NOTIFICATION_NONE;
+
+    // Register locale change receiver to rebuild notification when language changes
+    IntentFilter filter = new IntentFilter(Intent.ACTION_LOCALE_CHANGED);
+    context.registerReceiver(localeChangeReceiver, filter);
+
     Trace.endSection();
+  }
+
+  /**
+   * Cleanup method to unregister the locale change receiver.
+   * Should be called when StatusBarNotifier is no longer needed.
+   */
+  public void tearDown() {
+    context.unregisterReceiver(localeChangeReceiver);
+    LogUtil.i("StatusBarNotifier.tearDown", "Locale change receiver unregistered");
   }
 
   /**
