@@ -117,6 +117,9 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    // Tracks the phoneId for which the MT RTT+VT upgrade listener is currently registered.
    // INVALID_PHONE_ID means not yet registered (or registration was reset).
    private int mMtRttVTListenerRegisteredPhoneId = QtiCallConstants.INVALID_PHONE_ID;
+   private static final int CAPABILITY_TRANSFER = 0x04000000;
+   private static final int CAPABILITY_TRANSFER_CONSULTATIVE = 0x08000000;
+
    private BottomSheetHelper() {
      LogUtil.d("BottomSheetHelper"," ");
    }
@@ -681,8 +684,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
 
    private void maybeUpdateTransferInMap() {
      final boolean showTransferOptions =
-         (mCall.can(android.telecom.Call.Details.CAPABILITY_TRANSFER) ||
-         mCall.can(android.telecom.Call.Details.CAPABILITY_TRANSFER_CONSULTATIVE)) &&
+         (mCall.can(CAPABILITY_TRANSFER) ||
+         mCall.can(CAPABILITY_TRANSFER_CONSULTATIVE)) &&
          !mCall.hasReceivedVideoUpgradeRequest();
      LogUtil.i("BottomSheetHelper.maybeUpdateTransferInMap",
          "value of showTransferOptions in BottomSheetHelper = " + showTransferOptions);
@@ -728,12 +731,12 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
 
    private ArrayList<CharSequence> getCallTransferOptions() {
      final ArrayList<CharSequence> items = new ArrayList<CharSequence>();
-     if (mCall.can(android.telecom.Call.Details.CAPABILITY_TRANSFER_CONSULTATIVE)
+     if (mCall.can(CAPABILITY_TRANSFER_CONSULTATIVE)
          && isConsultativeTransferOnSameSub()) {
        items.add(mResources.getText(R.string.qti_ims_onscreenBlindTransfer));
        items.add(mResources.getText(R.string.qti_ims_onscreenAssuredTransfer));
        items.add(mResources.getText(R.string.qti_ims_onscreenConsultativeTransfer));
-     } else if (mCall.can(android.telecom.Call.Details.CAPABILITY_TRANSFER)) {
+     } else if (mCall.can(CAPABILITY_TRANSFER)) {
        items.add(mResources.getText(R.string.qti_ims_onscreenBlindTransfer));
        items.add(mResources.getText(R.string.qti_ims_onscreenAssuredTransfer));
      }
