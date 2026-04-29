@@ -2194,7 +2194,13 @@ public class VideoCallFragment extends Fragment
   }
 
   private static void animateSetVisibility(final View view, final int visibility) {
-    if (view.getVisibility() == visibility) {
+    // Cancel any pending animation first
+    view.animate().cancel();
+
+    // Skip if already in the target state, except when VISIBLE but alpha < 1.0:
+    // that means a fade-out animation is still in progress and we must not skip.
+    if (view.getVisibility() == visibility
+        && !(view.getVisibility() == View.VISIBLE && view.getAlpha() < 1.0f)) {
       return;
     }
 
