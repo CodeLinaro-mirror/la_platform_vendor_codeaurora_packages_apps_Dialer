@@ -819,7 +819,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    }
 
    private void maybeUpdateDialpadOptionInMap() {
-     // Enable dialpad option in bottomsheet for video calls or video CRS.
+     // Enable dialpad option in bottomsheet for video calls, video CRS, video CRBT or UVS.
      // When video call is held, UI displays onscreen dialpad button
      // similar to volte calls.
      final int primaryCallState = mCall.getNonConferenceState();
@@ -828,7 +828,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
              && primaryCallState != DialerCallState.CALL_WAITING
              && primaryCallState != DialerCallState.ONHOLD)
          || QtiCallUtils.isVideoCrs(mCall)
-         || QtiCallUtils.isVisualizedVoiceCall(mCall);
+         || QtiCallUtils.isVisualizedVoiceCall(mCall)
+         || QtiCallUtils.hasVideoCrbtVoLteCall(mContext, mCall);
      moreOptionsMap.put(mResources.getString(R.string.dialpad_label), enable);
    }
 

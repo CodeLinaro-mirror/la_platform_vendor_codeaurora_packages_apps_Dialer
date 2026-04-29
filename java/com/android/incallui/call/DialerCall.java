@@ -1391,7 +1391,7 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     if (phoneAccount == null) {
       return false;
     }
-    return phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_DOWNGRADE_RTT);
+    return phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_CHANGE_RTT_CALL_TO_AUDIO_CALL);
   }
 
   @TargetApi(28)

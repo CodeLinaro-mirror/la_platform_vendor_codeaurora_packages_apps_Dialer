@@ -35,6 +35,7 @@ package com.android.incallui;
 import android.content.Context;
 import android.content.res.Resources;
 import android.os.Bundle;
+import android.telephony.SubscriptionManager;
 
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.state.DialerCallState;
@@ -57,6 +58,7 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
     private static CallProgressNotification sCallProgressNotification;
     private Context mContext;
     private Resources mResources;
+    private int mCurrentSubId = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
     private final HashMap<String, String> mCallProgressInfoMap = new HashMap<>();
 
     // These values are based on Q850 defined by ITU. Ref: https://www.itu.int/rec/T-REC-Q.850
@@ -114,6 +116,7 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
         InCallPresenter.getInstance().removeInCallDisconnectedListener(this);
         mResources = null;
         mContext = null;
+        mCurrentSubId = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
     }
 
     /**
@@ -135,8 +138,8 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
             return;
         }
 
-        if (mContext == null || mResources == null) {
-            Log.d(this, "onDetailsChanged - Not initialized. Return");
+        if (mContext == null) {
+            Log.d(this, "onDetailsChanged - Context not initialized. Return");
             return;
         }
 
@@ -144,6 +147,22 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
         if (!(DialerCallState.isDialing(callState) || callState == DialerCallState.DISCONNECTING
             || callState == DialerCallState.DISCONNECTED)) {
             Log.d(this, "onDetailsChanged - Call is not Dialing/End. Return");
+            return;
+        }
+
+        // Refresh locale-aware resources only when the subscription changes.
+        // The subId for a given call is fixed after establishment, so this
+        // typically fires once (when mCurrentSubId transitions from INVALID to
+        // a valid value) and is a no-op on subsequent detail change events.
+        int newSubId = QtiCallUtils.getSubIdForCall(mContext, call);
+        if (newSubId != mCurrentSubId) {
+            mCurrentSubId = newSubId;
+            mResources = QtiCallUtils.getResourcesForCall(mContext, call);
+            Log.d(this, "onDetailsChanged - updated resources for subId: " + newSubId);
+        }
+
+        if (mResources == null) {
+            Log.d(this, "onDetailsChanged - Resources not initialized. Return");
             return;
         }
 
@@ -171,6 +190,12 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
             String text = getCallProgressText(types[i], callExtras);
             Log.d(this, "getCallProgressText - text : " + text);
             if (text != null && !text.isEmpty() && seenTexts.add(text)) {
+                if (types[i] == QtiCallConstants.CALL_PROGRESS_INFO_TYPE_CALL_WARNING) {
+                    // Warning text is non-standardized content received directly from the network,
+                    // so it is only logged for debugging purposes and not shown in toast to user.
+                    Log.d(this, "onDetailsChanged - warning text (log only): " + text);
+                    continue;
+                }
                 // Toast is limited to two lines, so use double spaces to separate
                 // multiple notifications.
                 callInfoReasonTextBuilder.append(text).append("  ");
