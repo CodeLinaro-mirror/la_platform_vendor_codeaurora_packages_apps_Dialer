@@ -40,7 +40,6 @@ import android.telephony.SubscriptionManager;
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.call.state.DialerCallState;
 import com.android.incallui.InCallPresenter.InCallDetailsListener;
-import com.android.incallui.InCallPresenter.InCallDisconnectedListener;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,7 +52,7 @@ import org.codeaurora.ims.QtiCallConstants;
  * and show the appropriate toast message to user.
  *
  */
-public class CallProgressNotification implements InCallDetailsListener, InCallDisconnectedListener {
+public class CallProgressNotification implements InCallDetailsListener {
 
     private static CallProgressNotification sCallProgressNotification;
     private Context mContext;
@@ -101,7 +100,6 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
         mContext = context;
         mResources = mContext.getResources();
         InCallPresenter.getInstance().addDetailsListener(this);
-        InCallPresenter.getInstance().addInCallDisconnectedListener(this);
 
         mCallRejectedReasonFromNw = mContext.getString(R.string.
                 call_progress_info_call_rejected_reason_from_nw);
@@ -113,7 +111,13 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
 
     public void tearDown() {
         InCallPresenter.getInstance().removeDetailsListener(this);
-        InCallPresenter.getInstance().removeInCallDisconnectedListener(this);
+        // Clear the map here to release memory and prevent stale entries.
+        // Previously this was done per-call in onCallDisconnected(), but that
+        // caused duplicate toasts when onDetailsChanged() was called after
+        // onCallDisconnected() in disconnected state (order not guaranteed).
+        // Clearing in tearDown() is safe because it is called once all calls
+        // have ended and the InCall UI is being destroyed.
+        mCallProgressInfoMap.clear();
         mResources = null;
         mContext = null;
         mCurrentSubId = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
@@ -209,17 +213,13 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
             return;
         }
 
-        mCallProgressInfoMap.put(callId, callInfoReasonText);
-
         if (callInfoReasonText.isEmpty()) {
             Log.d(this, "onDetailsChanged - Received empty call info reason text.");
             return;
         }
 
-        // There is a known risk, in disconnected state, the toast will show multi times
-        // because onDetailsChanged will be called multiple times, and onCallDisconnected
-        // will be called once. And we could not ensure the order of these two callbacks.
-        // TODO: Need to improve this logic to avoid showing multiple same toast.
+        mCallProgressInfoMap.put(callId, callInfoReasonText);
+
         QtiCallUtils.displayToast(mContext, callInfoReasonText);
 
     }
@@ -368,12 +368,4 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
         }
     }
 
-    /**
-     * This method overrides onDisconnect method of {@interface InCallDisconnectedListener}
-     */
-    @Override
-    public void onCallDisconnected(final DialerCall call) {
-        Log.d(this, "onDisconnect: call: " + call);
-        mCallProgressInfoMap.remove(call.getId());
-    }
 }
