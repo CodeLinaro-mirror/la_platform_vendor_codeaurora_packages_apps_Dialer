@@ -366,6 +366,9 @@ public class InCallFragment extends Fragment
   @Override
   public void setPrimary(@NonNull PrimaryInfo primaryInfo) {
     LogUtil.i("InCallFragment.setPrimary", primaryInfo.toString());
+    if (!isAdded()) {
+      return;
+    }
     setAdapterMedia(primaryInfo.multimediaData(), primaryInfo.showInCallButtonGrid());
     contactGridManager.setPrimary(primaryInfo);
 
