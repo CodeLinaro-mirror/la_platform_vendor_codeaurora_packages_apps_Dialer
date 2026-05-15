@@ -169,6 +169,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   private CallList callList;
   private ExternalCallList externalCallList;
   private InCallActivity inCallActivity;
+  private String pendingSuplServiceMessage;
   private ManageConferenceActivity manageConferenceActivity;
   private InCallState inCallState = InCallState.NO_CALLS;
   private ProximitySensor proximitySensor;
@@ -652,6 +653,8 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
 
     serviceConnected = false;
 
+    pendingSuplServiceMessage = null;
+
     context
         .getSystemService(TelephonyManager.class)
         .listen(phoneStateListener, PhoneStateListener.LISTEN_NONE);
@@ -1003,6 +1006,10 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
   public void onSuplServiceMessage(String suplNotificationMessage ) {
       if (inCallActivity != null) {
           inCallActivity.showSuplServiceMessageSnackbar(suplNotificationMessage);
+      } else {
+          // Only the most recent pending SSN message is retained.
+          // SSN bursts before InCallActivity binds are extremely rare in practice.
+          pendingSuplServiceMessage = suplNotificationMessage;
       }
   }
 
@@ -2074,6 +2081,7 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       clearFullscreen();
 
       isChangingConfigurations = false;
+      pendingSuplServiceMessage = null;
 
       // blow away stale contact info so that we get fresh data on
       // the next set of calls
@@ -2329,7 +2337,22 @@ public class InCallPresenter implements CallList.Listener, AudioModeProvider.Aud
       LogUtil.w(
           "InCallPresenter.setActivity", "Setting a second activity before destroying the first.");
     }
+
+    // Capture and clear pending message atomically before updateActivity to avoid
+    // a race where updateActivity triggers state machine changes leading to new SSN messages.
+    final String pendingMsg = pendingSuplServiceMessage;
+    pendingSuplServiceMessage = null;
+
     updateActivity(inCallActivity);
+
+    if (pendingMsg != null && mExecutor != null) {
+      final InCallActivity activity = inCallActivity;
+      mExecutor.execute(() -> {
+        if (!activity.isDestroyed() && !activity.isFinishing()) {
+          activity.showSuplServiceMessageSnackbar(pendingMsg);
+        }
+      });
+    }
   }
 
   ExternalCallNotifier getExternalCallNotifier() {
