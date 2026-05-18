@@ -677,7 +677,8 @@ public class CallButtonPresenter
             && call.can(android.telecom.Call.Details.CAPABILITY_SUPPORT_HOLD)
             && call.can(android.telecom.Call.Details.CAPABILITY_HOLD)
             && !shouldRemoveHoldButtonForHfpCall();
-    final boolean isCallOnHold = call.getState() == DialerCallState.ONHOLD;
+    final int callState = call.getState();
+    final boolean isCallOnHold = callState == DialerCallState.ONHOLD;
 
     final boolean showAddCall =
         TelecomAdapter.getInstance().canAddCall() && UserManagerCompat.isUserUnlocked(context)
@@ -694,7 +695,9 @@ public class CallButtonPresenter
             && call.can(android.telecom.Call.Details.CAPABILITY_MERGE_CONFERENCE)
             && !call.hasSentVideoUpgradeRequest()
             && call.hasSamePhoneAccount(secondaryCall)
-            && !call.isDualVtCall() && secondaryCall != null && !secondaryCall.isDualVtCall();
+            && !call.isDualVtCall() && secondaryCall != null && !secondaryCall.isDualVtCall() &&
+            (callState == DialerCallState.ACTIVE ||
+            callState == DialerCallState.ONHOLD);
 
     final boolean isRttMergeSupported = QtiImsExtUtils.isRttMergeSupported(
                                           BottomSheetHelper.getInstance().getPhoneId(),
@@ -711,8 +714,8 @@ public class CallButtonPresenter
     // Disabling local video doesn't seem to work when dialing. See a bug.
     final boolean showPauseVideo =
         isVideo
-            && call.getState() != DialerCallState.DIALING
-            && call.getState() != DialerCallState.CONNECTING;
+            && callState != DialerCallState.DIALING
+            && callState != DialerCallState.CONNECTING;
 
     // Setting otherAccount to null when we have an HFP call because it is not actually possible to
     // swap the call sims between the HFP account and the Cellular account.
@@ -723,13 +726,13 @@ public class CallButtonPresenter
         !call.isEmergencyCall()
             && otherAccount != null
             && !call.isVoiceMailNumber()
-            && DialerCallState.isDialing(call.getState())
+            && DialerCallState.isDialing(callState)
             // Most devices cannot make calls on 2 SIMs at the same time.
             && InCallPresenter.getInstance().getCallList().getAllCalls().size() == 1
             && !call.isConferenceCall();
 
     boolean showUpgradeToRtt = call.canUpgradeToRttCall();
-    boolean enableUpgradeToRtt = showUpgradeToRtt && call.getState() == DialerCallState.ACTIVE;
+    boolean enableUpgradeToRtt = showUpgradeToRtt && callState == DialerCallState.ACTIVE;
 
     inCallButtonUi.showButton(InCallButtonIds.BUTTON_AUDIO, true);
     inCallButtonUi.showButton(InCallButtonIds.BUTTON_SWAP, showSwap);

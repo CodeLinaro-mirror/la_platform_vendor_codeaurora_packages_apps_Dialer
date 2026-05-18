@@ -25,8 +25,8 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * ​​​​​Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -195,6 +195,20 @@ public class CallProgressNotification implements InCallDetailsListener, InCallDi
                     // so it is only logged for debugging purposes and not shown in toast to user.
                     Log.d(this, "onDetailsChanged - warning text (log only): " + text);
                     continue;
+                }
+                if (types[i] == QtiCallConstants.CALL_PROGRESS_INFO_TYPE_CALL_REJ_SIP) {
+                    // SIP reject text from network is non-standardized and not shown in toast,
+                    // except for SIP 603 code with unique localized reason text.
+                    int sipCode = callExtras.getInt(
+                            QtiCallConstants.EXTRAS_CALL_PROGRESS_REJECT_SIP_CODE,
+                            QtiCallConstants.CALL_REJECTION_CODE_INVALID);
+                    boolean isCalledPartyRinging = callExtras.getBoolean(
+                            QtiCallConstants.EXTRA_IS_CALLED_PARTY_RINGING);
+                    if (getRejectSipReasonForUniqueReasonText(sipCode, isCalledPartyRinging)
+                            == null) {
+                        Log.d(this, "onDetailsChanged - SIP reject text (log only): " + text);
+                        continue;
+                    }
                 }
                 // Toast is limited to two lines, so use double spaces to separate
                 // multiple notifications.
