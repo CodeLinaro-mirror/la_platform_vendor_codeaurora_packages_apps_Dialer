@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.dialer.main.impl;
@@ -203,6 +207,7 @@ public class OldMainActivityPeer implements MainActivityPeer, FragmentUtilListen
 
   private BottomNavBar bottomNav;
   private MainBottomNavBarBottomNavTabListener bottomNavTabListener;
+  private MainToolbar toolbar;
   private View snackbarContainer;
   private MissedCallCountObserver missedCallCountObserver;
   private UiListener<String> getLastOutgoingCallListener;
@@ -285,7 +290,7 @@ public class OldMainActivityPeer implements MainActivityPeer, FragmentUtilListen
           }
         });
 
-    MainToolbar toolbar = activity.findViewById(R.id.toolbar);
+    toolbar = activity.findViewById(R.id.toolbar);
     toolbar.maybeShowSimulator(activity);
     activity.setSupportActionBar(activity.findViewById(R.id.toolbar));
 
@@ -567,13 +572,20 @@ public class OldMainActivityPeer implements MainActivityPeer, FragmentUtilListen
   @Override
   public void onActivityPause() {
     searchController.onActivityPause();
+    // Dismiss the overflow menu whenever the Activity loses focus (e.g. entering split-screen,
+    // pressing home, etc.) to prevent the PopupWindow from blocking touch events in a stopped
+    // state.
+    dismissOverflowMenu();
     LocalBroadcastManager.getInstance(activity).unregisterReceiver(disableCallLogFrameworkReceiver);
     activity.getContentResolver().unregisterContentObserver(missedCallCountObserver);
+    // Save KEY_LAST_TAB here in onPause (always called) rather than relying solely on onStop,
+    // because onStop may be skipped when the activity is resumed before it executes
+    // (e.g. user presses Home and immediately re-opens the app from the launcher).
+    lastTabController.onActivityPause();
   }
 
   @Override
   public void onActivityStop() {
-    lastTabController.onActivityStop();
     callLogFragmentListener.onActivityStop(
         activity.isChangingConfigurations(),
         activity.getSystemService(KeyguardManager.class).isKeyguardLocked());
@@ -655,7 +667,17 @@ public class OldMainActivityPeer implements MainActivityPeer, FragmentUtilListen
     }
   }
 
-  @Override
+  /**
+   * Dismisses the overflow menu. PopupMenu.dismiss() is safe to call even when not showing
+   * (it is a no-op internally), so no isShowing() guard is needed.
+   */
+  private void dismissOverflowMenu() {
+    if (toolbar != null && toolbar.getOverflowMenu() != null) {
+      LogUtil.i("OldMainActivityPeer.dismissOverflowMenu", "dismissing overflow menu");
+      toolbar.getOverflowMenu().dismiss();
+    }
+  }
+
   public boolean onBackPressed() {
     LogUtil.enterBlock("OldMainActivityPeer.onBackPressed");
     if (searchController.onBackPressed()) {
@@ -1663,7 +1685,12 @@ public class OldMainActivityPeer implements MainActivityPeer, FragmentUtilListen
       return tabIndex;
     }
 
-    void onActivityStop() {
+    /**
+     * Saves the current tab to SharedPreferences. Called from onActivityPause() to ensure
+     * KEY_LAST_TAB is always persisted, even when onStop() is skipped (e.g. when the activity
+     * is resumed before onStop executes after a quick Home press + re-open).
+     */
+    void onActivityPause() {
       StorageComponent.get(context)
           .unencryptedSharedPrefs()
           .edit()
