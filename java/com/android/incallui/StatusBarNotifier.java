@@ -491,6 +491,11 @@ public class StatusBarNotifier
     // Fire off the notification
     Notification notification = builder.build();
 
+    // On Android 17+, the system defaults to showing the app launcher icon as the badge icon
+    // instead of the small icon set via setSmallIcon(). Set EXTRA_PREFER_SMALL_ICON to true
+    // to restore the previous behavior and ensure the correct call type icon is displayed.
+    notification.extras.putBoolean(Notification.EXTRA_PREFER_SMALL_ICON, true);
+
     // Mark the dialing call as "unknown" until the call has started because google introduced
     // Notification.CallStyle.forIncomingCall/forOngoingCall/forScreeningCall but no interface
     // introduced for dialing like Notification.CallStyle.forDialingCall.
