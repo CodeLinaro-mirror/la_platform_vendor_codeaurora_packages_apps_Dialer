@@ -434,7 +434,8 @@ public class CallCardPresenter
 
   @Override
   public void onMergeProgressing(DialerCall call, boolean isMerging) {
-    if (primary != null && DialerCall.areSame(primary, call)) {
+    if ((primary != null && DialerCall.areSame(primary, call))
+        || (secondary != null && DialerCall.areSame(secondary, call))) {
       updateSecondaryDisplayInfo();
     }
   }
