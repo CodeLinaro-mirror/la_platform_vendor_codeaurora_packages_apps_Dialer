@@ -718,6 +718,17 @@ public class VideoCallFragment extends Fragment
   private void exitFullscreenMode() {
     LogUtil.i("VideoCallFragment.exitFullscreenMode", null);
 
+    // setIsMiddleRowVisible is a pure View.setVisibility() call on contactNameTextView, which
+    // does not depend on window attachment. It should be treated consistently with other
+    // ContactGridManager UI state updates (e.g. connectionIconImageView, workIconImageView,
+    // hdIconImageView) that are driven by setCallState() -> updateTopRow()/updateBottomRow()
+    // and are never gated by isAttachedToWindow(). The isAttachedToWindow() guard below is
+    // intended only to protect animation-related code that requires a live window. Placing
+    // setIsMiddleRowVisible(true) before the guard ensures the contact name (phone number) is
+    // always restored when exiting fullscreen mode, even if the view is not yet attached to
+    // the window.
+    contactGridManager.setIsMiddleRowVisible(true);
+
     if (!getView().isAttachedToWindow()) {
       LogUtil.i("VideoCallFragment.exitFullscreenMode", "not attached");
       return;
@@ -773,7 +784,6 @@ public class VideoCallFragment extends Fragment
               }
             });
 
-    contactGridManager.setIsMiddleRowVisible(true);
     View contactGridView = contactGridManager.getContainerView();
     // Animate contact grid to the shown state.
     contactGridView
