@@ -102,6 +102,8 @@ public class RttChatFragment extends Fragment
         InCallButtonUi,
         AudioRouteSelectorPresenter {
 
+  private static final int CAPABILITY_TRANSFER = 0x04000000;
+  private static final int CAPABILITY_TRANSFER_CONSULTATIVE = 0x08000000;
   private static final String ARG_CALL_ID = "call_id";
 
   private RecyclerView recyclerView;
@@ -553,8 +555,8 @@ public class RttChatFragment extends Fragment
     boolean showTransferOptions =
         currentCall != null
             && !currentCall.isEmergencyCall()
-            && (currentCall.can(Details.CAPABILITY_TRANSFER)
-            || currentCall.can(Details.CAPABILITY_TRANSFER_CONSULTATIVE))
+            && (currentCall.can(CAPABILITY_TRANSFER)
+            || currentCall.can(CAPABILITY_TRANSFER_CONSULTATIVE))
             && !currentCall.hasReceivedVideoUpgradeRequest();
     overflowMenu.enableTransferButton(showTransferOptions);
   }
