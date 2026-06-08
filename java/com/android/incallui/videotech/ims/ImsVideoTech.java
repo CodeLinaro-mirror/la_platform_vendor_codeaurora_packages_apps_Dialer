@@ -35,6 +35,9 @@ import com.android.dialer.common.LogUtil;
 import com.android.dialer.logging.DialerImpression;
 import com.android.dialer.logging.LoggingBindings;
 import com.android.dialer.util.CallUtil;
+import com.android.incallui.BottomSheetHelper;
+import com.android.incallui.InCallPresenter;
+import com.android.incallui.InCallCameraManager;
 import com.android.incallui.call.DialerCall;
 import com.android.incallui.video.protocol.VideoCallScreen;
 import com.android.incallui.video.protocol.VideoCallScreenDelegate;
@@ -42,11 +45,16 @@ import com.android.incallui.videotech.VideoTech;
 import com.android.incallui.videotech.utils.SessionModificationState;
 
 import org.codeaurora.ims.QtiCallConstants;
+import org.codeaurora.ims.QtiImsException;
+import org.codeaurora.ims.QtiImsExtConnector;
+import org.codeaurora.ims.QtiImsExtManager;
+import org.codeaurora.ims.VideoCallProviderManager;
 
 /** ViLTE implementation */
 public class ImsVideoTech implements VideoTech {
   private final LoggingBindings logger;
   private final Call call;
+  private final DialerCall dialerCall;
   private final VideoTechListener listener;
   @VisibleForTesting ImsVideoCallCallback callback;
   private @SessionModificationState int sessionModificationState =
@@ -63,10 +71,15 @@ public class ImsVideoTech implements VideoTech {
   private boolean transmissionStopped = false;
   private VideoCall registeredVideoCall;
 
+  private VideoCallProviderManager mVideoCallProviderManager = null;
+  private QtiImsExtConnector mQtiImsExtConnector;
+  private QtiImsExtManager mQtiImsExtManager = null;
+
   public ImsVideoTech(LoggingBindings logger, DialerCall call) {
     this.logger = logger;
     this.listener = call.getVideoTechListener();
     this.call = call.getTelecomCall();
+    this.dialerCall = call;
   }
 
   @Override
@@ -208,14 +221,29 @@ public class ImsVideoTech implements VideoTech {
         }
     }
     previousVideoState = newVideoState;
+    if (dialerCall.isDualVtCall() && mQtiImsExtConnector == null) {
+      createQtiImsExtConnector(context.getApplicationContext());
+    }
   }
 
   @Override
-  public void onRemovedFromCallList() {}
+  public void onRemovedFromCallList() {
+    LogUtil.i("ImsVideoTech.onRemovedFromCallList", "disconnecting side car");
+    clearVideoCallProvider();
+  }
 
   @Override
   public int getSessionModificationState() {
     return sessionModificationState;
+  }
+
+  void clearVideoCallProvider() {
+    if (mQtiImsExtConnector != null) {
+      mQtiImsExtConnector.disconnect();
+      mQtiImsExtConnector = null;
+    }
+    mVideoCallProviderManager = null;
+    mQtiImsExtManager = null;
   }
 
   void setSessionModificationState(@SessionModificationState int state) {
@@ -363,6 +391,14 @@ public class ImsVideoTech implements VideoTech {
       // This video call does not support pause so we fall back to disabling the camera
       LogUtil.i("ImsVideoTech.pause", "disabling camera");
       call.getVideoCall().setCamera(null);
+      if (dialerCall.isDualVtCall() && mVideoCallProviderManager != null) {
+        try {
+          LogUtil.i("ImsVideoTech.pause", "disabling secondary camera");
+          mVideoCallProviderManager.setCamera(null);
+        } catch (QtiImsException ex) {
+          LogUtil.e("ImsVideoTech.pause", "exception attempting to setCamera" + ex);
+        }
+      }
     }
   }
 
@@ -395,8 +431,17 @@ public class ImsVideoTech implements VideoTech {
       call.getVideoCall().sendSessionModifyRequest(new VideoProfile(unpausedVideoState));
     } else {
       // This video call does not support pause so we fall back to re-enabling the camera
-      LogUtil.i("ImsVideoTech.pause", "re-enabling camera");
+      LogUtil.i("ImsVideoTech.unpause", "re-enabling camera");
       setCamera(savedCameraId);
+      if (dialerCall.isDualVtCall() && mVideoCallProviderManager != null) {
+        InCallCameraManager cameraManager = InCallPresenter.getInstance().getInCallCameraManager();
+        try {
+          LogUtil.i("ImsVideoTech.unpause", "re-enabling secondary camera");
+          mVideoCallProviderManager.setCamera(cameraManager.getSecondaryCameraId());
+        } catch (QtiImsException ex) {
+          LogUtil.e("ImsVideoTech.unpause", "exception attempting to setCamera" + ex);
+        }
+      }
     }
   }
 
@@ -447,5 +492,37 @@ public class ImsVideoTech implements VideoTech {
 
   public static int getUnpausedVideoState(int videoState) {
     return videoState & (~VideoProfile.STATE_PAUSED);
+  }
+
+  private void createQtiImsExtConnector(Context context) {
+    try {
+      mQtiImsExtConnector = new QtiImsExtConnector(context,
+          new QtiImsExtConnector.IListener() {
+            @Override
+            public void onConnectionAvailable(QtiImsExtManager qtiImsExtManager) {
+              mQtiImsExtManager = qtiImsExtManager;
+              try {
+                if (mQtiImsExtManager != null) {
+                  mVideoCallProviderManager = mQtiImsExtManager.getVideoCallProviderManager(
+                      BottomSheetHelper.getInstance().getPhoneId(), dialerCall.getToken());
+                }
+              } catch (QtiImsException e) {
+                LogUtil.e("ImsVideoTech.onConnectionAvailable", "exception " + e);
+                mVideoCallProviderManager = null;
+              }
+            }
+
+            @Override
+            public void onConnectionUnavailable() {
+              mQtiImsExtManager = null;
+              mVideoCallProviderManager = null;
+            }
+          });
+      mQtiImsExtConnector.connect();
+    } catch (QtiImsException e) {
+      LogUtil.e("ImsVideoTech.createQtiImsExtConnector",
+          "Unable to create QtiImsExtConnector" + e);
+      mQtiImsExtConnector = null;
+    }
   }
 }
