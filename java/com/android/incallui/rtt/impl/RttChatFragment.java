@@ -452,6 +452,9 @@ public class RttChatFragment extends Fragment
   }
 
   private void updateAvatar(PrimaryInfo primaryInfo) {
+    if (!isAdded()) {
+      return;
+    }
     boolean hasPhoto =
         primaryInfo.photo() != null && primaryInfo.photoType() == ContactPhotoType.CONTACT;
     // Contact has a photo, don't render a letter tile.
