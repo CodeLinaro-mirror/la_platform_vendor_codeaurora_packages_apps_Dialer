@@ -312,6 +312,7 @@ android_app {
         "libphonenumber",
         "volley",
         "zxing-core-1.7",
+        "telecom-vendor-ext",
     ] + select(soong_config_variable("qtidialer", "enable_fwk_dependency"), {
         true: [
             "dialer-common-m2-target-deps",
