@@ -108,15 +108,20 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    private static final int CALL_TYPE_RTT_TO_VT = 1003;
    // Call transition to indicate VT + RTT -> VoLTE
    private static final int CALL_TYPE_DROP_BOTH = 1004;
+   private static final int RTT_VT_SUPPORT_UNKNOWN = -1;
+   private static final int RTT_VT_SUPPORT_DISABLED = 0;
+   private static final int RTT_VT_SUPPORT_ENABLED = 1;
    private int mPendingMoDualTransitionType = CALL_TYPE_INACTIVE;
    private int INVALID_RTT_REQUEST_ID = -1;
    private boolean mPendingMtVtRttUpgrade = false;
    private int mPendingRttRequestId = INVALID_RTT_REQUEST_ID;
-   private boolean isRttVtFeatureSupported = false;
-   private int DEFAULT_PHONE_ID = 0;
+   private int isRttVtFeatureSupported = RTT_VT_SUPPORT_UNKNOWN;
    // Tracks the phoneId for which the MT RTT+VT upgrade listener is currently registered.
    // INVALID_PHONE_ID means not yet registered (or registration was reset).
    private int mMtRttVTListenerRegisteredPhoneId = QtiCallConstants.INVALID_PHONE_ID;
+   private static final int CAPABILITY_TRANSFER = 0x04000000;
+   private static final int CAPABILITY_TRANSFER_CONSULTATIVE = 0x08000000;
+
    private BottomSheetHelper() {
      LogUtil.d("BottomSheetHelper"," ");
    }
@@ -141,6 +146,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
              @Override
              public void onConnectionUnavailable() {
                mMtRttVTListenerRegisteredPhoneId = QtiCallConstants.INVALID_PHONE_ID;
+               isRttVtFeatureSupported = RTT_VT_SUPPORT_UNKNOWN;
                mQtiImsExtManager = null;
              }
            });
@@ -189,6 +195,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      InCallPresenter.getInstance().removeInCallEventListener(this);
      InCallPresenter.getInstance().removeListener(this);
      mMtRttVTListenerRegisteredPhoneId = QtiCallConstants.INVALID_PHONE_ID;
+     isRttVtFeatureSupported = RTT_VT_SUPPORT_UNKNOWN;
      if (mPrimaryCallTracker != null) {
        mPrimaryCallTracker.removeListener(this);
        mPrimaryCallTracker = null;
@@ -312,17 +319,20 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
      }
      int phoneId = getPhoneId();
      if (phoneId == QtiCallConstants.INVALID_PHONE_ID) {
-       phoneId = DEFAULT_PHONE_ID;
+       LogUtil.w("BottomSheetHelper.updateIsRttVtFeatureSupported",
+           "Invalid phoneId; will retry later when call is present.");
+       return;
      }
      try {
-       isRttVtFeatureSupported = mQtiImsExtManager.isRttVtFeatureSupported(phoneId);
+       isRttVtFeatureSupported = mQtiImsExtManager.isRttVtFeatureSupported(phoneId)
+           ? RTT_VT_SUPPORT_ENABLED : RTT_VT_SUPPORT_DISABLED;
        LogUtil.i("BottomSheetHelper.updateIsRttVtFeatureSupported",
-           "Registered MT dual-upgrade listener for phoneId=" + phoneId +
-           "isRttVtFeatureSupported=" + isRttVtFeatureSupported);
+           "isRttVtFeatureSupported=" + isRttVtFeatureSupported + " phoneId=" + phoneId);
      } catch (QtiImsException e) {
+       isRttVtFeatureSupported = RTT_VT_SUPPORT_UNKNOWN;
        LogUtil.e("BottomSheetHelper.updateIsRttVtFeatureSupported",
-           "Failed to register MT dual-upgrade listener: " + e +
-           "isRttVtFeatureSupported=" + isRttVtFeatureSupported);
+           "Failed to query RTT/VT feature support: " + e +
+           " isRttVtFeatureSupported=" + isRttVtFeatureSupported);
      }
    }
 
@@ -341,7 +351,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
    }
 
    public boolean isRttVtFeatureSupported() {
-     return isRttVtFeatureSupported;
+     return isRttVtFeatureSupported == RTT_VT_SUPPORT_ENABLED;
    }
 
    private void maybeUpdateManageConferenceInMap() {
@@ -621,11 +631,17 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
     @Override
     public void onStateChange(InCallPresenter.InCallState oldState,
         InCallPresenter.InCallState newState, CallList callList) {
-      if (newState == InCallPresenter.InCallState.INCALL
-          && mMtRttVTListenerRegisteredPhoneId == QtiCallConstants.INVALID_PHONE_ID) {
-        LogUtil.d("BottomSheetHelper.onStateChange",
-            "State is INCALL and listener not yet registered, retrying.");
-        registerMtRttVtModifyListenerSafely();
+      if (newState == InCallPresenter.InCallState.INCALL) {
+        if (mMtRttVTListenerRegisteredPhoneId == QtiCallConstants.INVALID_PHONE_ID) {
+          LogUtil.d("BottomSheetHelper.onStateChange",
+              "State is INCALL and listener not yet registered, retrying.");
+          registerMtRttVtModifyListenerSafely();
+        }
+        if (isRttVtFeatureSupported == RTT_VT_SUPPORT_UNKNOWN) {
+          LogUtil.d("BottomSheetHelper.onStateChange",
+              "State is INCALL and RTT/VT feature support is not yet resolved, retrying.");
+          updateIsRttVtFeatureSupported();
+        }
       }
     }
 
@@ -681,8 +697,8 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
 
    private void maybeUpdateTransferInMap() {
      final boolean showTransferOptions =
-         (mCall.can(android.telecom.Call.Details.CAPABILITY_TRANSFER) ||
-         mCall.can(android.telecom.Call.Details.CAPABILITY_TRANSFER_CONSULTATIVE)) &&
+         (mCall.can(CAPABILITY_TRANSFER) ||
+         mCall.can(CAPABILITY_TRANSFER_CONSULTATIVE)) &&
          !mCall.hasReceivedVideoUpgradeRequest();
      LogUtil.i("BottomSheetHelper.maybeUpdateTransferInMap",
          "value of showTransferOptions in BottomSheetHelper = " + showTransferOptions);
@@ -728,12 +744,12 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
 
    private ArrayList<CharSequence> getCallTransferOptions() {
      final ArrayList<CharSequence> items = new ArrayList<CharSequence>();
-     if (mCall.can(android.telecom.Call.Details.CAPABILITY_TRANSFER_CONSULTATIVE)
+     if (mCall.can(CAPABILITY_TRANSFER_CONSULTATIVE)
          && isConsultativeTransferOnSameSub()) {
        items.add(mResources.getText(R.string.qti_ims_onscreenBlindTransfer));
        items.add(mResources.getText(R.string.qti_ims_onscreenAssuredTransfer));
        items.add(mResources.getText(R.string.qti_ims_onscreenConsultativeTransfer));
-     } else if (mCall.can(android.telecom.Call.Details.CAPABILITY_TRANSFER)) {
+     } else if (mCall.can(CAPABILITY_TRANSFER)) {
        items.add(mResources.getText(R.string.qti_ims_onscreenBlindTransfer));
        items.add(mResources.getText(R.string.qti_ims_onscreenAssuredTransfer));
      }
@@ -1011,7 +1027,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
       }
 
       if (!mCall.isVideoCall()
-          && isRttVtFeatureSupported
+          && isRttVtFeatureSupported()
           && mCall.canUpgradeToRttCall()
           && canSupportBidirectionalVt(mCall)) {
         LogUtil.i("BottomSheetHelper.displayModifyCallOptions", "enable VT+RTT (VoLTE->VT+RTT)");
@@ -1019,7 +1035,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
         itemToCallType.add(CALL_TYPE_VT_RTT);
       }
 
-      if (isRttVtFeatureSupported
+      if (isRttVtFeatureSupported()
           && QtiCallUtils.isVideoBidirectional(mCall)
           && !QtiCallUtils.isDualVideo(mCall)
           && mCall.canUpgradeToRttCall()) {

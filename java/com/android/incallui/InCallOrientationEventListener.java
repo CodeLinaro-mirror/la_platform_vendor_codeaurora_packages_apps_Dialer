@@ -53,7 +53,7 @@ public class InCallOrientationEventListener extends OrientationEventListener {
   public @interface ScreenOrientation {}
 
   public static final int ACTIVITY_PREFERENCE_ALLOW_ROTATION =
-      ActivityInfo.SCREEN_ORIENTATION_FULL_USER;
+      ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR;
 
   public static final int ACTIVITY_PREFERENCE_DISALLOW_ROTATION =
       ActivityInfo.SCREEN_ORIENTATION_NOSENSOR;
