@@ -255,6 +255,7 @@ public class VideoCallFragment extends Fragment
   private SwitchOnHoldCallController switchOnHoldCallController;
   private TextView remoteVideoOff;
   private ImageView remoteOffBlurredImageView;
+  private ImageView remote2OffBlurredImageView;
   private View mutePreviewOverlay;
   private View previewOffOverlay;
   private ImageView previewOffBlurredImageView;
@@ -420,6 +421,8 @@ public class VideoCallFragment extends Fragment
     remoteVideoOff.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
     remoteOffBlurredImageView =
         (ImageView) view.findViewById(R.id.videocall_remote_off_blurred_image_view);
+    remote2OffBlurredImageView =
+        (ImageView) view.findViewById(R.id.videocall_remote2_off_blurred_image_view);
     endCallButton = view.findViewById(R.id.videocall_end_call);
     endCallButton.setOnClickListener(this);
     likeButton = (CheckableImageButton) view.findViewById(R.id.crs_crbt_like_button);
@@ -490,7 +493,7 @@ public class VideoCallFragment extends Fragment
               int oldBottom) {
             LogUtil.i("VideoCallFragment.onLayoutChange", "remoteTextureView layout changed");
             updateRemoteVideoScaling(QtiCallConstants.DUAL_VIDEO_MAIN_STREAM);
-            updateRemoteOffView();
+            updateRemoteOffViews();
           }
         });
 
@@ -1140,8 +1143,10 @@ public class VideoCallFragment extends Fragment
       updateRemoteOffView = true;
     }
 
-    if (this.shouldShowRemote2 != shouldShowRemote2) {
+    boolean shouldShowRemote2Changed = this.shouldShowRemote2 != shouldShowRemote2;
+    if (shouldShowRemote2Changed) {
       this.shouldShowRemote2 = shouldShowRemote2;
+      updateRemoteOffView = true;
     }
 
     if (shouldShowRemote2) {
@@ -1155,8 +1160,9 @@ public class VideoCallFragment extends Fragment
       updateRemoteOffView = true;
     }
 
+    // Refresh blur bitmaps when remote visibility, hold state, or DVT state changes.
     if (updateRemoteOffView) {
-      updateRemoteOffView();
+      updateRemoteOffViews();
     }
     if (this.shouldShowPreview != shouldShowPreview) {
       this.shouldShowPreview = shouldShowPreview;
@@ -1176,6 +1182,13 @@ public class VideoCallFragment extends Fragment
       previewTextureView.setVisibility(View.VISIBLE);
       preview2TextureView.setVisibility(
           shouldShowPreview2 ? View.VISIBLE : View.GONE);
+    }
+
+    // Re-establish Z-order after all visibility changes are committed. updateZOrder() reads
+    // the current visibility of previewTextureView and preview2TextureView to decide whether
+    // to bringToFront() them, so it must run after the setVisibility() calls above.
+    if (shouldShowRemote2Changed) {
+      updateZOrder();
     }
   }
 
@@ -1329,33 +1342,24 @@ public class VideoCallFragment extends Fragment
       updateViewLayoutToRemote2Size(remoteTextureView);
       remoteTextureView.setOutlineProvider(rectOutlineProvider);
       remoteTextureView.setClipToOutline(true);
-      remoteTextureView.bringToFront();
       attachBorderToTextureView(remoteTextureView);
     } else {
       updateViewLayoutToFullscreen(remoteTextureView);
       updateViewLayoutToRemote2Size(remote2TextureView);
-      remote2FrameLayout.bringToFront();
-      remote2TextureView.bringToFront();
       remote2TextureView.setOutlineProvider(rectOutlineProvider);
       remote2TextureView.setClipToOutline(true);
-
       remoteTextureView.setOutlineProvider(null);
       remoteTextureView.setClipToOutline(false);
       attachBorderToTextureView(remote2TextureView);
     }
 
-    // bring previews and controls container to the front
-    if (controlsContainer != null) {
-      controlsContainer.bringToFront();
-    }
-    if (previewTextureView != null && shouldShowPreview) {
-      previewTextureView.bringToFront();
-    }
-    if (preview2TextureView != null && shouldShowPreview2) {
-      preview2TextureView.bringToFront();
-    }
-
     remote2FrameLayout.requestLayout();
+
+    // Refresh blur bitmaps first so their visibility is current, then re-establish
+    // Z-order. updateZOrder() reads the up-to-date visibility of blur and label views
+    // set by updateRemoteOffViews(), so it must run after.
+    updateRemoteOffViews();
+    updateZOrder();
   }
 
   private void maybeLoadPreConfiguredImageAsync() {
@@ -1525,7 +1529,7 @@ public class VideoCallFragment extends Fragment
       exitFullscreenMode();
     }
 
-    updateRemoteOffView();
+    updateRemoteOffViews();
 
     OnHoldFragment onHoldFragment =
         ((OnHoldFragment)
@@ -2050,8 +2054,8 @@ public class VideoCallFragment extends Fragment
     }
   }
 
-  private void updateRemoteOffView() {
-    LogUtil.enterBlock("VideoCallFragment.updateRemoteOffView");
+  private void updateRemoteOffViews() {
+    LogUtil.enterBlock("VideoCallFragment.updateRemoteOffViews");
     boolean remoteEnabled = isInGreenScreenMode || shouldShowRemote;
     boolean isResumed = remoteEnabled && !isRemotelyHeld;
     if (isResumed) {
@@ -2074,7 +2078,7 @@ public class VideoCallFragment extends Fragment
               if (isResumed) {
                 remoteVideoOff.setVisibility(View.GONE);
               } else {
-                LogUtil.v("VideoCallFragment.updateRemoteOffView", "Not resumed.Ignore");
+                LogUtil.v("VideoCallFragment.updateRemoteOffViews", "Not resumed.Ignore");
               }
             }
           },
@@ -2084,12 +2088,114 @@ public class VideoCallFragment extends Fragment
           isRemotelyHeld ? R.string.videocall_remotely_held : R.string.videocall_remote_video_off);
       remoteVideoOff.setVisibility(View.VISIBLE);
     }
+
+    // When streams are swapped, remote2TextureView occupies the fullscreen slot.
+    // When not swapped, remoteTextureView is in the fullscreen slot.
+    TextureView fullscreenRemoteView =
+        areStreamsSwapped ? remote2TextureView : remoteTextureView;
+    // The PiP-slot view is whichever is NOT in the fullscreen slot.
+    TextureView pipRemoteView =
+        areStreamsSwapped ? remoteTextureView : remote2TextureView;
+
+    // isResumed is true only when remote video is both enabled and not held.
     updateBlurredImageView(
-        remoteTextureView,
+        fullscreenRemoteView,
         remoteOffBlurredImageView,
-        shouldShowRemote,
+        isResumed,
         BLUR_REMOTE_RADIUS,
         BLUR_REMOTE_SCALE_FACTOR);
+
+    if (remote2OffBlurredImageView != null && shouldShowRemote2) {
+      updateBlurredImageView(
+          pipRemoteView,
+          remote2OffBlurredImageView,
+          isResumed,
+          BLUR_REMOTE_RADIUS,
+          BLUR_REMOTE_SCALE_FACTOR);
+    } else if (remote2OffBlurredImageView != null) {
+      // DVT not active — keep the PiP overlay hidden.
+      remote2OffBlurredImageView.setImageBitmap(null);
+      remote2OffBlurredImageView.setVisibility(View.GONE);
+    }
+  }
+
+  /**
+   * Establishes the draw Z-order for all Dual-VT and preview views.
+   *
+   * <p>This is the single place that calls {@link View#bringToFront()}. It must be called
+   * whenever the Z-order actually needs to change:
+   * <ul>
+   *   <li>After a stream swap ({@link #updateRemoteVideoAttachments()}).
+   *   <li>When {@code shouldShowRemote2} changes ({@link #showVideoViews}).
+   * </ul>
+   *
+   * <p>Target order (bottom → top):
+   * <ol>
+   *   <li>Fullscreen remote view (remoteTextureView or remote2FrameLayout, already at bottom
+   *       by XML declaration order) — DVT only.
+   *   <li>{@code remoteOffBlurredImageView} — fullscreen blur, match_parent — DVT only.
+   *   <li>PiP container (remote2FrameLayout or remoteTextureView depending on swap state)
+   *       — DVT only.
+   *   <li>{@code remote2OffBlurredImageView} — PiP blur, 120×140dp — DVT only.
+   *   <li>{@code remoteVideoOff} — "remotely held" / "video off" text label — DVT only.
+   *   <li>{@code previewTextureView} — local camera preview.
+   *   <li>{@code preview2TextureView} — secondary local camera preview.
+   *   <li>{@code controlsContainer} — always on top.
+   * </ol>
+   */
+  private void updateZOrder() {
+    // Steps 1–4 are DVT-only: establish Z-order for the dual remote layers.
+    if (shouldShowRemote2) {
+      // Step 1: fullscreen blur above the fullscreen remote view.
+      if (remoteOffBlurredImageView != null
+          && remoteOffBlurredImageView.getVisibility() == View.VISIBLE) {
+        remoteOffBlurredImageView.bringToFront();
+      }
+
+      // Step 2: PiP container above the fullscreen blur so the PiP remains visible.
+      if (areStreamsSwapped) {
+        // Swapped: remoteTextureView is the PiP.
+        if (remoteTextureView != null) {
+          remoteTextureView.bringToFront();
+        }
+        if (borderView != null && borderView.getParent() != null) {
+          borderView.bringToFront();
+        }
+      } else {
+        // Not swapped: remote2FrameLayout is the PiP container.
+        if (remote2FrameLayout != null) {
+          remote2FrameLayout.bringToFront();
+        }
+      }
+
+      // Step 3: PiP blur above the PiP container.
+      if (remote2OffBlurredImageView != null
+          && remote2OffBlurredImageView.getVisibility() == View.VISIBLE) {
+        remote2OffBlurredImageView.bringToFront();
+      }
+
+      // Step 4: remote-video-off text label above all remote-related views so it remains
+      // readable when the remote is held or has video off during a DVT call.
+      if (remoteVideoOff != null
+          && remoteVideoOff.getVisibility() == View.VISIBLE) {
+        remoteVideoOff.bringToFront();
+      }
+    }
+
+    // Steps 5–6 apply regardless of DVT state.
+
+    // Step 5: local previews above everything remote-related.
+    if (previewTextureView != null && previewTextureView.getVisibility() == View.VISIBLE) {
+      previewTextureView.bringToFront();
+    }
+    if (preview2TextureView != null && preview2TextureView.getVisibility() == View.VISIBLE) {
+      preview2TextureView.bringToFront();
+    }
+
+    // Step 6: controls always on top.
+    if (controlsContainer != null) {
+      controlsContainer.bringToFront();
+    }
   }
 
   @VisibleForTesting
