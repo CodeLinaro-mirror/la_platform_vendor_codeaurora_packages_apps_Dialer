@@ -515,6 +515,7 @@ public class InCallFragment extends Fragment
   public void onInCallShowDialpad(boolean isShown) {
     LogUtil.i("InCallFragment.onInCallShowDialpad","isShown: "+isShown);
     BottomSheetHelper bottomSheetHelper = BottomSheetHelper.getInstance();
+    bottomSheetHelper.updateMap();
     bottomSheetHelper.updateMoreButtonVisibility(
         isShown ? false : bottomSheetHelper.shallShowMoreButton(getActivity()),
         moreOptionsMenuButton);
@@ -613,6 +614,7 @@ public class InCallFragment extends Fragment
       }
     }
     BottomSheetHelper bottomSheetHelper = BottomSheetHelper.getInstance();
+    bottomSheetHelper.updateMap();
     boolean isDialpadVisible = InCallPresenter.getInstance().isDialpadVisible();
     bottomSheetHelper.updateMoreButtonVisibility(
         isDialpadVisible ? false : bottomSheetHelper.shallShowMoreButton(getActivity()),
@@ -742,6 +744,7 @@ public class InCallFragment extends Fragment
   public void onPrimaryCallChanged(DialerCall call) {
     LogUtil.d("InCallFragment.onPrimaryCallChanged", "");
     BottomSheetHelper bottomSheetHelper = BottomSheetHelper.getInstance();
+    bottomSheetHelper.updateMap();
     boolean isDialpadVisible = InCallPresenter.getInstance().isDialpadVisible();
     bottomSheetHelper.updateMoreButtonVisibility(
         isDialpadVisible ? false : bottomSheetHelper.shallShowMoreButton(getActivity()),

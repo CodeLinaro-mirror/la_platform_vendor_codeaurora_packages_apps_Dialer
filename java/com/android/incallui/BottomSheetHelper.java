@@ -483,7 +483,7 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
        DialerCall call = mPrimaryCallTracker.getPrimaryCall();
        if (call != null && activity != null) {
          int primaryCallState = call.getState();
-         return !(activity.isInMultiWindowMode()
+         boolean canShow = !(activity.isInMultiWindowMode()
            || call.isEmergencyCall()
            || ((DialerCallState.isDialing(primaryCallState) ||
            DialerCallState.CONNECTING == primaryCallState ||
@@ -498,6 +498,15 @@ public class BottomSheetHelper implements PrimaryCallTracker.PrimaryCallChangeLi
            || canDisplayDeflectOptionsButtons()
            || QtiCallUtils.hasVideoCrbtVoLteCall(mContext, call)
            || QtiCallUtils.isVideoCrs(call);
+
+         if (canShow) {
+           // Ensure the map is valid and corresponds to the exact 'call' instance
+           // to prevent stale state issues.
+           if (moreOptionsMap != null && mCall == call) {
+             return moreOptionsMap.containsValue(true);
+           }
+         }
+         return false;
        }
      }
      LogUtil.w("BottomSheetHelper shallShowMoreButton","returns false");

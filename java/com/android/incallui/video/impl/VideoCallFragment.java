@@ -693,6 +693,7 @@ public class VideoCallFragment extends Fragment
     if (bottomSheetHelper == null) {
       return;
     }
+    bottomSheetHelper.updateMap();
     bottomSheetHelper.updateMoreButtonVisibility(InCallPresenter.getInstance().isDialpadVisible()
         ? false : bottomSheetHelper.shallShowMoreButton(getActivity()), moreOptionsMenuButton);
   }
@@ -1592,6 +1593,7 @@ public class VideoCallFragment extends Fragment
     BottomSheetHelper bottomSheetHelper = BottomSheetHelper.getInstance();
     boolean isDialpadVisible = InCallPresenter.getInstance().isDialpadVisible();
     boolean isCrbtReady = videoCallScreenDelegate.isIncomingVideoAvailableForEarlyMedia();
+    bottomSheetHelper.updateMap();
     bottomSheetHelper.updateMoreButtonVisibility(
         isDialpadVisible ? false : bottomSheetHelper.shallShowMoreButton(getActivity()),
         moreOptionsMenuButton);
@@ -1649,6 +1651,7 @@ public class VideoCallFragment extends Fragment
         enable);
     BottomSheetHelper bottomSheetHelper = BottomSheetHelper.getInstance();
     boolean isDialpadVisible = InCallPresenter.getInstance().isDialpadVisible();
+    bottomSheetHelper.updateMap();
     bottomSheetHelper.updateMoreButtonVisibility(
         isDialpadVisible ? false : bottomSheetHelper.shallShowMoreButton(getActivity()),
         moreOptionsMenuButton);
@@ -1668,6 +1671,7 @@ public class VideoCallFragment extends Fragment
     LogUtil.v("VideoCallFragment.setEnabled", "enabled: " + enabled);
     BottomSheetHelper bottomSheetHelper = BottomSheetHelper.getInstance();
     boolean isDialpadVisible = InCallPresenter.getInstance().isDialpadVisible();
+    bottomSheetHelper.updateMap();
     bottomSheetHelper.updateMoreButtonVisibility(
         isDialpadVisible ? false : bottomSheetHelper.shallShowMoreButton(getActivity()),
         moreOptionsMenuButton);
@@ -1847,6 +1851,7 @@ public class VideoCallFragment extends Fragment
   public void onInCallShowDialpad(boolean isShown) {
     LogUtil.i("VideoCallFragment.onInCallShowDialpad","isShown: "+isShown);
     BottomSheetHelper bottomSheetHelper = BottomSheetHelper.getInstance();
+    bottomSheetHelper.updateMap();
     bottomSheetHelper.updateMoreButtonVisibility(
         isShown ? false : bottomSheetHelper.shallShowMoreButton(getActivity()),
         moreOptionsMenuButton);
