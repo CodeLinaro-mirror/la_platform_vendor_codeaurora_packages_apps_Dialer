@@ -34,7 +34,6 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.RecyclerView.OnScrollListener;
 import android.telecom.CallAudioState;
-import android.telecom.Call.Details;
 import android.telephony.satellite.SatelliteManager;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -89,6 +88,8 @@ import com.android.incallui.rtt.protocol.Constants;
 import com.android.incallui.rtt.protocol.RttCallScreen;
 import com.android.incallui.rtt.protocol.RttCallScreenDelegate;
 import com.android.incallui.rtt.protocol.RttCallScreenDelegateFactory;
+import com.android.telecom.vendor.ext.VendorExtConstants;
+
 import org.codeaurora.ims.utils.QtiImsExtUtils;
 import java.util.List;
 
@@ -102,8 +103,6 @@ public class RttChatFragment extends Fragment
         InCallButtonUi,
         AudioRouteSelectorPresenter {
 
-  private static final int CAPABILITY_TRANSFER = 0x04000000;
-  private static final int CAPABILITY_TRANSFER_CONSULTATIVE = 0x08000000;
   private static final String ARG_CALL_ID = "call_id";
 
   private RecyclerView recyclerView;
@@ -555,8 +554,8 @@ public class RttChatFragment extends Fragment
     boolean showTransferOptions =
         currentCall != null
             && !currentCall.isEmergencyCall()
-            && (currentCall.can(CAPABILITY_TRANSFER)
-            || currentCall.can(CAPABILITY_TRANSFER_CONSULTATIVE))
+            && (currentCall.can(VendorExtConstants.CAPABILITY_TRANSFER)
+            || currentCall.can(VendorExtConstants.CAPABILITY_TRANSFER_CONSULTATIVE))
             && !currentCall.hasReceivedVideoUpgradeRequest();
     overflowMenu.enableTransferButton(showTransferOptions);
   }
