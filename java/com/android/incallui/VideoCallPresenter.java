@@ -1031,6 +1031,27 @@ public class VideoCallPresenter
 
   private void enterScreenShare() {
     LogUtil.i("VideoCallPresenter.enterScreenShare", "enter screen share");
+
+    // Cache screen dimensions now while videoCallScreen is guaranteed valid.
+    // startScreenShare() may be called later from onConnectionAvailable which
+    // can fire after Fragment.onStop when videoCallScreen is already null.
+    if (videoCallScreen != null) {
+      Activity activity = videoCallScreen.getVideoCallScreenFragment().getActivity();
+      if (activity != null) {
+        DisplayMetrics metrics = new DisplayMetrics();
+        activity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        mDisplayDpi = metrics.densityDpi;
+        ScreenShareHelper.setCalculatedScreenShareParams(
+                metrics.widthPixels, metrics.heightPixels);
+      } else {
+        LogUtil.w("VideoCallPresenter.enterScreenShare",
+            "activity is null, screen dims not cached");
+      }
+    } else {
+      LogUtil.w("VideoCallPresenter.enterScreenShare",
+          "videoCallScreen is null, screen dims not cached");
+    }
+
     mQtiImsExtConnector = ScreenShareHelper.getQtiImsExtConnector();
 
     if (mQtiImsExtConnector == null) {
@@ -1087,19 +1108,14 @@ public class VideoCallPresenter
     * setup virtual display.
     */
   private void startScreenShare() {
-    if (videoCallScreen == null) {
-      LogUtil.w("VideoCallPresenter.startScreenShare", " VideoCallScreen is null");
+    int width = ScreenShareHelper.getCalculatedScreenShareWidth();
+    int height = ScreenShareHelper.getCalculatedScreenShareHeight();
+    if (width < 0 || height < 0) {
+      LogUtil.w("VideoCallPresenter.startScreenShare",
+          "screen dims not cached, cannot start");
       return;
     }
-    DisplayMetrics metrics = new DisplayMetrics();
-    Activity activity = videoCallScreen.getVideoCallScreenFragment().getActivity();
-    if (activity == null) {
-      LogUtil.w("VideoCallPresenter.startScreenShare", "activity is null");
-      return;
-    }
-    activity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
-    mDisplayDpi = metrics.densityDpi;
-    ScreenShareHelper.startScreenShare(metrics.widthPixels, metrics.heightPixels);
+    ScreenShareHelper.startScreenShare(width, height);
     mScreenShareQuery = REQUEST_TO_START;
   }
 
@@ -1654,9 +1670,17 @@ public class VideoCallPresenter
     checkForOrientationAllowedChange(primaryCall);
     InCallPresenter.getInstance().enableScreenTimeout(true);
 
-    if (ScreenShareHelper.screenShareRequested() && ScreenShareHelper.isSessionActive()) {
-      exitScreenShare();
-      clearScreenShareStates();
+    if (ScreenShareHelper.screenShareRequested()) {
+      if (ScreenShareHelper.isSessionActive()) {
+        // exitScreenShare() sets mScreenShareQuery=REQUEST_TO_STOP and triggers
+        // an async IMS stop. recordingSurfaceChanged() will call clearScreenShareStates()
+        // when the null surface callback arrives for REQUEST_TO_STOP.
+        exitScreenShare();
+      } else {
+        // Session was requested but never became active — no async callback
+        // will arrive, so clear states synchronously.
+        clearScreenShareStates();
+      }
     }
 
     if (mVideoCallProviderManager != null) {
@@ -1685,7 +1709,9 @@ public class VideoCallPresenter
 
   private void clearVideoCallProvider() {
     if (mQtiImsExtConnector != null) {
-      if (!ScreenShareHelper.isSessionActive()) mQtiImsExtConnector.disconnect();
+      boolean shouldDisconnect = !ScreenShareHelper.isSessionActive()
+          && !ScreenShareHelper.screenShareRequested();
+      if (shouldDisconnect) mQtiImsExtConnector.disconnect();
       mQtiImsExtConnector = null;
       mQtiImsExtManager = null;
     }

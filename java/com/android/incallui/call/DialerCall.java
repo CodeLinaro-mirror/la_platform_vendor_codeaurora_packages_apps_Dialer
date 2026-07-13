@@ -497,6 +497,15 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
   private SatelliteInfo mSatelliteInfo;
   private VideoCallProviderListenerBase mVideoCallProviderListener = null;
 
+  // Deduplication cache for SSN messages within a single call instance.
+  // Cleared in onRemovedFromCallList() to allow re-delivery on subsequent calls.
+  // Note: only the first distinct SSN message per call is delivered; later identical
+  // messages are suppressed to prevent duplicate snackbars.
+  private String mCachedSsnMessage = null;
+  private static final int SUPP_SERVICE_NOTIFY_INVALID = -1;
+  private static final int SUPP_SERVICE_NOTIFY_TYPE_CODE_1 = 0;
+  private static final int SUPP_SERVICE_NOTIFY_CODE_1_CALL_FORWARDED = 2;
+
   public DialerCall(
       Context context,
       DialerCallDelegate dialerCallDelegate,
@@ -668,13 +677,25 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
       if (extras == null) {
           return;
       }
-      String suplNotificationText = extras.getCharSequence(TelephonyManagerCompat
-              .EXTRA_NOTIFICATION_MESSAGE).toString();
+      CharSequence suplSeq = extras.getCharSequence(
+          TelephonyManagerCompat.EXTRA_NOTIFICATION_MESSAGE);
+      if (suplSeq == null) {
+          LogUtil.i("DialerCall.notifySuplServiceMessage",
+                  "Supplementary service notification text null");
+          return;
+      }
+      String suplNotificationText = suplSeq.toString();
       if (TextUtils.isEmpty(suplNotificationText)) {
           LogUtil.i("DialerCall.notifySuplServiceMessage",
                   "Supplementary service notification text empty");
           return;
       }
+      if (TextUtils.equals(suplNotificationText, mCachedSsnMessage)) {
+          LogUtil.i("DialerCall.notifySuplServiceMessage",
+                  "Duplicate SSN message, skipping notification");
+          return;
+      }
+      mCachedSsnMessage = suplNotificationText;
 
       for (DialerCallListener listener : listeners) {
           listener.onSuplServiceMessage(suplNotificationText);
@@ -1014,6 +1035,21 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
     LogUtil.i("updateCallExtras isDualVtSupported: "," capability= " + capability);
     this.isDualVtSupported = capability != QtiCallConstants.DUAL_VIDEO_DISABLED;
     mDualVtCapability = capability;
+
+    // Compensate for SSN events missed due to late InCallService binding (b/500880243).
+    if (callExtras.containsKey(TelephonyManagerCompat.EXTRA_NOTIFICATION_MESSAGE)) {
+      // Mirrors onConnectionEvent(EVENT_CALL_FORWARDED).
+      if (BuildCompat.isAtLeastP() && !isCallForwarded
+          && callExtras.getInt(TelephonyManager.EXTRA_NOTIFICATION_TYPE,
+              SUPP_SERVICE_NOTIFY_INVALID) == SUPP_SERVICE_NOTIFY_TYPE_CODE_1
+          && callExtras.getInt(TelephonyManager.EXTRA_NOTIFICATION_CODE,
+              SUPP_SERVICE_NOTIFY_INVALID) == SUPP_SERVICE_NOTIFY_CODE_1_CALL_FORWARDED) {
+        isCallForwarded = true;
+      }
+      // Mirrors onConnectionEvent(EVENT_SUPPLEMENTARY_SERVICE_NOTIFICATION).
+      // Deduplication is handled inside notifySuplServiceMessage().
+      notifySuplServiceMessage(callExtras);
+    }
   }
 
   public boolean isDualVideoSupported() {
@@ -2072,6 +2108,10 @@ public class DialerCall implements VideoTechListener, StateChangedListener, Capa
       saveRttTranscript();
     }
     isCallRemoved = true;
+    // Reset SSN deduplication cache so the same message can be re-delivered
+    // if a new DialerCall is created for a subsequent call to the same number.
+    // (This DialerCall instance is not reused, but clearing here is defensive.)
+    mCachedSsnMessage = null;
   }
 
   public com.android.dialer.logging.VideoTech.Type getSelectedAvailableVideoTechType() {
