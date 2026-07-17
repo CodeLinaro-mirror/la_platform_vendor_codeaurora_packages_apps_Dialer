@@ -776,9 +776,7 @@ public class CallButtonPresenter
     inCallButtonUi.enableButton(InCallButtonIds.BUTTON_SHOW_SATELLITE_PROMPT,
             call.getSatelliteInfo() != null);
 
-    if (BottomSheetHelper.getInstance().shallShowMoreButton(getActivity())) {
-      BottomSheetHelper.getInstance().updateMap();
-    }
+    BottomSheetHelper.getInstance().updateMap();
     inCallButtonUi.updateButtonStates();
   }
 

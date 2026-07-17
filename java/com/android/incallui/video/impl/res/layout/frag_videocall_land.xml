@@ -95,6 +95,20 @@
         android:importantForAccessibility="no"/>
    </FrameLayout>
 
+  <!-- PiP blur overlay: same size/position as videocall_video_remote2 so it only
+       covers the top-left PiP slot, not the full screen. Brought to front on top
+       of the PiP when the DVT call is held. -->
+  <ImageView
+    android:id="@+id/videocall_remote2_off_blurred_image_view"
+    android:layout_width="120dp"
+    android:layout_height="140dp"
+    android:layout_marginTop="30dp"
+    android:layout_marginStart="15dp"
+    android:layout_alignParentTop="true"
+    android:layout_alignParentStart="true"
+    android:scaleType="fitCenter"
+    android:visibility="gone"/>
+
   <ImageView
     android:id="@+id/videocall_preview_off_blurred_image_view"
     android:layout_width="@dimen/videocall_preview_width"
