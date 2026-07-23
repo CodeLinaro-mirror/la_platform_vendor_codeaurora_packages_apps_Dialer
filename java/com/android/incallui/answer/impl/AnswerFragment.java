@@ -1100,11 +1100,9 @@ public class AnswerFragment extends Fragment
 
     restoreBackgroundMaskColor();
     BottomSheetHelper bottomSheetHelper = BottomSheetHelper.getInstance();
-    boolean isVisible = bottomSheetHelper.shallShowMoreButton(getActivity());
-    if (isVisible) {
-      bottomSheetHelper.updateMap();
-    }
-    bottomSheetHelper.updateMoreButtonVisibility(isVisible, moreOptionsMenuButton);
+    bottomSheetHelper.updateMap();
+    bottomSheetHelper.updateMoreButtonVisibility(
+        bottomSheetHelper.shallShowMoreButton(getActivity()), moreOptionsMenuButton);
   }
 
   @Override
