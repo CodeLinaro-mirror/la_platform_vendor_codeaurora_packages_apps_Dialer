@@ -1470,9 +1470,23 @@ public class VideoCallPresenter
       return;
     }
 
-    if (shouldShowVideoUiForCall(call) && hasChanged) {
+    if (!shouldShowVideoUiForCall(call)) {
+      Log.d(this, "Not showing video ui.Ignore.");
+      return;
+    }
+
+    if (hasChanged) {
       adjustVideoMode(call);
       updateSecondaryVideo(call);
+    } else if (previewSurfaceState == PreviewSurfaceState.CAMERA_SET) {
+      // After conference merge, video call associated with conference call
+      // changes. If enable camera was called via older video call object,
+      // camera capabilities may not be propagated to UI if the video call
+      // object is changed in between, causing camera to not start recording.
+      // To fix those cases, re query camera caps when video call is changed
+      // and camera caps are not yet received.
+      Log.d(this, "changeVideoCall: Query camera caps");
+      videoCall.requestCameraCapabilities();
     }
   }
 
