@@ -262,6 +262,7 @@ public class VideoCallFragment extends Fragment
   private View controls;
   private View switchControls;
   private View controlsContainer;
+  private View dialpadContainer;
   private TextureView previewTextureView;
   private TextureView remoteTextureView;
   private TextureView preview2TextureView;
@@ -396,6 +397,7 @@ public class VideoCallFragment extends Fragment
     controls = view.findViewById(R.id.videocall_video_controls);
     controls.setVisibility(getActivity().isInMultiWindowMode() ? View.GONE : View.VISIBLE);
     controlsContainer = view.findViewById(R.id.videocall_video_controls_container);
+    dialpadContainer = view.findViewById(R.id.videocall_dialpad_container);
     speakerButton = (CheckableImageButton) view.findViewById(R.id.videocall_speaker_button);
     muteButton = (CheckableImageButton) view.findViewById(R.id.videocall_mute_button);
     muteButton.setOnCheckedChangeListener(this);
@@ -1065,14 +1067,9 @@ public class VideoCallFragment extends Fragment
     }
 
     String dialpadLabel = activity.getResources().getString(R.string.dialpad_label);
-    if (text.equals(dialpadLabel)) {
-      View root = getView();
-      if (root == null) {
-        return;
-      }
-      View container = root.findViewById(R.id.videocall_dialpad_container);
+    if (text.equals(dialpadLabel) && dialpadContainer != null) {
       Point previewOffsetStartShown = getPreviewOffsetStartShown();
-      container
+      dialpadContainer
           .animate()
           .translationX(previewOffsetStartShown.x)
           .translationY(previewOffsetStartShown.y)
@@ -2155,7 +2152,8 @@ public class VideoCallFragment extends Fragment
    *   <li>{@code remoteVideoOff} — "remotely held" / "video off" text label — DVT only.
    *   <li>{@code previewTextureView} — local camera preview.
    *   <li>{@code preview2TextureView} — secondary local camera preview.
-   *   <li>{@code controlsContainer} — always on top.
+   *   <li>{@code controlsContainer} — in-call controls.
+   *   <li>{@code videocall_dialpad_container} — dialpad, always topmost.
    * </ol>
    */
   private void updateZOrder() {
@@ -2197,7 +2195,7 @@ public class VideoCallFragment extends Fragment
       }
     }
 
-    // Steps 5–6 apply regardless of DVT state.
+    // Steps 5–7 apply regardless of DVT state.
 
     // Step 5: local previews above everything remote-related.
     if (previewTextureView != null && previewTextureView.getVisibility() == View.VISIBLE) {
@@ -2207,9 +2205,15 @@ public class VideoCallFragment extends Fragment
       preview2TextureView.bringToFront();
     }
 
-    // Step 6: controls always on top.
+    // Step 6: controls above all video views.
     if (controlsContainer != null) {
       controlsContainer.bringToFront();
+    }
+
+    // Step 7: dialpad container always topmost so it is never occluded by video
+    // views or controls after a z-order update.
+    if (dialpadContainer != null) {
+      dialpadContainer.bringToFront();
     }
   }
 
