@@ -20,8 +20,10 @@
 
 package com.android.dialer.main.impl;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import com.android.dialer.blockreportspam.ShowBlockReportSpamDialogReceiver;
@@ -79,6 +81,16 @@ public class MainActivity extends TransactionSafeActivity
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+
+    if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_TELEPHONY_CALLING)) {
+        new AlertDialog.Builder(this)
+            .setMessage(com.android.dialer.R.string.calling_not_supported_message)
+            .setPositiveButton(android.R.string.ok, (dialog, which) -> finish())
+            .setCancelable(false)
+            .show();
+        return;
+    }
+
     DialerUtils.setupEdgeToEdge(this);
     LogUtil.enterBlock("MainActivity.onCreate");
     // If peer was set by the super, don't reset it.
@@ -101,54 +113,73 @@ public class MainActivity extends TransactionSafeActivity
   protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
     setIntent(intent);
-    activePeer.onNewIntent(intent);
+    if (activePeer != null) {
+        activePeer.onNewIntent(intent);
+    }
   }
 
   @Override
   protected void onResume() {
     super.onResume();
-    activePeer.onActivityResume();
+    if (activePeer != null) {
+        activePeer.onActivityResume();
+    }
     QtiCarrierConfigHelper.getInstance().setup(getApplicationContext());
-    LocalBroadcastManager.getInstance(this)
-        .registerReceiver(
-            showBlockReportSpamDialogReceiver, ShowBlockReportSpamDialogReceiver.getIntentFilter());
+    if (showBlockReportSpamDialogReceiver != null) {
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+                showBlockReportSpamDialogReceiver,
+                ShowBlockReportSpamDialogReceiver.getIntentFilter());
+    }
   }
 
   @Override
   protected void onUserLeaveHint() {
     super.onUserLeaveHint();
-    activePeer.onUserLeaveHint();
+    if (activePeer != null) {
+        activePeer.onUserLeaveHint();
+    }
   }
 
   @Override
   protected void onPause() {
     super.onPause();
-    activePeer.onActivityPause();
+    if (activePeer != null) {
+        activePeer.onActivityPause();
+    }
     QtiCarrierConfigHelper.getInstance().teardown();
-    LocalBroadcastManager.getInstance(this).unregisterReceiver(showBlockReportSpamDialogReceiver);
+    if (showBlockReportSpamDialogReceiver != null) {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(
+                showBlockReportSpamDialogReceiver);
+    }
   }
 
   @Override
   protected void onStop() {
     super.onStop();
-    activePeer.onActivityStop();
+    if (activePeer != null) {
+        activePeer.onActivityStop();
+    }
   }
 
   @Override
   protected void onSaveInstanceState(Bundle bundle) {
     super.onSaveInstanceState(bundle);
-    activePeer.onSaveInstanceState(bundle);
+    if (activePeer != null) {
+        activePeer.onSaveInstanceState(bundle);
+    }
   }
 
   @Override
   protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     super.onActivityResult(requestCode, resultCode, data);
-    activePeer.onActivityResult(requestCode, resultCode, data);
+    if (activePeer != null) {
+        activePeer.onActivityResult(requestCode, resultCode, data);
+    }
   }
 
   @Override
   public void onBackPressed() {
-    if (activePeer.onBackPressed()) {
+    if (activePeer != null && activePeer.onBackPressed()) {
       return;
     }
     super.onBackPressed();
