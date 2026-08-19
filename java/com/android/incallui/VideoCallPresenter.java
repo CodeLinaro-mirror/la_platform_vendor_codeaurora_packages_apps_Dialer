@@ -701,6 +701,7 @@ public class VideoCallPresenter
       updateCameraSelection(primaryCall);
     }
     // clear side-car connector if connector is not null, exitVideoMode is not always called
+    removeVideoCallProviderListener();
     clearVideoCallProvider();
     InCallPresenter.getInstance().enableScreenTimeout(true);
 
@@ -2644,6 +2645,7 @@ public class VideoCallPresenter
     if (mQtiImsExtManager == null) {
       LogUtil.i("VideoCallPresenter.removeVideoCallProviderListener",
           "mQtiImsExtManager is null");
+      mVideoCallProviderManager = null;
       return;
     }
 
@@ -2657,6 +2659,7 @@ public class VideoCallPresenter
     } catch (QtiImsException e) {
       LogUtil.e("VideoCallPresenter.removeVideoCallProviderListener", "exception " + e);
     }
+    mVideoCallProviderManager = null;
   }
 
   private boolean isDualVideoCallEnabled() {
