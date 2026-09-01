@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.autoresizetext;
@@ -146,14 +150,10 @@ public class AutoResizeTextView extends TextView {
     maxTextSize = (int) getTextSize();
   }
 
-  private void adjustTextSize() {
-    int maxWidth = getMeasuredWidth() - getPaddingLeft() - getPaddingRight();
-    int maxHeight = getMeasuredHeight() - getPaddingBottom() - getPaddingTop();
-
+  private void adjustTextSizeInternal(int maxWidth, int maxHeight) {
     if (maxWidth <= 0 || maxHeight <= 0) {
       return;
     }
-
     this.maxWidth = maxWidth;
     availableSpaceRect.right = maxWidth;
     availableSpaceRect.bottom = maxHeight;
@@ -162,6 +162,12 @@ public class AutoResizeTextView extends TextView {
     float textSize = computeTextSize(
         minSizeInStepSizeUnits, maxSizeInStepSizeUnits, availableSpaceRect);
     super.setTextSize(resizeStepUnit, textSize);
+  }
+
+  private void adjustTextSize() {
+    adjustTextSizeInternal(
+        getMeasuredWidth() - getPaddingLeft() - getPaddingRight(),
+        getMeasuredHeight() - getPaddingBottom() - getPaddingTop());
   }
 
   private boolean suggestedSizeFitsInSpace(float suggestedSizeInPx, RectF availableSpace) {
@@ -201,11 +207,15 @@ public class AutoResizeTextView extends TextView {
    */
   private float computeTextSize(int minSize, int maxSize, RectF availableSpace) {
     CharSequence text = getText();
-    if (text != null && textSizesCache.get(text.hashCode()) != 0) {
-      return textSizesCache.get(text.hashCode());
+    // Include available width in cache key to prevent stale sizes when view width changes.
+    int cacheKey = java.util.Objects.hash(text == null ? "" : text.toString()
+        , (int) availableSpace.right);
+    int cacheIndex = textSizesCache.indexOfKey(cacheKey);
+    if (cacheIndex >= 0) {
+      return textSizesCache.valueAt(cacheIndex);
     }
     int size = binarySearchSizes(minSize, maxSize, availableSpace);
-    textSizesCache.put(text == null ? 0 : text.hashCode(), size);
+    textSizesCache.put(cacheKey, size);
     return size;
   }
 
@@ -259,7 +269,26 @@ public class AutoResizeTextView extends TextView {
 
   @Override
   protected final void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-    adjustTextSize();
+    // Use the width from the measure spec instead of the stale getMeasuredWidth().
+    // When the primary call changes during call swap, getMeasuredWidth()
+    // still returns the width from the previous call's text, causing the font size to be
+    // computed based on the wrong (smaller) width and cached incorrectly.
+    int specWidth = android.view.View.MeasureSpec.getSize(widthMeasureSpec);
+    int widthToUse = specWidth - getPaddingLeft() - getPaddingRight();
+
+    // Use a hybrid strategy for height: During the very first layout pass, getMeasuredHeight()
+    // returns 0. If the parent container provides an EXACTLY or AT_MOST spec
+    // (with a size greater than 0),we use it. Otherwise, we fallback to getMeasuredHeight()
+    // to handle edge cases likeUNSPECIFIED wrap_content scenarios.
+    int heightMode = android.view.View.MeasureSpec.getMode(heightMeasureSpec);
+    int specHeight = android.view.View.MeasureSpec.getSize(heightMeasureSpec);
+    int heightToUse = (heightMode == android.view.View.MeasureSpec.EXACTLY
+        || heightMode == android.view.View.MeasureSpec.AT_MOST) && specHeight > 0
+            ? specHeight
+            : getMeasuredHeight();
+    heightToUse = heightToUse - getPaddingBottom() - getPaddingTop();
+
+    adjustTextSizeInternal(widthToUse, heightToUse);
     super.onMeasure(widthMeasureSpec, heightMeasureSpec);
   }
 }
