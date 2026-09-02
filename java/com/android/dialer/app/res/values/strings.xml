@@ -768,4 +768,6 @@
 
   <string name="launch_messaging_application">Launch messaging application</string>
 
+  <string name="calling_not_supported_message">Device does not support calling.</string>
+
 </resources>
