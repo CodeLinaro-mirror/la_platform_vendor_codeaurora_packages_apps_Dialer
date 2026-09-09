@@ -349,11 +349,11 @@ public class CallProgressNotification implements InCallDetailsListener {
         reasonText = reasonText.trim();
         Log.d(this, "getQ850ReasonForNonUniqueReasonText - reason text : " + reasonText);
 
-        if (reasonText.equals(mCallRejectedReasonFromNw)) {
+        if (reasonText.equalsIgnoreCase(mCallRejectedReasonFromNw)) {
             return mResources.getString(R.string.call_progress_info_call_rejected);
-        } else if (reasonText.equals(mUserCallRejectedReasonFromNw)) {
+        } else if (reasonText.equalsIgnoreCase(mUserCallRejectedReasonFromNw)) {
             return mResources.getString(R.string.call_progress_info_user_call_rejected);
-        } else if (reasonText.equals(mNonUserCallRejectedReasonFromNw)) {
+        } else if (reasonText.equalsIgnoreCase(mNonUserCallRejectedReasonFromNw)) {
             return mResources.getString(R.string.call_progress_info_nonuser_call_rejected);
         }
 
