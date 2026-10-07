@@ -12,10 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 package com.android.incallui.contactgrid;
 
+import android.animation.LayoutTransition;
 import android.content.Context;
 import android.graphics.drawable.Animatable;
 import android.graphics.drawable.Drawable;
@@ -27,6 +32,8 @@ import android.text.BidiFormatter;
 import android.text.TextDirectionHeuristics;
 import android.text.TextUtils;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.Chronometer;
 import android.widget.ImageView;
@@ -129,6 +136,17 @@ public class ContactGridManager {
 
     deviceNumberTextView = view.findViewById(R.id.contactgrid_device_number_text);
     deviceNumberDivider = view.findViewById(R.id.contactgrid_location_divider);
+
+    // Disable CHANGE_APPEARING/CHANGE_DISAPPEARING animations on the
+    // bottom row LinearLayout.
+    ViewParent parent = bottomTextSwitcher.getParent();
+    if (parent instanceof ViewGroup) {
+      LayoutTransition transition = ((ViewGroup) parent).getLayoutTransition();
+      if (transition != null) {
+        transition.setDuration(LayoutTransition.CHANGE_APPEARING, 0);
+        transition.setDuration(LayoutTransition.CHANGE_DISAPPEARING, 0);
+      }
+    }
   }
 
   public void show() {
